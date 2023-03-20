@@ -36,3 +36,43 @@ code = '((function (a, b) {return b;})(1, 2)).toString()'
 // console.dir(Parser.parse(code, { ecmaVersion: 6 }).body[0], {depth: null})
 
 var done = (function wait () { if (!done) setTimeout(wait, 1000) })();
+
+bunny.lang.eq = function(a, b) {
+    var fn = _this["bunny.lang.Eq$eq$arity2"]
+    if (!fn) {
+        resolve(new Sym("bunny.lang", "Eq"))
+        global.bunny.modules["bunny.lang"].get_var("Eq")
+    }
+    fn(a,b)
+}
+
+let Eq = define_protocol(
+    new Sym("bunny.lang", "Eq"),
+    [["eq", [[["this", "that"], "Check equality"]]]]
+)
+
+console.log(Eq)
+
+extend_protocol(
+    Eq,
+    Sym,
+    [["eq", 2,
+      function(me, other) {
+          return (other instanceof Sym) &&
+              me.namespace === other.namespace &&
+              me.name === other.name
+      }]]
+)
+
+extend_protocol(
+    Eq,
+    "string",
+    [["eq", 2,
+      function(me, other) {
+          return me === other
+      }]]
+)
+
+console.log(resolve(new Sym("bunny.lang", "eq")).invoke([new Sym("z", "y"), new Sym("x", "y")]))
+console.log(resolve(new Sym("bunny.lang", "eq")).invoke(["foo", "foo"]))
+console.log(resolve(new Sym("bunny.lang", "eq")).invoke([true, false]))

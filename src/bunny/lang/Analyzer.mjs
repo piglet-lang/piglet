@@ -256,18 +256,12 @@ class DefExpr {
         return new DefExpr(form, var_name.name, value)
     }
     estree() {
-        return {type: "CallExpression",
-                callee: member_lookup([{type: "Identifier", name: GLOBAL_SCOPE.deref()},
-                                       {type: "CallExpression",
-                                        callee: member_lookup([{type: "MemberExpression",
-                                                                object: member_lookup([{type: "Identifier", name: "bunny"},
-                                                                                       {type: "Identifier", name: "modules"},]),
-                                                                property: string_literal(CURRENT_MODULE.deref().name),
-                                                                computed: true},
-                                                               {type: "Identifier", name: "get_var"}]),
-                                        arguments: [string_literal(this.var_name)]},
-                                       {type: "Identifier", name: "set_value"}]),
-                arguments: [this.value.estree()]}
+        return method_call(
+            module_lookup(CURRENT_MODULE.deref().name),
+            "intern",
+            [string_literal(this.var_name),
+             this.value.estree()]
+        )
     }
 }
 

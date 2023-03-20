@@ -10,7 +10,16 @@ export default class Module {
     }
 
     get_var(name) {
-        return this.vars[name] || (this.vars[name] = new Var(this.name, name, null, null))
+        return this.vars[name]
+    }
+
+    intern(name, value) {
+        if (this.vars[name]) {
+            this.vars[name].set_value(value)
+            return this.vars[name]
+        } else {
+            return this.vars[name] = new Var(this.name, name, value, value)
+        }
     }
 
     isDefined(name) {
