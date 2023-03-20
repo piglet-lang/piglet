@@ -26,7 +26,7 @@ let ch_rparen = ")".charCodeAt(0)
 let ch_slash = "/".charCodeAt(0)
 let ch_backslash = "\\".charCodeAt(0)
 let whitespace_chars = char_seq(" \r\n\t\v")
-let sym_chars = char_seq("+-_|!?$<>.*%")
+let sym_chars = char_seq("+-_|!?$<>.*%=<>/")
 
 class StringReader {
     constructor(input) {

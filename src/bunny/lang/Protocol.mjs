@@ -8,6 +8,7 @@ class Protocol {
         this.name = name
         this.signatures = signatures
         this.builtins = {}
+        this.methods = {}
     }
 }
 
@@ -17,23 +18,25 @@ function define_protocol(name, signatures) {
     mod.intern(name, proto)
     for(var signature of signatures) {
         let method_name = signature[0]
-        mod.intern(method_name, function(object) {
+        let dispatch = function(object) {
             let arity = arguments.length
             let full_name = munge_method_name(proto, method_name, arity)
-            if (typeof object == "object") {
+            if (object && typeof object == "object") {
                 let method = object[full_name]
                 if (method) {
                     return method.apply(null, arguments)
                 }
             } else {
-                let methods = proto.builtins[typeof object]
+                let methods = proto.builtins[object === null ? "null" : typeof object]
                 let method = methods && methods[full_name]
                 if (method) {
                     return method.apply(null, arguments)
                 }
             }
             throw new Error("No protocol definition for " + name + " " + method_name + "/" + arity + " on object " + object)
-        })
+        }
+        mod.intern(method_name, dispatch)
+        proto.methods[method_name] = dispatch
     }
     return proto
 }

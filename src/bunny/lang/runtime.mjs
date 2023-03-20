@@ -37,6 +37,7 @@ BUNNY_LANG.intern("list", function() {return new List(Array.from(arguments))})
 BUNNY_LANG.intern("symbol", function(ns, name) {return new Sym(ns, name)})
 BUNNY_LANG.intern("resolve", resolve)
 BUNNY_LANG.intern("get-module", get_module)
+BUNNY_LANG.intern("conj", function(coll, o) {return BUNNY_LANG.resolve("-conj").invoke([coll,o])})
 RUNTIME.var = find_var
 
 export {GLOBAL_SCOPE, CURRENT_MODULE, RUNTIME, init_runtime, resolve, get_module}
