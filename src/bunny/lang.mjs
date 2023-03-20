@@ -1,11 +1,4 @@
-import * as astring from 'astring'
-import {Parser} from 'acorn'
-
-function str_hash_code(s) {
-    for(var i = 0, h = 0; i < s.length; i++)
-        h = Math.imul(31, h) + s.charCodeAt(i) | 0;
-    return h;
-}
+// Copyright (c) Arne Brasseur 2023. All rights reserved.
 
 class Sym {
     constructor(ns, name) {
@@ -25,12 +18,35 @@ class Sym {
         return (other instanceof Sym) && this.namespace === other.namespace && this.name === other.name
     }
 
-    hashCode() {
-        return str_hash_code(this.namespace) + str_hash_code(this.name)
+    isNamespaced() {
+        return !!this.namespace;
     }
 }
 
 class Number {
+    constructor(raw, value) {
+        this.raw = raw
+        this.value = value
+    }
+
+    repr() {
+        return this.raw
+    }
+
+    eq(other) {
+        return (other instanceof Number) && this.value === other.value
+    }
+
+    estree() {
+        return {"type": "Literal",
+                "start": this.start,
+                "end": this.end,
+                "value": this.value,
+                "raw": this.raw}
+    }
+}
+
+class String {
     constructor(raw, value) {
         this.raw = raw
         this.value = value
@@ -58,10 +74,6 @@ class List {
         this.elements = elements
     }
 
-    repr() {
-        return "(" + this.elements.map(e=>e.repr()).join(" ") + ")"
-    }
-
     first() {
         return this.elements[0]
     }
@@ -77,11 +89,68 @@ class List {
 
     }
 
+    toString() {
+        return "(" + this.elements.map(e=>e.toString()).join(" ") + ")"
+    }
+
     [Symbol.iterator]() {
         return this.elements[Symbol.iterator]()
     }
 }
 
+class Var {
+    constructor(module, name, value, meta) {
+        this.module = module
+        this.name = name
+        this.binding_stack = [value]
+        this.meta = meta
+    }
+
+    deref() {
+        return this.binding_stack[0]
+    }
+
+    invoke(args) {
+        return this.deref().apply(null, args)
+    }
+
+    set_value(value) {
+        this.binding_stack[0] = value
+    }
+
+    push_binding(value) {
+        this.binding_stack.unshift(value)
+    }
+
+    pop_binding(value) {
+        this.binding_stack.shift(value)
+    }
+}
+
+class Module {
+    constructor(name) {
+        this.name = name
+        this.vars = {}
+        this.aliases = {}
+    }
+
+    get_var(name) {
+        return this.vars[name] || (this.vars[name] = new Var(this.name, name, null, null))
+    }
+
+    isDefined(name) {
+        return !!this.vars[name]
+    }
+}
+
+let MODULE_USER = new Module("user")
+let MODULE_BUNNY_LANG = new Module("bunny.lang")
+
+let GLOBAL_SCOPE = new Var("bunny.lang", "global-scope", null)
+let CURRENT_MODULE = new Var("bunny.lang", "*current-module*", MODULE_USER)
+MODULE_BUNNY_LANG.vars["*current-module*"] = CURRENT_MODULE
+MODULE_BUNNY_LANG.vars["global-scope"] = GLOBAL_SCOPE
+MODULE_BUNNY_LANG.vars["list"] = new Var("bunny.lang", "list", function() {return new List(Array.from(arguments))})
 
 function char_seq(s) {
     return s.split("").map(ch=>ch.charCodeAt(0))
@@ -97,9 +166,12 @@ let ch_a = "a".charCodeAt(0)
 let ch_z = "z".charCodeAt(0)
 let ch_A = "A".charCodeAt(0)
 let ch_Z = "Z".charCodeAt(0)
+let ch_dubquot = "\"".charCodeAt(0)
+let ch_quot = "'".charCodeAt(0)
 let ch_lparen = "(".charCodeAt(0)
 let ch_rparen = ")".charCodeAt(0)
 let ch_slash = "/".charCodeAt(0)
+let ch_backslash = "\\".charCodeAt(0)
 let whitespace_chars = char_seq(" \r\n\t\v")
 let sym_chars = char_seq("+-_|!?$<>.*%")
 
@@ -149,6 +221,11 @@ class StringReader {
             return this.read_number()
         } else if (this.cc == ch_lparen) {
             return this.read_list()
+        } else if (this.cc == ch_dubquot) {
+            return this.read_string()
+        } else if (this.cc == ch_quot) {
+            this.next_ch()
+            return new List([new Sym(null, "quote"), this.read()])
         }
         return "not recognized " + this.ch + " @" + this.pos
     }
@@ -172,6 +249,21 @@ class StringReader {
         while (!this.eof() && (ch_0 <= this.cc && this.cc <= ch_9)) this.next_ch()
         let num_str = this.input.substring(start, this.pos)
         return new Number(num_str, parseInt(num_str, 10))
+    }
+
+    read_string() {
+        let start = this.pos
+        this.next_ch()
+        while (!this.eof() && ch_dubquot != this.cc) {
+            this.next_ch()
+            if (ch_backslash == this.cc) {
+                this.next_ch()
+            }
+        }
+        this.next_ch()
+        let str = this.input.substring(start, this.pos)
+        // FIXME: extremely naive and hacky implementation
+        return new String(str, eval(str))
     }
 
     read_symbol() {
@@ -294,12 +386,28 @@ class InvokeExpr {
     }
 }
 
+function member_lookup(syms) {
+    return syms.reduce((acc,id)=>{
+        return {type: 'MemberExpression',
+                start: acc.start,
+                end: id.end,
+                object: acc,
+                property: id,
+                computed: false}
+    })
+}
+
 class HostVarExpr {
     constructor(sym) {
         this.var = sym
     }
     static from(sym) {
-        return new HostVarExpr(new Sym(null, sym.name))
+        let s = new Sym(null, sym.name)
+        s.start = sym.start
+        s.end = sym.end
+        s.col = sym.col
+        s.row = sym.row
+        return new HostVarExpr(s)
     }
 
     estree() {
@@ -311,14 +419,7 @@ class HostVarExpr {
                 start = id.end = start + id.name.length
                 start++
             }
-            return ids.reduce((acc,id)=>{
-                return {type: 'MemberExpression',
-                        start: acc.start,
-                        end: id.end,
-                        object: acc,
-                        property: id,
-                        computed: false}
-            })
+            return member_lookup(ids)
         } else {
             return {type: 'Identifier', name: this.var.name, start: this.var.start, end: this.var.end}
         }
@@ -337,6 +438,47 @@ class LocalVarExpr {
     }
 }
 
+function string_literal_estree(s) {
+    return {type: "Literal", value: s, raw: JSON.stringify(s)}
+}
+
+function identifier_estree(i) {
+    return {type: "Identifier", name: i}
+}
+
+function global_lookup_estree(elements) {
+    return elements.reduce((acc,el)=>{
+        return {type: 'MemberExpression',
+                object: acc,
+                property: (el.type ? el : {type: "Identifier", name: el.name}),
+                computed: el.computed || false}},
+                           {type: "Identifier", name: GLOBAL_SCOPE.deref()},)
+}
+
+function method_call_estree(callee, method, args) {
+    return {type: "CallExpression",
+            callee: {type: "MemberExpression",
+                     object: callee,
+                     property: identifier_estree(method)},
+            arguments: args}
+}
+
+function module_lookup_estree(module_name) {
+    return {type: "MemberExpression",
+            object: global_lookup_estree([{name: "bunny"}, {name: "modules"}]),
+            property: string_literal(module_name),
+            computed: true}
+}
+
+function var_lookup_estree(module_name, var_name) {
+    return method_call_estree(
+        method_call_estree(module_lookup_estree(module_name),
+                           "get_var",
+                    [string_literal_estree(var_name)]),
+        "deref",
+        [])
+}
+
 class VarExpr {
     constructor(sym) {
         this.var = sym
@@ -345,45 +487,95 @@ class VarExpr {
         return new VarExpr(new Sym(null, sym.name))
     }
     estree() {
-        return {type: 'Identifier', name: this.var.name, start: this.var.start, end: this.var.end}
+        let mod = CURRENT_MODULE.deref()
+        var mod_name = mod.name
+        if (this.var.isNamespaced()) {
+            mod_name = mod.aliases.get(this.var.namespace) || this.var.namespace
+        } else if (!mod.isDefined(this.var.name)) {
+            mod_name = "bunny.lang"
+        }
+        return var_lookup_estree(mod_name, this.var.name)
     }
 }
 
 class MethodExpr {
-    constructor(form, method, object, args) {
+    constructor(form, method_name, object, args) {
         this.form = form
-        this.method = method
+        this.method_name = method_name
         this.object = object
         this.args = args
     }
 
     static from(form, analyzer) {
         let iter = form[Symbol.iterator]()
-        let method_name = iter.next().value
-        let method = analyzer.analyze(new Sym(null, method_name.name.substr(1)))
+        let method_name = iter.next().value.name.substr(1)
         let object  = analyzer.analyze(iter.next().value)
         let args = Array.from(iter, f=>analyzer.analyze(f))
-        return new MethodExpr(form, method, object, args)
+        return new MethodExpr(form, method_name, object, args)
     }
+
     estree() {
-        console.log(this.args)
-        return {
-            type: 'CallExpression',
-            start: this.form.start,
-            end: this.form.end,
-            callee:  {
-                type: 'MemberExpression',
+        return {type: 'CallExpression',
                 start: this.form.start,
-                end: this.form.edn,
-                object: this.object.estree(),
-                property: this.method.estree(),
-                computed: false
-            },
-            arguments: this.args.map(a=>a.estree())
-        }}
+                end: this.form.end,
+                callee:  {type: 'MemberExpression',
+                          start: this.form.start,
+                          end: this.form.end,
+                          object: this.object.estree(),
+                          property: identifier_estree(this.method_name),
+                          computed: false},
+                arguments: this.args.map(a=>a.estree())}
+    }
 }
 
-let specials = {"fn*": FnExpr}
+
+function string_literal(s) {
+    return {type: "Literal", value: s, raw: JSON.stringify(s)}
+}
+
+class DefExpr {
+    constructor(form, var_name, value) {
+        this.form = form
+        this.var_name = var_name
+        this.value = value
+    }
+    static from(form, analyzer) {
+        let iter = form[Symbol.iterator]()
+        iter.next()
+        let var_name = iter.next().value
+        let value  = analyzer.analyze(iter.next().value)
+        return new DefExpr(form, var_name.name, value)
+    }
+    estree() {
+        return {type: "CallExpression",
+                callee: member_lookup([{type: "Identifier", name: GLOBAL_SCOPE.deref()},
+                                       {type: "CallExpression",
+                                        callee: member_lookup([{type: "MemberExpression",
+                                                                object: member_lookup([{type: "Identifier", name: "bunny"},
+                                                                                       {type: "Identifier", name: "modules"},]),
+                                                                property: string_literal(CURRENT_MODULE.deref().name),
+                                                                computed: true},
+                                                               {type: "Identifier", name: "get_var"}]),
+                                        arguments: [string_literal(this.var_name)]},
+                                       {type: "Identifier", name: "set_value"}]),
+                arguments: [this.value.estree()]}
+    }
+}
+
+class QuoteExpr {
+    constructor(form) {
+        this.form = form
+    }
+    from(form) {
+        return new QuoteExpr(form)
+    }
+    estree() {
+        return this.form.estree()
+    }
+}
+
+let specials = {"fn*": FnExpr,
+                "def": DefExpr}
 
 class Analyzer {
     constructor() {
@@ -431,32 +623,28 @@ class Analyzer {
     }
 }
 
-function compile(form) {
+function init_runtime(global, global_identifier) {
+    global.bunny = {}
+    global.bunny.modules = {}
+    global.bunny.modules['user'] = MODULE_USER
+    global.bunny.modules['bunny.lang'] = MODULE_BUNNY_LANG
+    GLOBAL_SCOPE.set_value(global_identifier)
 }
 
-// Set example code
-var code = '(function(x) {})'
-// Parse it into an AST
-var ast = Parser.parse(code, { ecmaVersion: 6 })
-// Format it into a code string
-var formattedCode = astring.generate(ast)
-// Check it
-// console.log(ast)
-// console.log(formattedCode)
+function read_string(s) {
+    return new StringReader(s).read()
+}
 
-// console.log(new StringReader("(js/+ 123 456)").read())
-// console.log(new StringReader("(js/+ 123 456)").read().repr())
-// console.log(new StringReader(".toString").read().repr())
-// console.log(eval(astring.generate(new Analyzer().analyze(new StringReader("((fn* (a b) b) 1 2)").read()).estree())))
-// console.log(new Analyzer().analyze(new StringReader("(.toString ((fn* (a b) b) 1 2))").read()).estree())
-// console.log(astring.generate({type: "ExpressionStatement", expression:new Analyzer().analyze(new StringReader("(.toString ((fn* (a b) b) 1 20) 16)").read()).estree()}))
-console.dir(new StringReader("(.toString ((fn* (a b) b) 1 20) 16)").read(), {depth: null})
-console.log(eval(astring.generate(new Analyzer().analyze(new StringReader("(.toString ((fn* (a b) b) 1 20) 16)").read()).estree())))
-// console.log(new Analyzer().analyze(new StringReader("(.toString ((fn* (a b) b) 1 2))").read()).estree())
+function analyze(form) {
+    return new Analyzer().analyze(form)
+}
 
-code = 'foo.bar()'
-code = '((function (a, b) {return b;})(1, 2)).toString()'
+function emit_expr(expr) {
+    return expr.estree()
+}
 
-// console.dir(Parser.parse(code, { ecmaVersion: 6 }).body[0], {depth: null})
+function emit(form) {
+    return emit_expr(analyze(form))
+}
 
-var done = (function wait () { if (!done) setTimeout(wait, 1000) })();
+export {read_string, analyze, emit_expr, emit, init_runtime}
