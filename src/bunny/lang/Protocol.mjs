@@ -58,4 +58,4 @@ function extend_protocol(protocol, type, methods) {
 }
 
 export default Protocol
-export {define_protocol, extend_protocol}
+export {define_protocol, extend_protocol, munge_method_name}

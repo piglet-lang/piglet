@@ -1,0 +1,16 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script type="module" src="./webdemo.mjs"></script>
+    <script type="application/bunny" id="my-script">
+      (def app-div (js/document.getElementById "app"))
+      (def header (js/document.createElement "h1"))
+
+      (.appendChild header (js/document.createTextNode "Hello from Bunny! 🐰"))
+      (.appendChild app-div header)
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>
