@@ -11,6 +11,8 @@ function compile_string(s) {
 }
 
 function eval_form(form) {
+    console.log(form)
+    console.log(bunny.analyze(form))
     console.log(compile(form))
     return eval(compile(form))
 }
@@ -20,7 +22,9 @@ function eval_string(s) {
     var result = null
     while (!r.eof()) {
         var form = r.read()
-        result = eval_form(form)
+        if (form) {
+            result = eval_form(form)
+        }
     }
     return result
 }

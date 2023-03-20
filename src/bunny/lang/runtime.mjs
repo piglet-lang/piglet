@@ -1,6 +1,7 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
 import List from "./List.mjs"
+import Sym from "./Sym.mjs"
 import Var from "./Var.mjs"
 import Module from "./Module.mjs"
 
@@ -25,10 +26,11 @@ function get_module(mod) {
 }
 
 function resolve(sym) {
-    return RUNTIME.modules[sym.namespace].get_var(sym.name)
+    return RUNTIME.modules[sym.namespace].resolve(sym.name)
 }
 
 BUNNY_LANG.intern("list", function() {return new List(Array.from(arguments))})
+BUNNY_LANG.intern("symbol", function(ns, name) {return new Sym(ns, name)})
 BUNNY_LANG.intern("resolve", resolve)
 BUNNY_LANG.intern("get-module", get_module)
 

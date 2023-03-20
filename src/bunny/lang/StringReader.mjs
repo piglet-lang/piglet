@@ -89,12 +89,14 @@ class StringReader {
         let line = this.line
 
         let expr = this._read()
-        expr.start = start
-        expr.end = this.pos
-        expr.col = col
-        expr.line = line
+        if (expr) {
+            expr.start = start
+            expr.end = this.pos
+            expr.col = col
+            expr.line = line
 
-        return expr
+            return expr
+        }
     }
 
     read_number() {

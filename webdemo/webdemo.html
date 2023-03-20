@@ -3,11 +3,16 @@
     <meta charset="utf-8">
     <script type="module" src="./webdemo.mjs"></script>
     <script type="application/bunny" id="my-script">
+
       (def app-div (js/document.getElementById "app"))
       (def header (js/document.createElement "h1"))
 
-      (.appendChild header (js/document.createTextNode "Hello from Bunny! 🐰"))
-      (.appendChild app-div header)
+      (def add-child (fn* (container child)
+                       (.appendChild container child)))
+
+      (add-child header (js/document.createTextNode "Hello from Bunny! 🐰"))
+      (add-child app-div header)
+      (def lst '(1 2 3))
     </script>
   </head>
   <body>

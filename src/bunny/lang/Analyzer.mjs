@@ -3,7 +3,7 @@
 import List from "./List.mjs"
 import Sym from "./Sym.mjs"
 import {GLOBAL_SCOPE, CURRENT_MODULE} from "./runtime.mjs"
-import {member_lookup, string_literal, identifier, global_lookup, method_call, module_lookup, var_lookup} from "./estree_helpers.mjs"
+import {member_lookup, literal, identifier, global_lookup, method_call, module_lookup, var_lookup} from "./estree_helpers.mjs"
 
 
 class FnExpr {
@@ -204,7 +204,7 @@ class DefExpr {
         return method_call(
             module_lookup(CURRENT_MODULE.deref().name),
             "intern",
-            [string_literal(this.var_name),
+            [literal(this.var_name),
              this.value.estree()]
         )
     }
@@ -212,9 +212,9 @@ class DefExpr {
 
 class QuoteExpr {
     constructor(form) {
-        this.form = form
+        this.form = form.rest().first()
     }
-    from(form) {
+    static from(form) {
         return new QuoteExpr(form)
     }
     estree() {

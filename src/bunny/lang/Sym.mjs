@@ -1,5 +1,7 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
+import {method_call, var_lookup, literal} from "./estree_helpers.mjs"
+
 export default class Sym {
     constructor(ns, name) {
         this.namespace = ns
@@ -20,5 +22,12 @@ export default class Sym {
 
     isNamespaced() {
         return !!this.namespace;
+    }
+
+    estree() {
+        return {type: "CallExpression",
+                callee: var_lookup("bunny.lang", "symbol"),
+                arguments: [literal(this.namespace), literal(this.name)]}
+
     }
 }

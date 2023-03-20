@@ -1,5 +1,7 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
+import {method_call, var_lookup} from "./estree_helpers.mjs"
+
 export default class List {
     constructor(elements) {
         this.elements = elements
@@ -10,7 +12,7 @@ export default class List {
     }
 
     rest() {
-        return this.elements.slice(1)
+        return new List(this.elements.slice(1))
     }
 
     eq(other) {
@@ -22,6 +24,12 @@ export default class List {
 
     toString() {
         return "(" + this.elements.map(e=>e.toString()).join(" ") + ")"
+    }
+
+    estree() {
+        return {type: "CallExpression",
+                callee: var_lookup("bunny.lang", "list"),
+                arguments: this.elements.map(e=>e.estree())}
     }
 
     [Symbol.iterator]() {

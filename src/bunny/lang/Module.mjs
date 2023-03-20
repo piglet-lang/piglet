@@ -9,7 +9,7 @@ export default class Module {
         this.aliases = {}
     }
 
-    get_var(name) {
+    resolve(name) {
         return this.vars[name]
     }
 
