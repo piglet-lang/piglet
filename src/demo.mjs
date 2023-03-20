@@ -21,7 +21,7 @@ function eval_string(s) {
 bunny.init_runtime(global, 'global')
 
 var code = '(def x 1)'
-var code2 = '(.toString (list x x))'
+var code2 = '(power 2 4)'
 // console.dir(bunny.read_string(code), {depth: null})
 // console.dir(bunny.read_string(code2), {depth: null})
 // console.dir(bunny.analyze(bunny.read_string(code)), {depth: null})
@@ -35,7 +35,7 @@ console.log(eval_string(code2))
 // console.log(compile_string("(js/parseInt (.toString 30) 16)"))
 // console.log(eval_string("(js/parseInt (.toString 30) 16)"))
 
-var code = 'null'
+var code = 'x > y'
 console.dir(Parser.parse(code, {ecmaVersion: 6}).body[0], {depth: null})
 
 export {compile, compile_string, eval_form, eval_string}

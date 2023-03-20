@@ -222,10 +222,96 @@ class QuoteExpr {
     }
 }
 
+class IfExpr {
+    constructor(form, test, consequent, alternate) {
+        this.form = form
+        this.test = test
+        this.consequent = consequent
+        this.alternate = alternate
+    }
+    static from(form, analyzer) {
+        let iter = form[Symbol.iterator]()
+        iter.next()
+        let test = analyzer.analyze(iter.next().value)
+        let consequent = analyzer.analyze(iter.next().value)
+        let alternate_form = iter.next().value
+
+        return new IfExpr(
+            form,
+            test,
+            consequent,
+            alternate_form ? analyzer.analyze(alternate_form) : null
+        )
+    }
+    estree() {
+        return {
+            type: 'ConditionalExpression',
+            start: this.form.start,
+            end: this.form.start,
+            test: this.test.estree(),
+            consequent: this.consequent.estree(),
+            alternate: this.alternate ? this.alternate.estree() : literal(null)
+        }
+    }
+}
+
+let SPECIAL_SYMBOLS = {
+    "true": true,
+    "false": false,
+    "nil": null
+}
+
+class SpecialSymbolExpr {
+    constructor(form, value) {
+        this.form = form
+        this.value = value
+    }
+    static from(form) {
+        return new SpecialSymbolExpr(form, SPECIAL_SYMBOLS[form.name])
+    }
+    estree() {
+        return literal(this.value)
+    }
+}
+
+let INFIX_OPERATORS = {
+    "+": "+",
+    "*": "*",
+    "/": "/",
+    "<": "<",
+    ">": ">",
+    "mod": "%",
+    "power": "**"
+}
+
+class InfixOpExpr {
+    constructor(form, op, args) {
+        this.form = form
+        this.op = op
+        this.args = args
+    }
+    static from(form, analyzer) {
+        return new InfixOpExpr(form, INFIX_OPERATORS[form.first()], Array.from(form.rest()).map(e=>analyzer.analyze(e)))
+    }
+    estree() {
+        return this.args.slice(1).reduce((acc, arg)=>{
+            return {
+                type: 'BinaryExpression',
+                start: this.form.start,
+                end: this.form.end,
+                left: acc,
+                operator: this.op,
+                right: arg.estree()
+            }
+        }, this.args[0].estree())
+    }
+}
+
 let SPECIALS = {
     "fn*": FnExpr,
     "def": DefExpr,
-    "quote": QuoteExpr
+    "quote": QuoteExpr,
+    "if": IfExpr
 }
 
 export default class Analyzer {
@@ -239,23 +325,31 @@ export default class Analyzer {
                 var expr_class;
                 if (expr_class = SPECIALS[initial.name]) {
                     return expr_class.from(form, this)
-                } else if (initial.name.charAt(0) == ".") {
+                }
+                if (initial.name.charAt(0) == ".") {
                     return MethodExpr.from(form, this)
+                }
+                if(initial.name in INFIX_OPERATORS) {
+                    return InfixOpExpr.from(form, this)
                 }
             }
             return InvokeExpr.from(form, this)
         } else if (form instanceof Sym) {
+            if (form.namespace === null) {
+                if (this.is_local(form)) {
+                    var lv = LocalVarExpr.from(form, this)
+                    return lv
+                }
+                if(form.name in SPECIAL_SYMBOLS) {
+                    return SpecialSymbolExpr.from(form, this)
+                }
+            }
             if (form.namespace === "js") {
                 return HostVarExpr.from(form, this)
-            } else if (form.namespace == null && this.is_local(form)) {
-                var lv = LocalVarExpr.from(form, this)
-                return lv
-            } else {
-                return VarExpr.from(form, this)
             }
-        } else {
-            return new ConstantExpr(form)
+            return VarExpr.from(form, this)
         }
+        return new ConstantExpr(form)
     }
     is_local(sym) {
         let n = sym.name

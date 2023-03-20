@@ -25,13 +25,18 @@ function get_module(mod) {
     return RUNTIME.modules[(typeof mod == "string") ? mod : mod.name]
 }
 
+function find_var(ns, name) {
+    return RUNTIME.modules[ns].resolve(name)
+}
+
 function resolve(sym) {
-    return RUNTIME.modules[sym.namespace].resolve(sym.name)
+    find_var(sym.namespace, sym.name)
 }
 
 BUNNY_LANG.intern("list", function() {return new List(Array.from(arguments))})
 BUNNY_LANG.intern("symbol", function(ns, name) {return new Sym(ns, name)})
 BUNNY_LANG.intern("resolve", resolve)
 BUNNY_LANG.intern("get-module", get_module)
+RUNTIME.var = find_var
 
 export {GLOBAL_SCOPE, CURRENT_MODULE, RUNTIME, init_runtime, resolve, get_module}
