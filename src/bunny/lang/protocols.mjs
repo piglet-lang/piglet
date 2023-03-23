@@ -26,7 +26,7 @@ let Seqable = define_protocol(
     [["-seq", [[["this"], "Return a seq over the collection"]]]])
 
 let Seq = define_protocol(
-    new Sym("bunny.lang", "Seqable"),
+    new Sym("bunny.lang", "Seq"),
     [["-first", [[["this"], "Return the first element of the seq"]]],
      ["-rest", [[["this"], "Return a seq of the remaining elements of this seq"]]]])
 
@@ -71,3 +71,5 @@ extend_protocol(
           let elements = Array.from(self)
           elements.unshift(o)
           return new List(elements)}]])
+
+export {Eq, HasMeta, Conjable, Associative, Seqable, Seq}

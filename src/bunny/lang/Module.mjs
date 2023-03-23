@@ -3,6 +3,26 @@
 import Var from "./Var.mjs"
 
 export default class Module {
+    // Attempt at a munging strategy which yields valid JS identifiers, and
+    // which is unambiguosly reversible, i.e. does not create collisions
+    static munge(id) {
+        return id
+            .replaceAll("$", "_$DOLLAR$_")
+            .replaceAll("_", "_$UNDERSCORE$_")
+            .replaceAll("-", "_")
+            .replaceAll("+", "_$PLUS$_")
+            .replaceAll("<", "_$LT$_")
+            .replaceAll(">", "_$GT$_")
+            .replaceAll("*", "_$STAR$_")
+            .replaceAll("!", "_$BANG$_")
+            .replaceAll("?", "_$QMARK$_")
+            .replaceAll("&", "_$AMP$_")
+            .replaceAll("%", "_$PERCENT$_")
+            .replaceAll("=", "_$EQ$_")
+            .replaceAll("|", "_$PIPE$_")
+            .replaceAll(".", "$$$$")
+    }
+
     constructor(name) {
         this.name = name
         this.vars = {}

@@ -29,13 +29,12 @@ var code2 = '(.toString (= \'(1) (list 1)))'
 // console.dir(bunny.emit(bunny.read_string(code)), {depth: null})
 // console.dir(compile_string(code), {depth: null})
 // console.log(eval_string(code))
-console.log(eval_string(code2))
+// console.log(eval_string(code2))
 // console.dir(global.bunny.modules, {depth: null})
 // console.dir(read_string("\"foo\""), {depth: null})
 // console.log(compile_string("(js/parseInt (.toString 30) 16)"))
 // console.log(eval_string("(js/parseInt (.toString 30) 16)"))
 
-// var code = 'x > y'
 // console.dir(Parser.parse(code, {ecmaVersion: 6}).body[0], {depth: null})
 
-export {compile, compile_string, eval_form, eval_string}
+// export {compile, compile_string, eval_form, eval_string}
