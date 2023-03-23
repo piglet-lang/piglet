@@ -6,7 +6,6 @@ export default class Module {
     // Attempt at a munging strategy which yields valid JS identifiers, and
     // which is unambiguosly reversible, i.e. does not create collisions
     static munge(id) {
-        console.log(id)
         return id
             .replaceAll("$", "_$DOLLAR$_")
             .replaceAll("_", "_$UNDERSCORE$_")
@@ -22,6 +21,11 @@ export default class Module {
             .replaceAll("=", "_$EQ$_")
             .replaceAll("|", "_$PIPE$_")
             .replaceAll(".", "$$$$")
+    }
+
+    static from(form) {
+        const [_, name] = form
+        return new this(name.name)
     }
 
     constructor(name) {
@@ -40,7 +44,6 @@ export default class Module {
     }
 
     intern(name, value) {
-        console.log(name)
         const munged = Module.munge(name)
         if (this.vars[munged]) {
             this.vars[munged].set_value(value)

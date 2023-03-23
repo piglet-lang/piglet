@@ -18,7 +18,6 @@ class ASTNode {
         return new this(form)
     }
     emit(cg) {
-        console.log(this)
         return this.form.emit(cg)
     }
 }
@@ -46,10 +45,8 @@ class FnExpr extends ASTNode {
         analyzer.pop_locals()
         return new this(form, name, Array.from(argv, s=>LocalVarExpr.from(s)), body)
     }
-    emit(cg) {
-        console.log(this.argv)
-        console.log(this.body)
 
+    emit(cg) {
         return cg.function_expr(this, {name: this.name,
                                        argv: this.argv.map(e=>e.emit(cg)),
                                        body: this.body.map(e=>e.emit(cg))})
@@ -95,7 +92,6 @@ class HostVarExpr extends ASTNode {
     }
 
     emit(cg) {
-        console.log(this)
         return cg.member_lookup(this, this.parts)
     }
 }
@@ -221,18 +217,6 @@ class InfixOpExpr extends ASTNode {
     }
     emit(cg) {
         return cg.infix_op(this, this.op, this.args.map(a=>a.emit(cg)))
-    }
-    estree() {
-        return this.args.slice(1).reduce((acc, arg)=>{
-            return {
-                type: 'BinaryExpression',
-                start: this.form.start,
-                end: this.form.end,
-                left: acc,
-                operator: this.op,
-                right: arg.estree()
-            }
-        }, this.args[0].estree())
     }
 }
 

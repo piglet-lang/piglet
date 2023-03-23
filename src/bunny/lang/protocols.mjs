@@ -43,7 +43,6 @@ extend_protocol(
           var v1 = i1.next()
           var v2 = i2.next()
           while (Eq.methods["="](v1.value, v2.value) && !v1.done && !v2.done) {
-              console.log()
               v1 = i1.next()
               v2 = i2.next()
           }

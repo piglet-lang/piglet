@@ -51,6 +51,14 @@ class StringReader {
         this.cc = this.input.charCodeAt(this.pos)
     }
 
+    reset() {
+        this.pos = 0
+        this.line = 0
+        this.col = 0
+        this.ch = this.input[this.pos]
+        this.cc = this.input.charCodeAt(this.pos)
+    }
+
     skip_ws() {
         if (this.eof()) return
         while (whitespace_chars.includes(this.cc)) {

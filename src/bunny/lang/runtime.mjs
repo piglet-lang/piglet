@@ -23,7 +23,14 @@ function init_runtime(global, global_identifier) {
 }
 
 function get_module(mod) {
-    return RUNTIME.modules[Module.munge((typeof mod == "string") ? mod : mod.name)]
+    const munged_name = Module.munge((typeof mod == "string") ? mod : mod.name)
+    return RUNTIME.modules[munged_name]
+}
+
+function init_module(module_form) {
+    const mod = Module.from(module_form)
+    RUNTIME.modules[Module.munge(mod.name)] ||= mod
+    return get_module(mod.name)
 }
 
 function find_var(ns, name) {
@@ -43,4 +50,4 @@ RUNTIME.var = find_var
 
 USER.refer_module(BUNNY_LANG)
 
-export {GLOBAL_SCOPE, CURRENT_MODULE, RUNTIME, init_runtime, find_var, resolve, get_module}
+export {GLOBAL_SCOPE, CURRENT_MODULE, RUNTIME, init_runtime, init_module, find_var, resolve, get_module}

@@ -1,4 +1,7 @@
-(module first.mod)
+(module user)
 
 (def hello!
   (fn* (x) (+ "Hello, " x)))
+
+(js/console.log
+ (hello! "Arne"))
