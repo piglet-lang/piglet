@@ -82,7 +82,8 @@ export default class CodeGen {
             s.col = node.col
             return s
         }
-        return this.member_lookup(node, [mksym("$bunny$"), mksym(Module.munge(mod_name)), mksym("vars"), Module.munge(mksym(sym.name)), mksym("value")])
+        console.log("sym", sym)
+        return this.member_lookup(node, [mksym("$bunny$"), mksym(Module.munge(mod_name)), mksym("vars"), mksym(Module.munge(sym.name)), mksym("value")])
     }
 
     method_call(node, method, object, args) {

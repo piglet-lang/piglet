@@ -15,7 +15,7 @@ class Protocol {
 function define_protocol(name, signatures) {
     let mod = get_module(name.namespace)
     let proto = new Protocol(name, signatures)
-    mod.intern(name, proto)
+    mod.intern(name.name, proto)
     for(var signature of signatures) {
         let method_name = signature[0]
         let dispatch = function(object) {

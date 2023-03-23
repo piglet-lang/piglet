@@ -1,0 +1,4 @@
+(module first.mod)
+
+(def hello!
+  (fn* (x) (+ "Hello, " x)))
