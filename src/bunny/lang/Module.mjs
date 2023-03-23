@@ -25,8 +25,13 @@ export default class Module {
 
     constructor(name) {
         this.name = name
+        this.munged_id = Module.munge(name)
         this.vars = {}
         this.aliases = {}
+    }
+
+    refer_module(other_module) {
+        Object.assign(this.vars, other_module.vars)
     }
 
     resolve(name) {
@@ -42,7 +47,7 @@ export default class Module {
         }
     }
 
-    isDefined(name) {
+    has_var(name) {
         return !!this.vars[name]
     }
 }

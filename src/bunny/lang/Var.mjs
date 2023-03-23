@@ -4,12 +4,13 @@ export default class Var {
     constructor(module, name, value, meta) {
         this.module = module
         this.name = name
-        this.binding_stack = [value]
+        this.value = value
+        this.binding_stack = []
         this.meta = meta
     }
 
     deref() {
-        return this.binding_stack[0]
+        return this.value
     }
 
     invoke(args) {
@@ -17,14 +18,15 @@ export default class Var {
     }
 
     set_value(value) {
-        this.binding_stack[0] = value
+        this.value = value
     }
 
     push_binding(value) {
-        this.binding_stack.unshift(value)
+        this.binding_stack.unshift(this.value)
+        this.value = value
     }
 
-    pop_binding(value) {
-        this.binding_stack.shift(value)
+    pop_binding() {
+        this.value = this.binding_stack.shift()
     }
 }

@@ -1,6 +1,6 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
-import {method_call, var_lookup} from "./estree_helpers.mjs"
+import Sym from "./Sym.mjs"
 
 export default class List {
     constructor(elements) {
@@ -26,10 +26,10 @@ export default class List {
         return "(" + this.elements.map(e=>e.toString()).join(" ") + ")"
     }
 
-    estree() {
-        return {type: "CallExpression",
-                callee: var_lookup("bunny.lang", "list"),
-                arguments: this.elements.map(e=>e.estree())}
+    emit(cg) {
+        return cg.function_call(this,
+                                cg.var_reference(this, new Sym("bunny.lang", "list")),
+                                this.elements.map(e=>e.emit(cg)))
     }
 
     [Symbol.iterator]() {

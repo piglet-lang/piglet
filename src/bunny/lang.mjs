@@ -8,6 +8,7 @@ import Var from "./lang/Var.mjs"
 import Module from "./lang/Module.mjs"
 import StringReader from "./lang/StringReader.mjs"
 import Analyzer from "./lang/Analyzer.mjs"
+import CodeGen from "./lang/CodeGen.mjs"
 import {GLOBAL_SCOPE, CURRENT_MODULE, init_runtime} from "./lang/runtime.mjs"
 
 function read_string(s) {
@@ -20,6 +21,10 @@ function analyze(form) {
 
 function emit_expr(expr) {
     return expr.estree()
+}
+
+function emit_expr2(expr) {
+    return expr.emit(new CodeGen())
 }
 
 function emit(form) {

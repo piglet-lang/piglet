@@ -14,19 +14,20 @@ let CURRENT_MODULE = BUNNY_LANG.intern("*current-module*", USER)
 let RUNTIME = {}
 RUNTIME.modules = {}
 RUNTIME.modules['user'] = USER
-RUNTIME.modules['bunny.lang'] = BUNNY_LANG
+RUNTIME.modules['bunny$$lang'] = BUNNY_LANG
 
 function init_runtime(global, global_identifier) {
-    global.bunny = RUNTIME
+    global.$bunny = RUNTIME
+    global.$bunny$ = RUNTIME.modules
     GLOBAL_SCOPE.set_value(global_identifier)
 }
 
 function get_module(mod) {
-    return RUNTIME.modules[(typeof mod == "string") ? mod : mod.name]
+    return RUNTIME.modules[Module.munge((typeof mod == "string") ? mod : mod.name)]
 }
 
 function find_var(ns, name) {
-    return RUNTIME.modules[ns].resolve(name)
+    return get_module(ns).resolve(name)
 }
 
 function resolve(sym) {
@@ -40,4 +41,6 @@ BUNNY_LANG.intern("get-module", get_module)
 BUNNY_LANG.intern("conj", function(coll, o) {return BUNNY_LANG.resolve("-conj").invoke([coll,o])})
 RUNTIME.var = find_var
 
-export {GLOBAL_SCOPE, CURRENT_MODULE, RUNTIME, init_runtime, resolve, get_module}
+USER.refer_module(BUNNY_LANG)
+
+export {GLOBAL_SCOPE, CURRENT_MODULE, RUNTIME, init_runtime, find_var, resolve, get_module}

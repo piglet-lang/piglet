@@ -22,7 +22,7 @@ export default class Sym {
         return (other instanceof Sym) && this.namespace === other.namespace && this.name === other.name
     }
 
-    isNamespaced() {
+    namespaced() {
         return !!this.namespace;
     }
 

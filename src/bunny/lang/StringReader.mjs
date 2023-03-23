@@ -100,9 +100,9 @@ class StringReader {
     }
 
     read_number() {
-        let start = this.pos
+        const start = this.pos
         while (!this.eof() && (ch_0 <= this.cc && this.cc <= ch_9)) this.next_ch()
-        let num_str = this.input.substring(start, this.pos)
+        const num_str = this.input.substring(start, this.pos)
         return new Number(num_str, parseInt(num_str, 10))
     }
 

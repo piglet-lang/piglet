@@ -6,253 +6,175 @@ import {GLOBAL_SCOPE, CURRENT_MODULE} from "./runtime.mjs"
 import {member_lookup, literal, identifier, global_lookup, method_call, module_lookup, var_lookup} from "./estree_helpers.mjs"
 import "./protocols.mjs"
 
-
-class FnExpr {
-    constructor(form, name, argv, body) {
+class ASTNode {
+    constructor(form) {
         this.form = form
+        this.start = form.start
+        this.end = form.end
+        this.line = form.line
+        this.col = form.col
+    }
+    static from(form) {
+        return new this(form)
+    }
+    emit(cg) {
+        console.log(this)
+        return this.form.emit(cg)
+    }
+}
+
+class FnExpr extends ASTNode {
+    constructor(form, name, argv, body) {
+        super(form)
         this.name = name
         this.argv = argv
         this.body = body
     }
 
     static from(form, analyzer) {
-        var name, argv, body
+        let name, argv, body
         this.form = form
-        let iter = form[Symbol.iterator]()
-        iter.next() // fn*
-        var x = iter.next().value
+        const iter = form[Symbol.iterator]()
+        let [_, x, ...rest] = form
         if (x instanceof Sym) {
             name = x
-            x = iter.next().value
+            x = rest.shift()
         }
         argv = x
         analyzer.push_locals(argv)
-        body = Array.from(iter, f=>analyzer.analyze(f))
+        body = rest.map(f=>analyzer.analyze(f))
         analyzer.pop_locals()
-        return new FnExpr(form, name, Array.from(argv, s=>LocalVarExpr.from(s)), body)
+        return new this(form, name, Array.from(argv, s=>LocalVarExpr.from(s)), body)
     }
-    estree() {
-        let body = this.body.map(e=>e.estree())
-        if (body.length == 0) {
-            return {type: "FunctionExpression",
-                    start: this.form.end,
-                    end: this.form.end,
-                    id: null,
-                    expression: false,
-                    generator: false,
-                    params: this.argv.map(a=>a.estree()),
-                    body: {type: "BlockStatement",
-                           start: (body[0]||this.form).start,
-                           end: (body[this.body.length-1]||this.form).end,
-                           body: body}}
-        }
-        body[body.length-1] = {
-            type: 'ReturnStatement',
-            start: 14,
-            end: 22,
-            argument: body[body.length-1]
-        }
-        return {type: "FunctionExpression",
-                start: this.form.start,
-                end: this.form.end,
-                id: null,
-                expression: false,
-                generator: false,
-                params: this.argv.map(a=>a.estree()),
-                body: {type: "BlockStatement",
-                       start: body[0].start,
-                       end: body[this.body.length-1].end,
-                       body: body}}}
-}
+    emit(cg) {
+        console.log(this.argv)
+        console.log(this.body)
 
-class ConstantExpr {
-    constructor(form) {
-        this.form = form
-    }
-    estree() {
-        return this.form.estree()
+        return cg.function_expr(this, {name: this.name,
+                                       argv: this.argv.map(e=>e.emit(cg)),
+                                       body: this.body.map(e=>e.emit(cg))})
     }
 }
 
-class InvokeExpr {
+class ConstantExpr extends ASTNode {
+}
+
+class InvokeExpr extends ASTNode {
     constructor(form, fn, args) {
-        this.form = form
+        super(form)
         this.fn = fn
         this.args = args
     }
 
     static from(form, analyzer) {
-        let iter = form[Symbol.iterator]()
-        let fn = analyzer.analyze(iter.next().value)
-        let args = Array.from(iter, f=>analyzer.analyze(f))
-        return new InvokeExpr(form, fn, args)
+        const [fn, ...args] = form
+        return new this(form, analyzer.analyze(fn), args.map(a=>analyzer.analyze(a)))
     }
-    estree() {
-        return {
-            type: 'CallExpression',
-            start: this.form.start,
-            end: this.form.end,
-            callee: this.fn.estree(),
-            arguments: this.args.map(a=>a.estree())
-        }
+    emit(cg) {
+        return cg.function_call(this, this.fn.emit(cg), this.args.map(a=>a.emit(cg)))
     }
 }
 
-class HostVarExpr {
-    constructor(sym) {
-        this.var = sym
+class HostVarExpr extends ASTNode {
+    constructor(sym, parts) {
+        super(sym)
+        this.parts = parts
     }
+
     static from(sym) {
-        let s = new Sym(null, sym.name)
-        s.start = sym.start
-        s.end = sym.end
-        s.col = sym.col
-        s.row = sym.row
-        return new HostVarExpr(s)
+        const parts = sym.name.split('.').reduce((acc, s)=>{
+            const part = new Sym(null, s)
+            const [prev] = acc.slice(-1)
+            part.start = prev ? prev.end+2 : sym.start
+            part.end   = part.start + part.name.length
+            part.line  = sym.line
+            part.col   = prev ? prev.col+2 : sym.col
+            return acc.concat([part])
+        }, [])
+        return new this(sym, parts)
     }
 
-    estree() {
-        if (this.var.name.includes('.')) {
-            var ids = this.var.name.split('.').map(s=>{return {type: 'Identifier', name: s}})
-            var start = this.var.start
-            for (var id of ids) {
-                id.start = start
-                start = id.end = start + id.name.length
-                start++
-            }
-            return member_lookup(ids)
-        } else {
-            return {type: 'Identifier', name: this.var.name, start: this.var.start, end: this.var.end}
-        }
+    emit(cg) {
+        console.log(this)
+        return cg.member_lookup(this, this.parts)
     }
 }
 
-class LocalVarExpr {
-    constructor(sym) {
-        this.var = sym
-    }
-    static from(sym) {
-        return new LocalVarExpr(new Sym(null, sym.name))
-    }
-    estree() {
-        return {type: 'Identifier', name: this.var.name, start: this.var.start, end: this.var.end}
+class LocalVarExpr extends ASTNode {
+    emit(cg) {
+        return cg.identifier(this, this.form.name)
     }
 }
 
-class VarExpr {
-    constructor(sym) {
-        this.var = sym
-    }
-    static from(sym) {
-        return new VarExpr(new Sym(null, sym.name))
-    }
-    estree() {
-        let mod = CURRENT_MODULE.deref()
-        var mod_name = mod.name
-        if (this.var.isNamespaced()) {
-            mod_name = mod.aliases.get(this.var.namespace) || this.var.namespace
-        } else if (!mod.isDefined(this.var.name)) {
-            mod_name = "bunny.lang"
-        }
-        return var_lookup(mod_name, this.var.name)
+class VarExpr extends ASTNode {
+    emit(cg) {
+        return cg.var_reference(this, this.form)
     }
 }
 
-class MethodExpr {
-    constructor(form, method_name, object, args) {
-        this.form = form
-        this.method_name = method_name
+class MethodExpr extends ASTNode {
+    constructor(form, method, object, args) {
+        super(form)
+        this.method = method
         this.object = object
         this.args = args
     }
 
     static from(form, analyzer) {
-        let iter = form[Symbol.iterator]()
-        let method_name = iter.next().value.name.substr(1)
-        let object  = analyzer.analyze(iter.next().value)
-        let args = Array.from(iter, f=>analyzer.analyze(f))
-        return new MethodExpr(form, method_name, object, args)
+        const [f1, f2, ...rest] = form
+        const method = new Sym(null, f1.name.slice(1))
+        Object.assign(method, {start: f1.start, end: f1.end, line: f1.line, col: f1.col})
+        const object  = analyzer.analyze(f2)
+        const args = rest.map(f=>analyzer.analyze(f))
+        return new MethodExpr(form, method, object, args)
     }
 
-    estree() {
-        return {type: 'CallExpression',
-                start: this.form.start,
-                end: this.form.end,
-                callee:  {type: 'MemberExpression',
-                          start: this.form.start,
-                          end: this.form.end,
-                          object: this.object.estree(),
-                          property: identifier(this.method_name),
-                          computed: false},
-                arguments: this.args.map(a=>a.estree())}
+    emit(cg) {
+        return cg.method_call(this, this.method, this.object.emit(cg), this.args.map(a=>a.emit(cg)))
     }
 }
 
-class DefExpr {
-    constructor(form, var_name, value) {
-        this.form = form
-        this.var_name = var_name
+class DefExpr extends ASTNode {
+    constructor(form, var_sym, value) {
+        super(form)
+        this.var_sym = var_sym
         this.value = value
     }
     static from(form, analyzer) {
-        let iter = form[Symbol.iterator]()
-        iter.next()
-        let var_name = iter.next().value
-        let value  = analyzer.analyze(iter.next().value)
-        return new DefExpr(form, var_name.name, value)
+        const [_def, var_sym, value] = form
+        return new DefExpr(form, var_sym, analyzer.analyze(value))
     }
-    estree() {
-        return method_call(
-            module_lookup(CURRENT_MODULE.deref().name),
-            "intern",
-            [literal(this.var_name),
-             this.value.estree()]
-        )
+    emit(cg) {
+        return cg.define_var(this, this.var_sym, this.value.emit(cg))
     }
 }
 
-class QuoteExpr {
-    constructor(form) {
-        this.form = form.rest().first()
-    }
-    static from(form) {
-        return new QuoteExpr(form)
-    }
-    estree() {
-        return this.form.estree()
+class QuoteExpr extends ASTNode {
+    emit(cg) {
+        const [_, form] = this.form
+        return form.emit(cg)
     }
 }
 
-class IfExpr {
-    constructor(form, test, consequent, alternate) {
-        this.form = form
+class IfExpr extends ASTNode {
+    constructor(form, test, if_branch, else_branch) {
+        super(form)
         this.test = test
-        this.consequent = consequent
-        this.alternate = alternate
+        this.if_branch = if_branch
+        this.else_branch = else_branch
     }
     static from(form, analyzer) {
-        let iter = form[Symbol.iterator]()
-        iter.next()
-        let test = analyzer.analyze(iter.next().value)
-        let consequent = analyzer.analyze(iter.next().value)
-        let alternate_form = iter.next().value
+        const [_, test, if_branch, else_branch] = form
 
-        return new IfExpr(
+        return new this(
             form,
-            test,
-            consequent,
-            alternate_form ? analyzer.analyze(alternate_form) : null
+            analyzer.analyze(test),
+            analyzer.analyze(if_branch),
+            else_branch ? analyzer.analyze(else_branch) : null
         )
     }
-    estree() {
-        return {
-            type: 'ConditionalExpression',
-            start: this.form.start,
-            end: this.form.start,
-            test: this.test.estree(),
-            consequent: this.consequent.estree(),
-            alternate: this.alternate ? this.alternate.estree() : literal(null)
-        }
+    emit(cg) {
+        return cg.conditional(this, this.test.emit(cg), this.if_branch.emit(cg), this.else_branch?.emit(cg))
     }
 }
 
@@ -282,17 +204,23 @@ let INFIX_OPERATORS = {
     "<": "<",
     ">": ">",
     "mod": "%",
-    "power": "**"
+    "power": "**",
+    "==": "==",
+    "===": "==="
 }
 
-class InfixOpExpr {
+class InfixOpExpr extends ASTNode {
     constructor(form, op, args) {
-        this.form = form
+        super(form)
         this.op = op
         this.args = args
     }
     static from(form, analyzer) {
-        return new InfixOpExpr(form, INFIX_OPERATORS[form.first()], Array.from(form.rest()).map(e=>analyzer.analyze(e)))
+        const [op, ...rest] = form
+        return new this(form, INFIX_OPERATORS[op], rest.map(e=>analyzer.analyze(e)))
+    }
+    emit(cg) {
+        return cg.infix_op(this, this.op, this.args.map(a=>a.emit(cg)))
     }
     estree() {
         return this.args.slice(1).reduce((acc, arg)=>{
