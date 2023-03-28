@@ -19,7 +19,7 @@ function load(file) {
     //r.reset()
     let result = null
     while (!r.eof()) {
-        var form = r.read()
+        let form = r.read()
         if (form) {
             let js = astring.generate(analyzer.analyze(form).emit(cg))
             console.log(js)
@@ -29,5 +29,5 @@ function load(file) {
     return result
 }
 
-init_runtime(global, 'global')
+init_runtime(global)
 load(process.argv[2])

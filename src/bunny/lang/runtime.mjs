@@ -41,6 +41,7 @@ function resolve(sym) {
     find_var(sym.namespace, sym.name)
 }
 
+BUNNY_LANG.intern("list-ctor", function() {return new List(Array.from(arguments))})
 BUNNY_LANG.intern("list", function() {return new List(Array.from(arguments))})
 BUNNY_LANG.intern("symbol", function(ns, name) {return new Sym(ns, name)})
 BUNNY_LANG.intern("resolve", resolve)

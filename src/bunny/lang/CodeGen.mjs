@@ -59,6 +59,27 @@ export default class CodeGen {
         return this.mknode('Literal', {node: node, value: value, raw: raw || JSON.stringify(value)})
     }
 
+    object_literal(node, kvs) {
+        return this.mknode(
+            'ObjectExpression',
+            {node: node,
+             properties: kvs.map((kv)=>{
+                 const [k, v] = kv
+                 return this.mknode(
+                     'Property',
+                     {node: node,
+                      method: false,
+                      shorthand: false,
+                      computed: false,
+                      kind: "init",
+                      key: this.literal(node, k),
+                      value: v}
+                 )})}
+        )
+    }
+
+
+
     member_lookup(node, syms) {
         return syms.slice(1).reduce((acc,sym)=>{
             return this.mknode('MemberExpression', {node: sym, object: acc, property: this.identifier(sym, sym.name), computed: false})
@@ -97,7 +118,7 @@ export default class CodeGen {
                                   computed: false})})
     }
 
-    define_var(node, name, value) {
+    define_var(node, name, value, meta) {
         const mksym = n=>{
             const s = new Sym(null, n)
             s.start = node.start
@@ -110,7 +131,7 @@ export default class CodeGen {
         return this.method_call(node,
                                 mksym("intern"),
                                 this.member_lookup(node, [mksym("$bunny$"), mksym(Module.munge(this.module.name))]),
-                                [this.literal(name, name.name), value])
+                                meta ? [this.literal(name, name.name), value, meta] : [this.literal(name, name.name), value])
     }
 
     conditional(node, test, if_branch, else_branch) {

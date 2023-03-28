@@ -33,7 +33,6 @@ class FnExpr extends ASTNode {
     static from(form, analyzer) {
         let name, argv, body
         this.form = form
-        const iter = form[Symbol.iterator]()
         let [_, x, ...rest] = form
         if (x instanceof Sym) {
             name = x
@@ -105,6 +104,30 @@ class LocalVarExpr extends ASTNode {
 class VarExpr extends ASTNode {
     emit(cg) {
         return cg.var_reference(this, this.form)
+    }
+}
+
+class MacroVarExpr extends ASTNode {
+    constructor(form, var_sym, argv, body) {
+        super(form)
+        this.var_sym = var_sym
+        this.argv = argv
+        this.body = body
+    }
+    static from(form, analyzer) {
+        const [_defmacro, var_sym, argv, ...rest] = form
+        analyzer.push_locals(argv)
+        const body = rest.map(f=>analyzer.analyze(f))
+        analyzer.pop_locals()
+        return new this(form, var_sym, Array.from(argv, s=>LocalVarExpr.from(s)), body)
+    }
+    emit(cg) {
+        return cg.define_var(this,
+                             this.var_sym,
+                             cg.function_expr(this, {name: this.name,
+                                                     argv: this.argv.map(e=>e.emit(cg)),
+                                                     body: this.body.map(e=>e.emit(cg))}),
+                             cg.object_literal(this, [["macro", cg.literal(this, true)]]))
     }
 }
 
@@ -224,7 +247,8 @@ let SPECIALS = {
     "fn*": FnExpr,
     "def": DefExpr,
     "quote": QuoteExpr,
-    "if": IfExpr
+    "if": IfExpr,
+    "defmacro": MacroVarExpr
 }
 
 export default class Analyzer {

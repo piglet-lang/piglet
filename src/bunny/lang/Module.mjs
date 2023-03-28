@@ -43,13 +43,16 @@ export default class Module {
         return this.vars[Module.munge(name)]
     }
 
-    intern(name, value) {
+    intern(name, value, meta) {
         const munged = Module.munge(name)
         if (this.vars[munged]) {
             this.vars[munged].set_value(value)
+            if (meta) {
+                this.vars[munged].meta = meta
+            }
             return this.vars[munged]
         } else {
-            return this.vars[munged] = new Var(this.name, name, value, value)
+            return this.vars[munged] = new Var(this.name, name, value, value, meta)
         }
     }
 

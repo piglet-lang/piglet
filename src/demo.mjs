@@ -40,21 +40,22 @@ bunny.init_runtime(global, 'global')
 // let code   = '((fn* (a b) (+ a b)) foo.bar/baz 4)'
 // let code   = '(def today (.toString (js/Date)))'
 // let code   = '(def today \'(1 2 3))'
-let code   = '(if (== 3 4) "ok" "nok")'
+// let code   = '(if (== 3 4) "ok" "nok")'
 
-let form   = bunny.read_string(code)
-let ast    = bunny.analyze(form)
-console.dir(ast, {depth: null})
-let estree = ast.emit(new CodeGen(runtime,get_module("user")))
+// let form   = bunny.read_string(code)
+// // console.log(form)
+// let ast    = bunny.analyze(form)
+// // console.dir(ast, {depth: null})
+// let estree = ast.emit(new CodeGen(runtime,get_module("user")))
 // console.dir(estree, {depth: null})
-let es     = astring.generate(estree)
+// let es     = astring.generate(estree)
 // console.dir(es, {depth: null})
-console.dir(eval(es), {depth: null})
+// console.dir(eval(es), {depth: null})
 // console.dir(global.bunny.modules, {depth: null})
 // console.dir(read_string("\"foo\""), {depth: null})
 // console.log(compile_string("(js/parseInt (.toString 30) 16)"))
 // console.log(eval_string("(js/parseInt (.toString 30) 16)"))
 
-// console.dir(Parser.parse('(function () {})', {ecmaVersion: 6}).body[0], {depth: null})
+console.dir(Parser.parse('({"foo": "bar"})', {ecmaVersion: 6}).body[0], {depth: null})
 
 // export {compile, compile_string, eval_form, eval_string}

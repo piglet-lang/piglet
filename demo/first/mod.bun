@@ -1,7 +1,11 @@
 (module user)
 
-(def hello!
-  (fn* (x) (+ "Hello, " x)))
 
-(js/console.log
- (hello! "Arne"))
+(def hello
+  (fn* (x)
+       (js/console.log (+ "Hello, " x))))
+
+(hello "bunny!")
+
+(defmacro foo (x)
+  x)
