@@ -22,3 +22,18 @@
 (println (rest (array 1 2 3)))
 (println (cons 5 (list 1 2 3)))
 (js/console.log Seq)
+
+(defmacro foo (a b)
+  (list '+ a b))
+
+(println (foo 4 5))
+
+(defmacro when (cond form)
+  (list 'if cond form))
+
+(when true
+  (println "this prints"))
+
+
+(when false
+  (println "this doesn't"))

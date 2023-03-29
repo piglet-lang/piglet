@@ -24,6 +24,16 @@ export default class CodeGen {
                 ...props}
     }
 
+    mksym(node, n) {
+        const s = symbol(null, n)
+        s.start = node.start
+        s.end = node.end
+        s.end = node.end
+        s.line = node.line
+        s.col = node.col
+        return s
+    }
+
     current_module() {
         return resolve(symbol("bunny.lang", "*current-module*")).deref()
     }
@@ -99,29 +109,17 @@ export default class CodeGen {
     }
 
     var_reference(node, sym) {
-        let mod_name = this.current_module().name
-        if (sym.namespaced()) {
-            mod_name = this.current_module().aliases[sym.namespace] || sym.namespace
+        const the_var = resolve(sym)
+        if (!the_var) {
+            throw(new Error("Var not found: " + sym))
         }
-        if (!resolve(symbol(mod_name, sym.name))) {
-            throw(new Error("Var not found: " + mod_name + "/" + sym.name))
-        }
-        const mksym = n=>{
-            const s = symbol(null, n)
-            s.start = node.start
-            s.end = node.end
-            s.end = node.end
-            s.line = node.line
-            s.col = node.col
-            return s
-        }
-        //return this.member_lookup(node, [mksym("$bunny$"), mksym(Module.munge(mod_name)), mksym("vars"), mksym(Module.munge(sym.name)), mksym("value")])
+        //return this.member_lookup(node, [this.mksym(node, "$bunny$"), this.mksym(node, Module.munge(mod_name)), this.mksym(node, "vars"), this.mksym(node, Module.munge(sym.name)), this.mksym(node, "value")])
         return this.method_call(
             node,
             "deref",
             this.function_call(
                 node,
-                this.member_lookup(node, this.identifier(node, "$bunny$"), [mksym(Module.munge(mod_name)), mksym("resolve")]),
+                this.member_lookup(node, this.identifier(node, "$bunny$"), [this.mksym(node, Module.munge(the_var.module)), this.mksym(node, "resolve")]),
                 [this.literal(sym, sym.name)]
             ),
             []
@@ -141,19 +139,24 @@ export default class CodeGen {
     }
 
     define_var(node, name, value, meta) {
-        const mksym = n=>{
-            const s = symbol(null, n)
-            s.start = node.start
-            s.end = node.end
-            s.end = node.end
-            s.line = node.line
-            s.col = node.col
-            return s
-        }
         return this.method_call(node,
-                                mksym("intern"),
-                                this.member_lookup(node, this.identifier(node, "$bunny$"), [mksym(Module.munge(this.current_module().name))]),
+                                this.mksym(node, "intern"),
+                                this.member_lookup(node, this.identifier(node, "$bunny$"), [this.mksym(node, Module.munge(this.current_module().name))]),
                                 meta ? [this.literal(name, name.name), value, meta] : [this.literal(name, name.name), value])
+    }
+
+    invoke_var(node, ns, name, args) {
+        return this.method_call(
+            node,
+            this.mksym(node, "invoke"),
+            this.method_call(
+                node,
+                this.mksym(node, "resolve"),
+                this.member_lookup(node, this.identifier(node, "$bunny$"), [this.mksym(node, Module.munge(ns))]),
+                [this.literal(node, name)]
+            ),
+            args
+        )
     }
 
     conditional(node, test, if_branch, else_branch) {

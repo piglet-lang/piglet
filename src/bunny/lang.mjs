@@ -10,10 +10,11 @@ import IteratorSeq from "./lang/IteratorSeq.mjs"
 import {define_protocol, extend_protocol} from "./lang/Protocol.mjs"
 
 const self = new Module('bunny.lang')
+const user = new Module('user')
 export default self
 
-export const module_registry = {bunny$$lang: self}
-self.intern('*current-module*', null)
+export const module_registry = {bunny$$lang: self, user: user}
+self.intern('*current-module*', user)
 
 function not_implemented() {
     throw new Error("function not available, runtime isn't loaded")
@@ -42,7 +43,7 @@ self.intern("namespace", namespace)
 
 export function find_module(mod) {
     const munged_name = Module.munge((typeof mod == "string") ? mod : mod.name)
-    return module_registry[munged_name]
+    return module_registry[self.resolve("*current-module*").deref()?.aliases[munged_name] || munged_name]
 }
 self.intern("find-module", find_module)
 
@@ -53,9 +54,15 @@ export function ensure_module(name) {
 self.intern("ensure-module", ensure_module)
 
 export function resolve(sym) {
-    return find_module(sym.namespace)?.resolve(sym.name)
+    const mod = sym.namespace ? find_module(sym.namespace) : self.resolve("*current-module*").deref()
+    return mod?.resolve(sym.name)
 }
 self.intern("resolve", resolve)
+
+export function intern(sym, val, meta) {
+    return ensure_module(sym.namespace).intern(sym.name, value, meta)
+}
+self.intern("intern", intern)
 
 export function conj(coll, o, ...rest) {
     if (rest.length > 0) {
@@ -283,3 +290,5 @@ extend_protocol(
     IteratorSeq,
     [["-first", 1, function(self) {return self.first()}],
      ["-rest", 1, function(self) {return self.rest()}]])
+
+user.refer_module(self)

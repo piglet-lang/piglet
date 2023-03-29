@@ -13,7 +13,6 @@ import bunny$$lang from "../lang.mjs"
 const rl = readline.createInterface({ input, output })
 const cg = new CodeGen()
 const analyzer = new Analyzer()
-bunny$$lang.intern("*current-module*", ensure_module("user"))
 global.$bunny$ = module_registry
 
 while(true) {

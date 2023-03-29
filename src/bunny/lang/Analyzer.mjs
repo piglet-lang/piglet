@@ -1,6 +1,6 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
-import {list, symbol} from "../lang.mjs"
+import {list, symbol, resolve, rest} from "../lang.mjs"
 import List from "./List.mjs"
 import Sym from "./Sym.mjs"
 
@@ -69,6 +69,22 @@ class InvokeExpr extends ASTNode {
     }
 }
 
+class InvokeVarExpr extends ASTNode {
+    constructor(form, the_var, args) {
+        super(form)
+        this.the_var = the_var
+        this.args = args
+    }
+
+    static from(form, analyzer) {
+        const [var_sym, ...args] = form
+        return new this(form, resolve(var_sym), args.map(a=>analyzer.analyze(a)))
+    }
+    emit(cg) {
+        return cg.invoke_var(this, this.the_var.module, this.the_var.name, this.args.map(a=>cg.emit(this,a)))
+    }
+}
+
 class HostVarExpr extends ASTNode {
     constructor(sym, parts) {
         super(sym)
@@ -114,6 +130,7 @@ class MacroVarExpr extends ASTNode {
     }
     static from(form, analyzer) {
         const [_defmacro, var_sym, argv, ...rest] = form
+        resolve(symbol("bunny.lang", "*current-module*")).deref().intern(var_sym.name, null, Object.assign({macro: true}, var_sym.meta))
         analyzer.push_locals(argv)
         const body = rest.map(f=>analyzer.analyze(f))
         analyzer.pop_locals()
@@ -186,6 +203,7 @@ class DefExpr extends ASTNode {
     }
     static from(form, analyzer) {
         const [_def, var_sym, value] = form
+        resolve(symbol("bunny.lang", "*current-module*")).deref().intern(var_sym.name, null, var_sym.meta)
         return new this(form, var_sym, analyzer.analyze(value))
     }
     emit(cg) {
@@ -312,6 +330,15 @@ export default class Analyzer {
                 }
                 if(initial.name in INFIX_OPERATORS) {
                     return InfixOpExpr.from(form, this)
+                }
+            }
+            if (initial instanceof Sym) {
+                const the_var = resolve(initial)
+                if (the_var?.meta?.macro) {
+                    return (this.analyze(the_var.invoke(...rest(form))))
+                }
+                if (the_var) {
+                    return InvokeVarExpr.from(form, this)
                 }
             }
             return InvokeExpr.from(form, this)

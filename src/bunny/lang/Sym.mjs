@@ -1,9 +1,10 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
 export default class Sym {
-    constructor(ns, name) {
+    constructor(ns, name, meta) {
         this.namespace = ns
         this.name = name
+        this.meta = meta
     }
 
     toString() {
@@ -20,5 +21,13 @@ export default class Sym {
 
     namespaced() {
         return !!this.namespace;
+    }
+
+    emit(cg) {
+        return cg.invoke_var(
+            this,
+            "bunny.lang",
+            "symbol",
+            (this.meta ? [this.name, this.namespace, this.meta] : [this.namespace, this.name]).map(s=>cg.literal(this, s)))
     }
 }
