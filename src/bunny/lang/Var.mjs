@@ -13,7 +13,7 @@ export default class Var {
         return this.value
     }
 
-    invoke(args) {
+    invoke(...args) {
         return this.value(...args)
     }
 

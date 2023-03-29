@@ -13,14 +13,8 @@ export default class Number {
     eq(other) {
         return (other instanceof Number) && this.value === other.value
     }
+
     emit(cg) {
         return cg.literal(this, this.value, this.raw)
-    }
-    estree() {
-        return {"type": "Literal",
-                "start": this.start,
-                "end": this.end,
-                "value": this.value,
-                "raw": this.raw}
     }
 }

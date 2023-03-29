@@ -4,36 +4,73 @@ import List from "./lang/List.mjs"
 import Sym from "./lang/Sym.mjs"
 import Var from "./lang/Var.mjs"
 import Module from "./lang/Module.mjs"
+import Cons from "./lang/Cons.mjs"
 import {define_protocol, extend_protocol} from "./lang/Protocol.mjs"
 
 const self = new Module('bunny.lang')
+export default self
+
 export const module_registry = {bunny$$lang: self}
+self.intern('*current-module*', null)
 
 function not_implemented() {
     throw new Error("function not available, runtime isn't loaded")
 }
 
+self.intern("list-ctor", function() {return new List(Array.from(arguments))})
+
 export function list() {return self.resolve("list-ctor")(...arguments)}
+self.intern("list", list)
+
 export function symbol(ns, name) {return new Sym(ns, name)}
+self.intern("symbol", symbol)
 
 export function find_module(mod) {
     const munged_name = Module.munge((typeof mod == "string") ? mod : mod.name)
     return module_registry[munged_name]
 }
+self.intern("find-module", find_module)
 
 export function ensure_module(module_form) {
     let mod = Module.from(module_form)
     module_registry[Module.munge(mod.name)] ||= mod
     return find_module(mod.name).refer_module(self)
 }
+self.intern("ensure-module", ensure_module)
 
 export function resolve(sym) {
     return find_module(sym.namespace)?.resolve(sym.name)
 }
+self.intern("resolve", resolve)
 
 export function conj(coll, o) {
-    return self.resolve("-conj").invoke([coll,o])
+    return self.resolve("-conj").invoke(coll,o)
 }
+self.intern("conj", conj)
+
+export function cons(val, seq) {
+    return new Cons(val, seq)
+}
+self.intern("cons", cons)
+
+export function munge(str) {
+    return Module.munge(str)
+}
+self.intern("munge", munge)
+
+export function seq(o) {
+    if (Seq.satisfied(o)) {
+        return o
+    }
+    console.log(o, (Seq.satisfied(o)))
+}
+self.intern("seq", seq)
+
+export function first(o) {
+    console.log(self.resolve("-first"))
+    return self.resolve("-first").invoke(seq(o))
+}
+self.intern("first", first)
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -104,15 +141,21 @@ extend_protocol(
           elements.unshift(o)
           return new List(elements)}]])
 
-////////////////////////////////////////////////////////////////////////////////
+extend_protocol(
+    Conjable,
+    Cons,
+    [["-conj", 2,
+      function(self, o) {
+          return new Cons(o, self)}]])
 
-self.intern('*current-module*', null)
-self.intern("list-ctor", function() {return new List(Array.from(arguments))})
-self.intern("list", list)
-self.intern("symbol", symbol)
-self.intern("resolve", resolve)
-self.intern("find-module", find_module)
-self.intern("ensure-module", ensure_module)
-self.intern("conj", conj)
-
-export default self
+extend_protocol(
+    Seq,
+    Cons,
+    [["-first", 1,
+      function(self) {
+          return self.x
+      }],
+     ["-rest", 1,
+      function(self) {
+          return self.xs
+      }]])

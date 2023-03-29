@@ -73,9 +73,9 @@ extend_protocol(
       }]]
 )
 
-console.log(resolve(new Sym("bunny.lang", "eq")).invoke([new Sym("z", "y"), new Sym("x", "y")]))
-console.log(resolve(new Sym("bunny.lang", "eq")).invoke(["foo", "foo"]))
-console.log(resolve(new Sym("bunny.lang", "eq")).invoke([true, false]))
+console.log(resolve(new Sym("bunny.lang", "eq")).invoke(new Sym("z", "y"), new Sym("x", "y")))
+console.log(resolve(new Sym("bunny.lang", "eq")).invoke("foo", "foo"))
+console.log(resolve(new Sym("bunny.lang", "eq")).invoke(true, false))
 
 // old bunny.lang
 

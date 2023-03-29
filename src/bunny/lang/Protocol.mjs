@@ -3,20 +3,28 @@
 import Sym from "./Sym.mjs"
 
 class Protocol {
-    constructor(name, signatures) {
-        this.name = name
+    constructor(fullname, signatures) {
+        this.fullname = fullname
         this.signatures = signatures
         this.builtins = {}
         this.methods = {}
     }
+
+    satisfied(obj) {
+        if (typeof obj === 'object') {
+            return obj?.__protocols[this.fullname]
+        } else {
+            return this.builtins[typeof obj][this.fullname]
+        }
+    }
 }
 
 function munge_method_name(protocol, method_name, arity) {
-    return protocol.name + "$$" + method_name + "$$" + arity;
+    return protocol.fullname + "$$" + method_name + "$$" + arity;
 }
 
 function define_protocol(mod, name, signatures) {
-    let proto = new Protocol(name, signatures)
+    let proto = new Protocol(mod.name + "/" + name, signatures)
     mod.intern(name, proto)
     for(var signature of signatures) {
         let method_name = signature[0]
@@ -35,6 +43,7 @@ function define_protocol(mod, name, signatures) {
                     return method(...arguments)
                 }
             }
+            console.dir(object.__proto__, {depth: null})
             throw new Error("No protocol definition for " + name + " " + method_name + "/" + arity + " on object " + object)
         }
         mod.intern(method_name, dispatch)
@@ -44,15 +53,24 @@ function define_protocol(mod, name, signatures) {
 }
 
 function extend_protocol(protocol, type, methods) {
-    for (var method of methods) {
-        let name = method[0]
-        let arity = method[1]
-        let fn = method[2]
-        let full_name = munge_method_name(protocol, name, arity)
-        if (typeof type === "string") {
-            protocol.builtins[type] ||= {}
+    if (typeof type === "string") {
+        protocol.builtins[type] ||= {}
+        protocol.builtins[type][protocol.fullname] = true
+        for (var method of methods) {
+            let name = method[0]
+            let arity = method[1]
+            let fn = method[2]
+            let full_name = munge_method_name(protocol, name, arity)
             protocol.builtins[type][full_name] = fn
-        } else {
+        }
+    } else {
+        type.prototype.__protocols ||= {}
+        type.prototype.__protocols[protocol.fullname] = true
+        for (var method of methods) {
+            let name = method[0]
+            let arity = method[1]
+            let fn = method[2]
+            let full_name = munge_method_name(protocol, name, arity)
             type.prototype[full_name] = fn
         }
     }

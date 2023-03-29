@@ -24,6 +24,7 @@ let ch_quot = "'".charCodeAt(0)
 let ch_lparen = "(".charCodeAt(0)
 let ch_rparen = ")".charCodeAt(0)
 let ch_slash = "/".charCodeAt(0)
+let ch_semicolon = ";".charCodeAt(0)
 let ch_backslash = "\\".charCodeAt(0)
 let whitespace_chars = char_seq(" \r\n\t\v,")
 let sym_chars = char_seq("+-_|!?$<>.*%=<>/")
@@ -70,6 +71,15 @@ class StringReader {
         }
     }
 
+    skip_comment() {
+        if (this.eof()) return
+        while (this.cc != 10) {
+            this.next_ch()
+        }
+        this.line++
+        this.col = 0
+    }
+
     _read() {
         this.skip_ws()
         if (this.eof()) {
@@ -87,6 +97,9 @@ class StringReader {
         } else if (this.cc == ch_quot) {
             this.next_ch()
             return new List([new Sym(null, "quote"), this.read()])
+        } else if (this.cc == ch_semicolon) {
+            this.skip_comment()
+            return this._read()
         }
         return "not recognized " + this.ch + " @" + this.pos
     }

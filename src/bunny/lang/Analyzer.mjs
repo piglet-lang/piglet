@@ -65,7 +65,13 @@ class InvokeExpr extends ASTNode {
         return new this(form, analyzer.analyze(fn), args.map(a=>analyzer.analyze(a)))
     }
     emit(cg) {
-        return cg.function_call(this, this.fn.emit(cg), this.args.map(a=>a.emit(cg)))
+        console.log(this)
+        return cg.function_call(this, this.fn.emit(cg), this.args.map(a=>{
+            if (a.emit) {
+                return a.emit(cg)
+            } else {
+                return cg.literal(this, a)
+            }}))
     }
 }
 
@@ -208,9 +214,6 @@ class SpecialSymbolExpr {
     }
     static from(form) {
         return new this(form, SPECIAL_SYMBOLS[form.name])
-    }
-    estree() {
-        return literal(this.value)
     }
 }
 

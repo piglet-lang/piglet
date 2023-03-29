@@ -80,8 +80,6 @@ export default class CodeGen {
         )
     }
 
-
-
     member_lookup(node, syms) {
         return syms.slice(1).reduce((acc,sym)=>{
             return this.mknode('MemberExpression', {node: sym, object: acc, property: this.identifier(sym, sym.name), computed: false})
@@ -143,5 +141,4 @@ export default class CodeGen {
                             alternate: else_branch||this.literal(node, null, "null")})
 
     }
-
 }
