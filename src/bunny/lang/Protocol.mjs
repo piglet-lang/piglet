@@ -1,7 +1,6 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
 import Sym from "./Sym.mjs"
-import {GLOBAL_SCOPE, CURRENT_MODULE, resolve, get_module} from "./runtime.mjs"
 
 class Protocol {
     constructor(name, signatures) {
@@ -12,10 +11,13 @@ class Protocol {
     }
 }
 
-function define_protocol(name, signatures) {
-    let mod = get_module(name.namespace)
+function munge_method_name(protocol, method_name, arity) {
+    return protocol.name + "$$" + method_name + "$$" + arity;
+}
+
+function define_protocol(mod, name, signatures) {
     let proto = new Protocol(name, signatures)
-    mod.intern(name.name, proto)
+    mod.intern(name, proto)
     for(var signature of signatures) {
         let method_name = signature[0]
         let dispatch = function(object) {
@@ -24,13 +26,13 @@ function define_protocol(name, signatures) {
             if (object && typeof object == "object") {
                 let method = object[full_name]
                 if (method) {
-                    return method.apply(null, arguments)
+                    return method(...arguments)
                 }
             } else {
                 let methods = proto.builtins[object === null ? "null" : typeof object]
                 let method = methods && methods[full_name]
                 if (method) {
-                    return method.apply(null, arguments)
+                    return method(...arguments)
                 }
             }
             throw new Error("No protocol definition for " + name + " " + method_name + "/" + arity + " on object " + object)
@@ -39,10 +41,6 @@ function define_protocol(name, signatures) {
         proto.methods[method_name] = dispatch
     }
     return proto
-}
-
-function munge_method_name(protocol, method_name, arity) {
-    return protocol.name.toString() + "$$" + method_name + "$$" + arity;
 }
 
 function extend_protocol(protocol, type, methods) {

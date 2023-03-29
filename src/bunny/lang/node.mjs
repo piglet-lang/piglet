@@ -4,17 +4,18 @@ import StringReader from "./StringReader.mjs"
 import Analyzer from "./Analyzer.mjs"
 import CodeGen from "./CodeGen.mjs"
 import Module from "./Module.mjs"
-import {get_module, init_runtime, init_module} from "./runtime.mjs"
-import * as runtime from './runtime.mjs'
+import Sym from "./Sym.mjs"
 import {readFileSync} from 'node:fs'
 import * as astring from 'astring'
+import {ensure_module, find_module, module_registry, resolve, symbol} from "../lang.mjs"
+import bunny$$lang from "../lang.mjs"
 
 function load(file) {
     const source = readFileSync(file).toString()
     const r = new StringReader(source)
     const module_form = r.read()
-    const mod = init_module(module_form)
-    const cg = new CodeGen(runtime, mod)
+    bunny$$lang.intern("*current-module*", ensure_module(module_form))
+    const cg = new CodeGen()
     const analyzer = new Analyzer()
     //r.reset()
     let result = null
@@ -29,5 +30,5 @@ function load(file) {
     return result
 }
 
-init_runtime(global)
+global.$bunny$ = module_registry
 load(process.argv[2])

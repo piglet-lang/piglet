@@ -37,6 +37,7 @@ export default class Module {
 
     refer_module(other_module) {
         Object.assign(this.vars, other_module.vars)
+        return this
     }
 
     resolve(name) {

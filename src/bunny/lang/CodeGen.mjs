@@ -1,12 +1,10 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
-import Sym from "./Sym.mjs"
 import Module from "./Module.mjs"
+import {resolve, symbol} from "../lang.mjs"
 
 export default class CodeGen {
-    constructor(runtime, module) {
-        this.runtime = runtime
-        this.module = module
+    constructor() {
     }
 
     mknode(type, {node, end_node, ...props}) {
@@ -16,6 +14,10 @@ export default class CodeGen {
                 line: node?.line,
                 col: node?.col,
                 ...props}
+    }
+
+    current_module() {
+        return resolve(symbol("bunny.lang", "*current-module*")).deref()
     }
 
     function_expr(node, {name, argv, body}) {
@@ -87,15 +89,15 @@ export default class CodeGen {
     }
 
     var_reference(node, sym) {
-        let mod_name = this.module.name
+        let mod_name = this.current_module().name
         if (sym.namespaced()) {
-            mod_name = this.module.aliases[sym.namespace] || sym.namespace
+            mod_name = this.current_module().aliases[sym.namespace] || sym.namespace
         }
-        if (!this.runtime.find_var(mod_name, sym.name)) {
+        if (!resolve(symbol(mod_name, sym.name))) {
             throw(new Error("Var not found: " + mod_name + "/" + sym.name))
         }
         const mksym = n=>{
-            const s = new Sym(null, n)
+            const s = symbol(null, n)
             s.start = node.start
             s.end = node.end
             s.end = node.end
@@ -120,7 +122,7 @@ export default class CodeGen {
 
     define_var(node, name, value, meta) {
         const mksym = n=>{
-            const s = new Sym(null, n)
+            const s = symbol(null, n)
             s.start = node.start
             s.end = node.end
             s.end = node.end
@@ -130,7 +132,7 @@ export default class CodeGen {
         }
         return this.method_call(node,
                                 mksym("intern"),
-                                this.member_lookup(node, [mksym("$bunny$"), mksym(Module.munge(this.module.name))]),
+                                this.member_lookup(node, [mksym("$bunny$"), mksym(Module.munge(this.current_module().name))]),
                                 meta ? [this.literal(name, name.name), value, meta] : [this.literal(name, name.name), value])
     }
 

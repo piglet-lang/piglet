@@ -14,7 +14,7 @@ export default class Var {
     }
 
     invoke(args) {
-        return this.deref().apply(null, args)
+        return this.value(...args)
     }
 
     set_value(value) {

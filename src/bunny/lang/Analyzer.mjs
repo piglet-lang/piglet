@@ -1,10 +1,8 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
+import {list, symbol} from "../lang.mjs"
 import List from "./List.mjs"
 import Sym from "./Sym.mjs"
-import {GLOBAL_SCOPE, CURRENT_MODULE} from "./runtime.mjs"
-import {member_lookup, literal, identifier, global_lookup, method_call, module_lookup, var_lookup} from "./estree_helpers.mjs"
-import "./protocols.mjs"
 
 class ASTNode {
     constructor(form) {
@@ -79,7 +77,7 @@ class HostVarExpr extends ASTNode {
 
     static from(sym) {
         const parts = sym.name.split('.').reduce((acc, s)=>{
-            const part = new Sym(null, s)
+            const part = symbol(null, s)
             const [prev] = acc.slice(-1)
             part.start = prev ? prev.end+2 : sym.start
             part.end   = part.start + part.name.length
@@ -141,11 +139,11 @@ class MethodExpr extends ASTNode {
 
     static from(form, analyzer) {
         const [f1, f2, ...rest] = form
-        const method = new Sym(null, f1.name.slice(1))
+        const method = symbol(null, f1.name.slice(1))
         Object.assign(method, {start: f1.start, end: f1.end, line: f1.line, col: f1.col})
         const object  = analyzer.analyze(f2)
         const args = rest.map(f=>analyzer.analyze(f))
-        return new MethodExpr(form, method, object, args)
+        return new this(form, method, object, args)
     }
 
     emit(cg) {
@@ -161,7 +159,7 @@ class DefExpr extends ASTNode {
     }
     static from(form, analyzer) {
         const [_def, var_sym, value] = form
-        return new DefExpr(form, var_sym, analyzer.analyze(value))
+        return new this(form, var_sym, analyzer.analyze(value))
     }
     emit(cg) {
         return cg.define_var(this, this.var_sym, this.value.emit(cg))
@@ -209,7 +207,7 @@ class SpecialSymbolExpr {
         this.value = value
     }
     static from(form) {
-        return new SpecialSymbolExpr(form, SPECIAL_SYMBOLS[form.name])
+        return new this(form, SPECIAL_SYMBOLS[form.name])
     }
     estree() {
         return literal(this.value)

@@ -9,3 +9,5 @@
 
 (defmacro foo (x)
   x)
+
+(js/console.log (bunny.lang/resolve (bunny.lang/symbol "bunny.lang", "=")))
