@@ -1,6 +1,7 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
 import Sym from "./Sym.mjs"
+import {extend_class} from "./Protocol.mjs"
 
 export default class List {
     constructor(elements) {
@@ -12,14 +13,10 @@ export default class List {
     }
 
     rest() {
-        return new List(this.elements.slice(1))
-    }
-
-    eq(other) {
-        if (!(other instanceof List)) return false
-        let i1 = this[Symbol.iterator]
-        let i2 = other[Symbol.iterator]
-
+        if (this.elements.length > 1) {
+            return new List(this.elements.slice(1))
+        }
+        return null
     }
 
     toString() {
@@ -36,3 +33,23 @@ export default class List {
         return this.elements[Symbol.iterator]()
     }
 }
+
+extend_class(
+    List, "bunny.lang/Seq",
+    [(function _first(self) {return self.first()}),
+     (function _rest(self) {return self.rest()})]
+)
+
+extend_class(
+    List, "bunny.lang/HasMeta",
+    [(function _meta(self) {return self.meta})]
+)
+
+extend_class(
+    List, "bunny.lang/Conjable",
+    [(function _conj(self, o) {
+        const elements = Array.from(self)
+        elements.unshift(o)
+        return new self.constructor(elements)
+    })]
+)

@@ -14,3 +14,11 @@
 ;; (js/console.log bunny.lang/Eq)
 
 (js/console.log (first (cons 1 (cons 2 nil))))
+(js/console.log (seq? (cons 1 (cons 2 nil))))
+(js/console.log (iterable? (cons 1 (cons 2 nil))))
+(js/console.log (iterator? (cons 1 (cons 2 nil))))
+(js/console.log (iterator (array 1 2 3)))
+(js/console.log (first (array 1 2 3)))
+(println (rest (array 1 2 3)))
+(println (cons 5 (list 1 2 3)))
+(js/console.log Seq)

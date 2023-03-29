@@ -7,14 +7,14 @@ import Module from "./Module.mjs"
 import Sym from "./Sym.mjs"
 import {readFileSync} from 'node:fs'
 import * as astring from 'astring'
-import {ensure_module, find_module, module_registry, resolve, symbol} from "../lang.mjs"
+import {ensure_module, find_module, module_registry, resolve, symbol, first, rest, name} from "../lang.mjs"
 import bunny$$lang from "../lang.mjs"
 
 function load(file) {
     const source = readFileSync(file).toString()
     const r = new StringReader(source)
     const module_form = r.read()
-    bunny$$lang.intern("*current-module*", ensure_module(module_form))
+    bunny$$lang.intern("*current-module*", ensure_module(name(first(rest(module_form)))))
     const cg = new CodeGen()
     const analyzer = new Analyzer()
     //r.reset()

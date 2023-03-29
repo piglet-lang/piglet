@@ -1,6 +1,7 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
 import Sym from "./Sym.mjs"
+import Module from "./Module.mjs"
 
 class Protocol {
     constructor(fullname, signatures) {
@@ -12,15 +13,15 @@ class Protocol {
 
     satisfied(obj) {
         if (typeof obj === 'object') {
-            return obj?.__protocols[this.fullname]
+            return obj?.__protocols && obj?.__protocols[this.fullname]
         } else {
-            return this.builtins[typeof obj][this.fullname]
+            return this.builtins[typeof obj] && this.builtins[typeof obj][this.fullname]
         }
     }
 }
 
 function munge_method_name(protocol, method_name, arity) {
-    return protocol.fullname + "$$" + method_name + "$$" + arity;
+    return Module.munge(protocol.fullname + "--" + method_name + "-" + arity)
 }
 
 function define_protocol(mod, name, signatures) {
@@ -43,7 +44,6 @@ function define_protocol(mod, name, signatures) {
                     return method(...arguments)
                 }
             }
-            console.dir(object.__proto__, {depth: null})
             throw new Error("No protocol definition for " + name + " " + method_name + "/" + arity + " on object " + object)
         }
         mod.intern(method_name, dispatch)
@@ -76,5 +76,24 @@ function extend_protocol(protocol, type, methods) {
     }
 }
 
+// These two can be used without a reference to the Protocol object, which helps
+// us to bootstrap, since we can extend and invoke protocols without relying on
+// bunny.lang and thus creating circular dependencies
+function extend_class(klass, fullname, functions) {
+    klass.prototype.__protocols ||= {}
+    klass.prototype.__protocols[fullname] = true
+    for (var fn of functions) {
+        let name = Module.unmunge(fn.name)
+        let arity = fn.length
+        let full_name = munge_method_name({fullname: fullname}, name, arity)
+        klass.prototype[full_name] = fn
+    }
+    return klass
+}
+
+function invoke_proto(fullname, method_name, obj, ...rest) {
+    return obj[munge_method_name({fullname: fullname}, method_name, rest.length+1)](...rest)
+}
+
 export default Protocol
-export {define_protocol, extend_protocol, munge_method_name}
+export {define_protocol, extend_protocol, extend_class, munge_method_name, invoke_proto}

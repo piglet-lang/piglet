@@ -5,6 +5,8 @@ import Sym from "./lang/Sym.mjs"
 import Var from "./lang/Var.mjs"
 import Module from "./lang/Module.mjs"
 import Cons from "./lang/Cons.mjs"
+import SeqIterator from "./lang/SeqIterator.mjs"
+import IteratorSeq from "./lang/IteratorSeq.mjs"
 import {define_protocol, extend_protocol} from "./lang/Protocol.mjs"
 
 const self = new Module('bunny.lang')
@@ -19,11 +21,24 @@ function not_implemented() {
 
 self.intern("list-ctor", function() {return new List(Array.from(arguments))})
 
-export function list() {return self.resolve("list-ctor")(...arguments)}
+export function list() {return self.resolve("list-ctor").invoke(...arguments)}
 self.intern("list", list)
 
 export function symbol(ns, name) {return new Sym(ns, name)}
 self.intern("symbol", symbol)
+
+export function name(sym) {
+    if (typeof sym === 'string') {
+        return sym
+    }
+    return sym.name
+}
+self.intern("name", name)
+
+export function namespace(sym) {
+    return sym.namespace
+}
+self.intern("namespace", namespace)
 
 export function find_module(mod) {
     const munged_name = Module.munge((typeof mod == "string") ? mod : mod.name)
@@ -31,10 +46,9 @@ export function find_module(mod) {
 }
 self.intern("find-module", find_module)
 
-export function ensure_module(module_form) {
-    let mod = Module.from(module_form)
-    module_registry[Module.munge(mod.name)] ||= mod
-    return find_module(mod.name).refer_module(self)
+export function ensure_module(name) {
+    module_registry[munge(name)] ||= new Module(name).refer_module(self)
+    return find_module(name)
 }
 self.intern("ensure-module", ensure_module)
 
@@ -43,7 +57,10 @@ export function resolve(sym) {
 }
 self.intern("resolve", resolve)
 
-export function conj(coll, o) {
+export function conj(coll, o, ...rest) {
+    if (rest.length > 0) {
+        return Array.from(rest).reduce((acc,e)=>conj(acc,e), self.resolve("-conj").invoke(coll,o))
+    }
     return self.resolve("-conj").invoke(coll,o)
 }
 self.intern("conj", conj)
@@ -53,24 +70,143 @@ export function cons(val, seq) {
 }
 self.intern("cons", cons)
 
+export function satisfies_pred(protocol, obj) {
+    return protocol.satisfied(obj)
+}
+self.intern("satisfies?", satisfies_pred)
+
 export function munge(str) {
     return Module.munge(str)
 }
 self.intern("munge", munge)
 
-export function seq(o) {
-    if (Seq.satisfied(o)) {
+export function unmunge(str) {
+    return Module.unmunge(str)
+}
+self.intern("unmunge", unmunge)
+
+export function fn_pred(o) {
+    return typeof o === 'function'
+}
+self.intern("fn?", fn_pred)
+
+export function array_pred(o) {
+    return Array.isArray(o)
+}
+self.intern("array?", array_pred)
+
+export function iterator_pred(o) {
+    return fn_pred(o.next)
+}
+self.intern("iterator?", iterator_pred)
+
+export function iterable_pred(o) {
+    return !!o[Symbol.iterator]
+}
+self.intern("iterable?", iterable_pred)
+
+export function iterator(o) {
+    if (iterator_pred(o)) {
         return o
     }
-    console.log(o, (Seq.satisfied(o)))
+    if (iterable_pred(o)) {
+        return o[Symbol.iterator]()
+    }
+    if (seq_pred(o)) {
+        return new SeqIterator(o)
+    }
+    if (seqable_pred(o)) {
+        return new SeqIterator(seq(o))
+    }
+}
+self.intern("iterator", iterator)
+
+export function seq_pred(o) {
+    return Seq.satisfied(o)
+}
+self.intern("seq?", seq_pred)
+
+export function seqable_pred(o) {
+    return Seqable.satisfied(o)
+}
+self.intern("seqable?", seqable_pred)
+
+export function seq(o) {
+    if (seq_pred(o)) {
+        return o
+    }
+    if (seqable_pred(o)) {
+        return self.resolve("-seq").invoke(o)
+    }
+    if (iterator_pred(o)) {
+        return new IteratorSeq(o)
+    }
+    if (iterable_pred(o)) {
+        return IteratorSeq.of(iterator(o))
+    }
+    throw new Error("" + o + " is not seqable")
 }
 self.intern("seq", seq)
 
 export function first(o) {
-    console.log(self.resolve("-first"))
     return self.resolve("-first").invoke(seq(o))
 }
 self.intern("first", first)
+
+export function rest(o) {
+    return self.resolve("-rest").invoke(seq(o))
+}
+self.intern("rest", rest)
+
+export function print_str(o) {
+    if (seq_pred(o)) {
+        let res = "(" + print_str(first(o))
+        o = rest(o)
+        while (o) {
+            res += " " + print_str(first(o))
+            o = rest(o)
+        }
+        return res + ")"
+    }
+    return "" + o
+}
+self.intern("print-str", print_str)
+
+export function println(o) {
+    console.log(print_str(o))
+}
+self.intern("println", println)
+
+export function reduce(rf, ...rest) {
+    const rf2 = (a,b)=>rf(a,b)
+    if (rest.length == 2) {
+        const [init, coll] = rest
+        return Array.from(coll).reduce(rf2, init)
+    }
+    const [coll] = rest
+    return Array.from(coll).reduce(rf2)
+}
+self.intern("reduce", reduce)
+
+export function plus(...rest) {
+    return reduce((a,b)=>a+b, rest)
+}
+self.intern("+", plus)
+
+export function minus(...rest) {
+    return reduce((a,b)=>a-b, rest)
+}
+self.intern("-", minus)
+
+export function multiply(...rest) {
+    return reduce((a,b)=>a*b, rest)
+}
+self.intern("*", multiply)
+
+export function divide(...rest) {
+    return reduce((a,b)=>a/b, rest)
+}
+self.intern("/", divide)
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -100,6 +236,16 @@ export const Seq = define_protocol(
     [["-first", [[["this"], "Return the first element of the seq"]]],
      ["-rest", [[["this"], "Return a seq of the remaining elements of this seq"]]]])
 
+// Primitives
+extend_protocol(Eq, "number", [["=", 2, function(self, other) {return self === other}]])
+extend_protocol(Eq, "string", [["=", 2, function(self, other) {return self === other}]])
+extend_protocol(Eq, "undefined", [["=", 2, function(self, other) {return self === other}]])
+extend_protocol(Eq, "boolean", [["=", 2, function(self, other) {return self === other}]])
+extend_protocol(Eq, "null", [["=", 2, function(self, other) {return self === other}]])
+
+extend_protocol(Conjable, "null", [["-conj", 2, function(_, e) {return list(e)}]])
+
+// List
 extend_protocol(
     Eq,
     List,
@@ -119,43 +265,21 @@ extend_protocol(
           return Eq.methods["="](v1.value, v2.value) && v1.done === v2.done
       }]])
 
-extend_protocol(Eq, "number", [["=", 2, function(self, other) {return self === other}]])
-extend_protocol(Eq, "string", [["=", 2, function(self, other) {return self === other}]])
-extend_protocol(Eq, "undefined", [["=", 2, function(self, other) {return self === other}]])
-extend_protocol(Eq, "boolean", [["=", 2, function(self, other) {return self === other}]])
-extend_protocol(Eq, "null", [["=", 2, function(self, other) {return self === other}]])
-
-extend_protocol(
-    HasMeta,
-    List,
-    [["-meta", 1,
-      function(self) {
-          return self.meta}]])
-
-extend_protocol(
-    Conjable,
-    List,
-    [["-conj", 2,
-      function(self, o) {
-          const elements = Array.from(self)
-          elements.unshift(o)
-          return new List(elements)}]])
+// Cons
 
 extend_protocol(
     Conjable,
     Cons,
-    [["-conj", 2,
-      function(self, o) {
-          return new Cons(o, self)}]])
+    [["-conj", 2, function(self, o) {return new Cons(o, self)}]])
 
 extend_protocol(
     Seq,
     Cons,
-    [["-first", 1,
-      function(self) {
-          return self.x
-      }],
-     ["-rest", 1,
-      function(self) {
-          return self.xs
-      }]])
+    [["-first", 1, function(self) {return self.x}],
+     ["-rest", 1, function(self) {return self.xs}]])
+
+extend_protocol(
+    Seq,
+    IteratorSeq,
+    [["-first", 1, function(self) {return self.first()}],
+     ["-rest", 1, function(self) {return self.rest()}]])

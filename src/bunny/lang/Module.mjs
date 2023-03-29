@@ -20,7 +20,27 @@ export default class Module {
             .replaceAll("%", "_$PERCENT$_")
             .replaceAll("=", "_$EQ$_")
             .replaceAll("|", "_$PIPE$_")
+            .replaceAll("/", "_$SLASH$_")
             .replaceAll(".", "$$$$")
+    }
+
+    static unmunge(id) {
+        return id
+            .replaceAll("$$", ".")
+            .replaceAll("_$SLASH$_", "/")
+            .replaceAll("_$PIPE$_", "|")
+            .replaceAll("_$EQ$_", "=")
+            .replaceAll("_$PERCENT$_", "%")
+            .replaceAll("_$AMP$_", "&")
+            .replaceAll("_$QMARK$_", "?")
+            .replaceAll("_$BANG$_", "!")
+            .replaceAll("_$STAR$_", "*")
+            .replaceAll("_$GT$_", ">")
+            .replaceAll("_$LT$_", "<")
+            .replaceAll("_$PLUS$_", "+")
+            .replaceAll("_", "-")
+            .replaceAll("_$UNDERSCORE$_", "_")
+            .replaceAll("_$DOLLAR$_", "$")
     }
 
     static from(form) {

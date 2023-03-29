@@ -7,6 +7,14 @@ export default class CodeGen {
     constructor() {
     }
 
+    emit(node, value) {
+        if(typeof value.emit === "function") {
+            return value.emit(this)
+        } else {
+            return this.literal(node, value)
+        }
+    }
+
     mknode(type, {node, end_node, ...props}) {
         return {type: type,
                 start: node?.start,
@@ -61,6 +69,10 @@ export default class CodeGen {
         return this.mknode('Literal', {node: node, value: value, raw: raw || JSON.stringify(value)})
     }
 
+    array_literal(node, elements) {
+        return this.mknode('ArrayExpression', {node: node, elements: elements})
+    }
+
     object_literal(node, kvs) {
         return this.mknode(
             'ObjectExpression',
@@ -80,10 +92,10 @@ export default class CodeGen {
         )
     }
 
-    member_lookup(node, syms) {
-        return syms.slice(1).reduce((acc,sym)=>{
+    member_lookup(node, obj, syms) {
+        return syms.reduce((acc,sym)=>{
             return this.mknode('MemberExpression', {node: sym, object: acc, property: this.identifier(sym, sym.name), computed: false})
-        }, this.identifier(syms[0], syms[0].name))
+        }, obj)
     }
 
     var_reference(node, sym) {
@@ -103,7 +115,17 @@ export default class CodeGen {
             s.col = node.col
             return s
         }
-        return this.member_lookup(node, [mksym("$bunny$"), mksym(Module.munge(mod_name)), mksym("vars"), mksym(Module.munge(sym.name)), mksym("value")])
+        //return this.member_lookup(node, [mksym("$bunny$"), mksym(Module.munge(mod_name)), mksym("vars"), mksym(Module.munge(sym.name)), mksym("value")])
+        return this.method_call(
+            node,
+            "deref",
+            this.function_call(
+                node,
+                this.member_lookup(node, this.identifier(node, "$bunny$"), [mksym(Module.munge(mod_name)), mksym("resolve")]),
+                [this.literal(sym, sym.name)]
+            ),
+            []
+        )
     }
 
     method_call(node, method, object, args) {
@@ -130,7 +152,7 @@ export default class CodeGen {
         }
         return this.method_call(node,
                                 mksym("intern"),
-                                this.member_lookup(node, [mksym("$bunny$"), mksym(Module.munge(this.current_module().name))]),
+                                this.member_lookup(node, this.identifier(node, "$bunny$"), [mksym(Module.munge(this.current_module().name))]),
                                 meta ? [this.literal(name, name.name), value, meta] : [this.literal(name, name.name), value])
     }
 

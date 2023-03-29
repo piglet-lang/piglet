@@ -65,13 +65,7 @@ class InvokeExpr extends ASTNode {
         return new this(form, analyzer.analyze(fn), args.map(a=>analyzer.analyze(a)))
     }
     emit(cg) {
-        console.log(this)
-        return cg.function_call(this, this.fn.emit(cg), this.args.map(a=>{
-            if (a.emit) {
-                return a.emit(cg)
-            } else {
-                return cg.literal(this, a)
-            }}))
+        return cg.function_call(this, this.fn.emit(cg), this.args.map(a=>cg.emit(this,a)))
     }
 }
 
@@ -95,7 +89,7 @@ class HostVarExpr extends ASTNode {
     }
 
     emit(cg) {
-        return cg.member_lookup(this, this.parts)
+        return cg.member_lookup(this, cg.identifier(this.parts[0], this.parts[0]), this.parts.slice(1))
     }
 }
 
@@ -153,7 +147,34 @@ class MethodExpr extends ASTNode {
     }
 
     emit(cg) {
-        return cg.method_call(this, this.method, this.object.emit(cg), this.args.map(a=>a.emit(cg)))
+        return cg.method_call(this, this.method, this.object.emit(cg), this.args.map(a=>cg.emit(this,a)))
+    }
+}
+
+class MemberExpr extends ASTNode {
+    constructor(form, object, parts) {
+        super(form)
+        this.object = object
+        this.parts = parts
+    }
+
+    static from(form, analyzer) {
+        const [f1, f2] = form
+        const parts = f1.name.slice(2).split('.').reduce((acc, s)=>{
+            const part = symbol(null, s)
+            const [prev] = acc.slice(-1)
+            part.start = prev ? prev.end+2 : f1.start
+            part.end   = part.start + part.name.length
+            part.line  = f1.line
+            part.col   = prev ? prev.col+2 : f1.col
+            return acc.concat([part])
+        }, [])
+        const object  = analyzer.analyze(f2)
+        return new this(form, object, parts)
+    }
+
+    emit(cg) {
+        return cg.member_lookup(this, this.object.emit(cg), this.parts)
     }
 }
 
@@ -215,6 +236,9 @@ class SpecialSymbolExpr {
     static from(form) {
         return new this(form, SPECIAL_SYMBOLS[form.name])
     }
+    emit(cg) {
+        return cg.literal(this, this.value)
+    }
 }
 
 let INFIX_OPERATORS = {
@@ -240,7 +264,21 @@ class InfixOpExpr extends ASTNode {
         return new this(form, INFIX_OPERATORS[op], rest.map(e=>analyzer.analyze(e)))
     }
     emit(cg) {
-        return cg.infix_op(this, this.op, this.args.map(a=>a.emit(cg)))
+        return cg.infix_op(this, this.op, this.args.map(a=>cg.emit(this,a)))
+    }
+}
+
+class ArrayExpression extends ASTNode {
+    constructor(form, args) {
+        super(form)
+        this.args = args
+    }
+    static from(form, analyzer) {
+        const [_, ...rest] = form
+        return new this(form, rest.map(e=>analyzer.analyze(e)))
+    }
+    emit(cg) {
+        return cg.array_literal(this, this.args.map(a=>cg.emit(this,a)))
     }
 }
 
@@ -249,7 +287,8 @@ let SPECIALS = {
     "def": DefExpr,
     "quote": QuoteExpr,
     "if": IfExpr,
-    "defmacro": MacroVarExpr
+    "defmacro": MacroVarExpr,
+    "array": ArrayExpression
 }
 
 export default class Analyzer {
@@ -265,7 +304,11 @@ export default class Analyzer {
                     return expr_class.from(form, this)
                 }
                 if (initial.name.charAt(0) == ".") {
-                    return MethodExpr.from(form, this)
+                    if (initial.name.charAt(1) == "-") {
+                        return MemberExpr.from(form, this)
+                    } else {
+                        return MethodExpr.from(form, this)
+                    }
                 }
                 if(initial.name in INFIX_OPERATORS) {
                     return InfixOpExpr.from(form, this)
