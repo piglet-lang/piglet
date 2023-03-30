@@ -3,7 +3,7 @@
 A LISP.
 
 ```
-npx bunnylang --trace
+rlwrap npx bunnylang --trace
 ```
 
 Copyright (c) Arne Brasseur 2023. All rights reserved.
