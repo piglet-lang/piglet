@@ -167,6 +167,9 @@ export function rest(o) {
 self.intern("rest", rest)
 
 export function print_str(o) {
+    if (Repr.satisfied(o)) {
+        return self.resolve("-repr").invoke(o)
+    }
     if (seq_pred(o)) {
         let res = "(" + print_str(first(o))
         o = rest(o)
@@ -176,7 +179,11 @@ export function print_str(o) {
         }
         return res + ")"
     }
+
     if (typeof o === 'object') {
+        if (o.toString && o.toString !== {}.toString) {
+            return o.toString()
+        }
         return "#js {" + Object.keys(o).map(k=>":"+k+" "+o[k]).join(", ") + "}"
     }
     return "" + o
@@ -257,6 +264,10 @@ export const Seq = define_protocol(
     [["-first", [[["this"], "Return the first element of the seq"]]],
      ["-rest", [[["this"], "Return a seq of the remaining elements of this seq"]]]])
 
+export const Repr = define_protocol(
+    self, "Repr",
+    [["-repr", [[["this"], "Return a string representation of the object"]]]])
+
 // Primitives
 extend_protocol(Eq, "number", [["=", 2, function(self, other) {return self === other}]])
 extend_protocol(Eq, "string", [["=", 2, function(self, other) {return self === other}]])
@@ -268,8 +279,7 @@ extend_protocol(Conjable, "null", [["-conj", 2, function(_, e) {return list(e)}]
 
 // List
 extend_protocol(
-    Eq,
-    List,
+    Eq, List,
     [["=", 2,
       function(self, other) {
           const i1 = self[Symbol.iterator]()
@@ -286,8 +296,14 @@ extend_protocol(
           return Eq.methods["="](v1.value, v2.value) && v1.done === v2.done
       }]])
 
+// Sym
+extend_protocol(Eq, Sym, [["=", 2, function(self, other) { return self.eq(other) }]])
+extend_protocol(Repr, Sym, [["-repr", 1, function(self) { return self.repr() }]])
+
+
 // Cons
 
+// TODO: these can be moved to Cons.mjs
 extend_protocol(
     Conjable,
     Cons,

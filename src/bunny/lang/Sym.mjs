@@ -7,7 +7,7 @@ export default class Sym {
         this.meta = meta
     }
 
-    toString() {
+    repr() {
         if (this.namespace) {
             return this.namespace + "/" + this.name
         } else {

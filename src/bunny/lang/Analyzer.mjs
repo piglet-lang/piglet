@@ -294,7 +294,7 @@ class InfixOpExpr extends ASTNode {
     }
     static from(form, analyzer) {
         const [op, ...rest] = form
-        return new this(form, INFIX_OPERATORS[op], rest.map(e=>analyzer.analyze(e)))
+        return new this(form, INFIX_OPERATORS[op.name], rest.map(e=>analyzer.analyze(e)))
     }
     emit(cg) {
         return cg.infix_op(this, this.op, this.args.map(a=>cg.emit(this,a)))
