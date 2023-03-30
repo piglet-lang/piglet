@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import {stdin, stdout} from 'node:process'
 import {isatty} from 'node:tty'
 import {parseArgs} from "node:util"
