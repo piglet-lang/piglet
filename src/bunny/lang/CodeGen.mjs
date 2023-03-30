@@ -8,7 +8,7 @@ export default class CodeGen {
     }
 
     emit(node, value) {
-        if(typeof value.emit === "function") {
+        if((typeof value === 'object') && (typeof value.emit === "function")) {
             return value.emit(this)
         } else {
             return this.literal(node, value)
@@ -161,9 +161,14 @@ export default class CodeGen {
 
     conditional(node, test, if_branch, else_branch) {
         return this.mknode('ConditionalExpression',
-                           {test: test,
+                           {node:node,
+                            test: test,
                             consequent: if_branch,
                             alternate: else_branch||this.literal(node, null, "null")})
 
+    }
+
+    await_expr(node, arg) {
+        return this.mknode('AwaitExpression', {node:node, argument: arg})
     }
 }

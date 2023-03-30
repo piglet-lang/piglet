@@ -176,6 +176,9 @@ export function print_str(o) {
         }
         return res + ")"
     }
+    if (typeof o === 'object') {
+        return "#js {" + Object.keys(o).map(k=>":"+k+" "+o[k]).join(", ") + "}"
+    }
     return "" + o
 }
 self.intern("print-str", print_str)

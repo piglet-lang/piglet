@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-import {stdin, stdout} from 'node:process'
+import process, {stdin, stdout} from 'node:process'
 import {isatty} from 'node:tty'
 import {parseArgs} from "node:util"
 import {readFileSync} from "node:fs"
+import {createRequire} from "node:module"
 
 import * as astring from 'astring'
 
@@ -13,11 +14,17 @@ import CodeGen from "../src/bunny/lang/CodeGen.mjs"
 import {println, module_registry} from "../src/bunny/lang.mjs"
 import bunny$$lang from "../src/bunny/lang.mjs"
 
+process.on('unhandledRejection', (reason, promise) => {
+    console.log('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Application specific logging, throwing an error, or other logic here
+});
+
 
 const cg = new CodeGen()
 const analyzer = new Analyzer()
 const reader = new StringReader("")
 global.$bunny$ = module_registry
+global.import = createRequire(import.meta.url)
 
 const {
     values: { trace },
@@ -37,18 +44,27 @@ function eval_bunny(data) {
     while (!reader.eof()) {
         let form = reader.read()
         if (form) {
-            let js = astring.generate(analyzer.analyze(form).emit(cg))
+            let estree = analyzer.analyze(form).emit(cg)
+            let js = astring.generate(estree)
             if (trace) {
-                println("--- form --------")
+                println("--- form ------------")
                 println(form)
-                println("--- js ----------")
+                println("--- estree ----------")
+                console.log(estree)
+                println("--- js --------------")
                 println(js)
-                println("--- result-------")
+                println("--- result-----------")
             }
-            let result = eval(js)
             if (repl_mode) {
-                println(result)
-                stdout.write(prompt)
+                try {
+                    let result = eval(js)
+                    println(result)
+                    stdout.write(prompt)
+                } catch (e) {
+                    console.log(e)
+                }
+            } else {
+                eval(js)
             }
         }
     }

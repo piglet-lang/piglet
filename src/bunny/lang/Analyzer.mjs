@@ -240,6 +240,21 @@ class IfExpr extends ASTNode {
     }
 }
 
+class AwaitExpression extends ASTNode {
+    constructor(form, arg) {
+        super(form)
+        this.arg = arg
+    }
+    static from(form, analyzer) {
+        const [_, arg] = form
+        return new this(form, analyzer.analyze(arg))
+    }
+    emit(cg) {
+        console.log(this)
+        return cg.await_expr(this, cg.emit(this.arg))
+    }
+}
+
 let SPECIAL_SYMBOLS = {
     "true": true,
     "false": false,
@@ -306,7 +321,8 @@ let SPECIALS = {
     "quote": QuoteExpr,
     "if": IfExpr,
     "defmacro": MacroVarExpr,
-    "array": ArrayExpression
+    "array": ArrayExpression,
+    "await": AwaitExpression
 }
 
 export default class Analyzer {
