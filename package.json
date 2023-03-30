@@ -15,9 +15,10 @@
     },
     "description": "LISP compiler and runtime",
     "dependencies": {
-        "astring": "^1.8.4"
+        "astring": "^1.8.4",
+        "bunnylang": "^0.0.1"
     },
-    "devDependencies":{
+    "devDependencies": {
         "acorn": "^8.8.2",
         "nodemon": "^2.0.21",
         "readline-history": "^1.2.0"

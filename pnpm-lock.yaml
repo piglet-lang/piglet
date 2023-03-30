@@ -4,6 +4,9 @@ dependencies:
   astring:
     specifier: ^1.8.4
     version: 1.8.4
+  bunnylang:
+    specifier: ^0.0.1
+    version: 0.0.1
 
 devDependencies:
   acorn:
@@ -63,6 +66,14 @@ packages:
     dependencies:
       fill-range: 7.0.1
     dev: true
+
+  /bunnylang@0.0.1:
+    resolution: {integrity: sha512-QRzxJHqld4w/RTpb6L5e3i64OjU/E/KZIef6MsAO/sC2qqXK53t9TsyM4YvB07vnuFsWsEAUi+bvXZ0uikhwgQ==}
+    engines: {node: '>=18'}
+    hasBin: true
+    dependencies:
+      astring: 1.8.4
+    dev: false
 
   /chokidar@3.5.3:
     resolution: {integrity: sha512-Dr3sfKRP6oTcjf2JmUmFJfeVMvXBdegxB0iVQ5eb2V10uFJUCAS8OByZdVAyVb8xXNz3GjjTgj9kLWsZTqE6kw==}

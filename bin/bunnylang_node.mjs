@@ -3,12 +3,13 @@ import {isatty} from 'node:tty'
 import {parseArgs} from "node:util"
 import {readFileSync} from "node:fs"
 
-import StringReader from "./StringReader.mjs"
-import Analyzer from "./Analyzer.mjs"
-import CodeGen from "./CodeGen.mjs"
 import * as astring from 'astring'
-import {println, module_registry} from "../lang.mjs"
-import bunny$$lang from "../lang.mjs"
+
+import StringReader from "../src/bunny/lang/StringReader.mjs"
+import Analyzer from "../src/bunny/lang/Analyzer.mjs"
+import CodeGen from "../src/bunny/lang/CodeGen.mjs"
+import {println, module_registry} from "../src/bunny/lang.mjs"
+import bunny$$lang from "../src/bunny/lang.mjs"
 
 
 const cg = new CodeGen()
