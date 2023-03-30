@@ -1,7 +1,27 @@
 {
-	"dependencies": {
-		"acorn": "^8.8.2",
-		"astring": "^1.8.4",
-		"nodemon": "^2.0.21"
-	}
+    "name": "bunnylang",
+    "homepage": "",
+    "author": {
+        "name": "Arne Brasseur",
+        "url": "https://github.com/plexus"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/plexus/bunny.git"
+    },
+    "description": "LISP compiler and runtime",
+    "dependencies": {
+        "astring": "^1.8.4"
+    },
+    "devDependencies":{
+        "acorn": "^8.8.2",
+        "nodemon": "^2.0.21",
+        "readline-history": "^1.2.0"
+    },
+    "bin": {
+        "bunnylang": "bin/bunnylang_node.mjs"
+    }
 }

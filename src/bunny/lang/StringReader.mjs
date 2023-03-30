@@ -1,9 +1,25 @@
 // Copyright (c) Arne Brasseur 2023. All rights reserved.
 
 import Sym from "./Sym.mjs"
-import Number from "./Number.mjs"
-import String from "./String.mjs"
 import List from "./List.mjs"
+
+/**
+ * Wrapper for primitive values, so we can store location information on them.
+ */
+class Primitive {
+    constructor(raw, value) {
+        this.raw = raw
+        this.value = value
+    }
+
+    toString() {
+        return this.raw
+    }
+
+    emit(cg) {
+        return cg.literal(this, this.value, this.raw)
+    }
+}
 
 function char_seq(s) {
     return s.split("").map(ch=>ch.charCodeAt(0))
@@ -32,22 +48,35 @@ let sym_chars = char_seq("+-_|!?$<>.*%=<>/")
 class StringReader {
     constructor(input) {
         this.input = input
-        this.pos = 0
+        this.pos = -1
         this.limit = input.length
         this.line = 0
-        this.col = 0
-        this.ch = this.input[this.pos]
-        this.cc = this.input.charCodeAt(this.pos)
+        this.col = -1
+        this.ch = null
+        this.cc = null
     }
 
     eof() {
         return this.limit <= this.pos
     }
 
-    next_ch() {
-        if (this.eof()) return
+    next_ch(should_throw) {
+        if (this.eof()) {
+            if (should_throw) {
+                throw new Error("Unexpected end of input")
+            } else {
+                return
+            }
+        }
         this.pos++
         this.col++
+        this.ch = this.input[this.pos]
+        this.cc = this.input.charCodeAt(this.pos)
+    }
+
+    prev_ch() {
+        this.pos--
+        this.col--
         this.ch = this.input[this.pos]
         this.cc = this.input.charCodeAt(this.pos)
     }
@@ -60,15 +89,29 @@ class StringReader {
         this.cc = this.input.charCodeAt(this.pos)
     }
 
+    append(s) {
+        const eof = this.eof()
+        this.input+=s
+        this.limit+=s.length
+        if (eof) this.prev_ch()
+    }
+
     skip_ws() {
         if (this.eof()) return
         while (whitespace_chars.includes(this.cc)) {
-            if (this.cc == 10) {
+            if (this.cc === 10) {
                 this.line++
                 this.col = 0
             }
             this.next_ch()
         }
+    }
+
+    skip_char(cc) {
+        if (this.cc !== cc) {
+            throw new Error("Unexpected input " + this.ch + ", expected " + String.fromCodePoint(cc))
+        }
+        this.next_ch()
     }
 
     skip_comment() {
@@ -81,6 +124,7 @@ class StringReader {
     }
 
     _read() {
+        this.next_ch()
         this.skip_ws()
         if (this.eof()) {
             return null
@@ -95,7 +139,6 @@ class StringReader {
         } else if (this.cc == ch_dubquot) {
             return this.read_string()
         } else if (this.cc == ch_quot) {
-            this.next_ch()
             return new List([new Sym(null, "quote"), this.read()])
         } else if (this.cc == ch_semicolon) {
             this.skip_comment()
@@ -118,13 +161,14 @@ class StringReader {
 
             return expr
         }
+        return expr
     }
 
     read_number() {
         const start = this.pos
         while (!this.eof() && (ch_0 <= this.cc && this.cc <= ch_9)) this.next_ch()
         const num_str = this.input.substring(start, this.pos)
-        return new Number(num_str, parseInt(num_str, 10))
+        return new Primitive(num_str, parseInt(num_str, 10))
     }
 
     read_string() {
@@ -136,10 +180,10 @@ class StringReader {
                 this.next_ch()
             }
         }
-        this.next_ch()
+        this.skip_char(ch_dubquot)
         let str = this.input.substring(start, this.pos)
-        // FIXME: extremely naive and hacky implementation
-        return new String(str, eval(str))
+        // FIXME: get rid of the eval
+        return new Primitive(str, eval(str))
     }
 
     read_symbol() {
@@ -161,12 +205,11 @@ class StringReader {
     }
 
     read_list() {
-        this.next_ch()
         let elements = []
         while (!this.eof() && !(this.cc == ch_rparen)) {
             elements[elements.length] = this.read()
         }
-        this.next_ch()
+        this.skip_char(ch_rparen)
         return new List(elements)
     }
 }

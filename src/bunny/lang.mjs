@@ -7,6 +7,7 @@ import Module from "./lang/Module.mjs"
 import Cons from "./lang/Cons.mjs"
 import SeqIterator from "./lang/SeqIterator.mjs"
 import IteratorSeq from "./lang/IteratorSeq.mjs"
+import StringReader from "./lang/StringReader.mjs"
 import {define_protocol, extend_protocol} from "./lang/Protocol.mjs"
 
 const self = new Module('bunny.lang')
@@ -214,6 +215,16 @@ export function divide(...rest) {
     return reduce((a,b)=>a/b, rest)
 }
 self.intern("/", divide)
+
+export function string_reader(s) {
+    return new StringReader(s)
+}
+self.intern("string-reader", string_reader)
+
+export function read_string(s) {
+    return string_reader(s).read()
+}
+self.intern("read-string", read_string)
 
 ////////////////////////////////////////////////////////////////////////////////
 
