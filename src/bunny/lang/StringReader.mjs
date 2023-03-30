@@ -45,7 +45,9 @@ let ch_backslash = "\\".charCodeAt(0)
 let whitespace_chars = char_seq(" \r\n\t\v,")
 let sym_chars = char_seq("+-_|!?$<>.*%=<>/")
 
-class StringReader {
+export class PartialParse extends Error {}
+
+export default class StringReader {
     constructor(input) {
         this.input = input
         this.pos = -1
@@ -82,11 +84,11 @@ class StringReader {
     }
 
     reset() {
-        this.pos = 0
+        this.pos = -1
         this.line = 0
-        this.col = 0
-        this.ch = this.input[this.pos]
-        this.cc = this.input.charCodeAt(this.pos)
+        this.col = -1
+        this.ch = null
+        this.cc = null
     }
 
     append(s) {
@@ -94,6 +96,14 @@ class StringReader {
         this.input+=s
         this.limit+=s.length
         if (eof) this.prev_ch()
+    }
+
+    truncate() {
+        this.input = this.input.slice(this.pos)
+        this.pos = 0
+        this.line = 0
+        this.col = 0
+        this.limit = this.input.length
     }
 
     skip_ws() {
@@ -108,6 +118,9 @@ class StringReader {
     }
 
     skip_char(cc) {
+        if (this.eof()) {
+            throw new PartialParse()
+        }
         if (this.cc !== cc) {
             throw new Error("Unexpected input " + this.ch + ", expected " + String.fromCodePoint(cc))
         }
@@ -124,7 +137,9 @@ class StringReader {
     }
 
     _read() {
-        this.next_ch()
+        if (this.pos === -1) {
+            this.next_ch()
+        }
         this.skip_ws()
         if (this.eof()) {
             return null
@@ -206,12 +221,12 @@ class StringReader {
 
     read_list() {
         let elements = []
+        this.next_ch()
         while (!this.eof() && !(this.cc == ch_rparen)) {
             elements[elements.length] = this.read()
+            this.skip_ws()
         }
         this.skip_char(ch_rparen)
         return new List(elements)
     }
 }
-
-export default StringReader

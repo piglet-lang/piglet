@@ -111,6 +111,7 @@ export default class CodeGen {
     var_reference(node, sym) {
         const the_var = resolve(sym)
         if (!the_var) {
+            console.log(sym)
             throw(new Error("Var not found: " + sym))
         }
         //return this.member_lookup(node, [this.mksym(node, "$bunny$"), this.mksym(node, Module.munge(mod_name)), this.mksym(node, "vars"), this.mksym(node, Module.munge(sym.name)), this.mksym(node, "value")])
@@ -134,13 +135,15 @@ export default class CodeGen {
              callee: this.mknode('MemberExpression',
                                  {node: node,
                                   object: object,
-                                  property: this.identifier(method, method),
+                                  property: (typeof method === 'string' ?
+                                             this.identifier(node, method) :
+                                             this.identifier(method, method.name)),
                                   computed: false})})
     }
 
     define_var(node, name, value, meta) {
         return this.method_call(node,
-                                this.mksym(node, "intern"),
+                                "intern",
                                 this.member_lookup(node, this.identifier(node, "$bunny$"), [this.mksym(node, Module.munge(this.current_module().name))]),
                                 meta ? [this.literal(name, name.name), value, meta] : [this.literal(name, name.name), value])
     }
@@ -148,10 +151,10 @@ export default class CodeGen {
     invoke_var(node, ns, name, args) {
         return this.method_call(
             node,
-            this.mksym(node, "invoke"),
+            "invoke",
             this.method_call(
                 node,
-                this.mksym(node, "resolve"),
+                "resolve",
                 this.member_lookup(node, this.identifier(node, "$bunny$"), [this.mksym(node, Module.munge(ns))]),
                 [this.literal(node, name)]
             ),

@@ -105,7 +105,7 @@ class HostVarExpr extends ASTNode {
     }
 
     emit(cg) {
-        return cg.member_lookup(this, cg.identifier(this.parts[0], this.parts[0]), this.parts.slice(1))
+        return cg.member_lookup(this, cg.identifier(this.parts[0], this.parts[0].name), this.parts.slice(1))
     }
 }
 

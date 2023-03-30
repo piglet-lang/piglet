@@ -8,7 +8,7 @@ import {createRequire} from "node:module"
 
 import * as astring from 'astring'
 
-import StringReader from "../src/bunny/lang/StringReader.mjs"
+import StringReader, {PartialParse} from "../src/bunny/lang/StringReader.mjs"
 import Analyzer from "../src/bunny/lang/Analyzer.mjs"
 import CodeGen from "../src/bunny/lang/CodeGen.mjs"
 import {println, module_registry} from "../src/bunny/lang.mjs"
@@ -40,32 +40,50 @@ let repl_mode = false
 let prompt = "#_> "
 
 function eval_bunny(data) {
-    reader.append(data.toString())
-    while (!reader.eof()) {
-        let form = reader.read()
-        if (form) {
-            let estree = analyzer.analyze(form).emit(cg)
-            let js = astring.generate(estree)
-            if (trace) {
-                println("--- form ------------")
-                println(form)
-                println("--- estree ----------")
-                console.log(estree)
-                println("--- js --------------")
-                println(js)
-                println("--- result-----------")
-            }
-            if (repl_mode) {
-                try {
-                    let result = eval(js)
-                    println(result)
-                    stdout.write(prompt)
-                } catch (e) {
-                    console.log(e)
+    try {
+        reader.append(data.toString())
+        while (!reader.eof()) {
+            try {
+                let form = reader.read()
+                if (form) {
+                    let estree = analyzer.analyze(form).emit(cg)
+                    let js = astring.generate(estree)
+                    if (trace) {
+                        println("--- form ------------")
+                        println(form)
+                        println("--- estree ----------")
+                        console.log(estree)
+                        println("--- js --------------")
+                        println(js)
+                        println("--- result-----------")
+                    }
+                    if (repl_mode) {
+                        let result = eval(js)
+                        println(result)
+                        stdout.write(prompt)
+                        reader.truncate()
+                    } else {
+                        eval(js)
+                    }
                 }
-            } else {
-                eval(js)
+            } catch (e) {
+                if (repl_mode) {
+                    if (e instanceof PartialParse) {
+                        reader.reset()
+                        console.log("resetting", reader)
+                        throw e
+                    } else {
+                        console.log(e)
+                    }
+                } else {
+                    throw e
+                }
             }
+        }
+    } catch (e) {
+        if (e instanceof PartialParse) {
+        } else {
+            console.log(e)
         }
     }
 }

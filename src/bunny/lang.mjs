@@ -140,6 +140,9 @@ export function seqable_pred(o) {
 self.intern("seqable?", seqable_pred)
 
 export function seq(o) {
+    if (null === o) {
+        return null
+    }
     if (seq_pred(o)) {
         return o
     }
@@ -147,7 +150,7 @@ export function seq(o) {
         return self.resolve("-seq").invoke(o)
     }
     if (iterator_pred(o)) {
-        return new IteratorSeq(o)
+        return IteratorSeq.of(o)
     }
     if (iterable_pred(o)) {
         return IteratorSeq.of(iterator(o))
@@ -195,14 +198,29 @@ export function println(o) {
 }
 self.intern("println", println)
 
-export function reduce(rf, ...rest) {
-    const rf2 = (a,b)=>rf(a,b)
+export function reduce(rf, ...args) {
+    // const rf2 = (a,b)=>rf(a,b)
+    // if (rest.length == 2) {
+    //     const [init, coll] = rest
+    //     return Array.from(coll).reduce(rf2, init)
+    // }
+    // const [coll] = rest
+    // return Array.from(coll).reduce(rf2)
+
+    let coll, acc
     if (rest.length == 2) {
-        const [init, coll] = rest
-        return Array.from(coll).reduce(rf2, init)
+        acc = args[0]
+        coll = args[1]
+    } else {
+        coll = args[0]
+        acc = first(coll)
+        coll = rest(coll)
     }
-    const [coll] = rest
-    return Array.from(coll).reduce(rf2)
+    while (seq(coll)) {
+        acc = rf(acc, first(coll))
+        coll = rest(coll)
+    }
+    return acc
 }
 self.intern("reduce", reduce)
 
@@ -236,6 +254,10 @@ export function read_string(s) {
 }
 self.intern("read-string", read_string)
 
+export function str(...args) {
+    return args.map(print_str).join("")
+}
+self.intern("str", str)
 ////////////////////////////////////////////////////////////////////////////////
 
 export const Eq = define_protocol(
