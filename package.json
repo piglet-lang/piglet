@@ -37,6 +37,6 @@
         "./SeqIterator": "lib/bunny/lang/SeqIterator.mjs",
         "./StringReader": "lib/bunny/lang/StringReader.mjs",
         "./Sym": "lib/bunny/lang/Sym.mjs",
-        "./Var": "lib/bunny/lang/Var.mjs",
+        "./Var": "lib/bunny/lang/Var.mjs"
     }
 }
