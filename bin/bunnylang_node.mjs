@@ -8,17 +8,15 @@ import {createRequire} from "node:module"
 
 import * as astring from 'astring'
 
-import StringReader, {PartialParse} from "../src/bunny/lang/StringReader.mjs"
-import Analyzer from "../src/bunny/lang/Analyzer.mjs"
-import CodeGen from "../src/bunny/lang/CodeGen.mjs"
-import {println, module_registry} from "../src/bunny/lang.mjs"
-import bunny$$lang from "../src/bunny/lang.mjs"
+import StringReader, {PartialParse} from "../lib/bunny/lang/StringReader.mjs"
+import Analyzer from "../lib/bunny/lang/Analyzer.mjs"
+import CodeGen from "../lib/bunny/lang/CodeGen.mjs"
+import {println, module_registry} from "../lib/bunny/lang.mjs"
+import bunny$$lang from "../lib/bunny/lang.mjs"
 
 process.on('unhandledRejection', (reason, promise) => {
     console.log('Unhandled Rejection at:', promise, 'reason:', reason);
-    // Application specific logging, throwing an error, or other logic here
 });
-
 
 const cg = new CodeGen()
 const analyzer = new Analyzer()
