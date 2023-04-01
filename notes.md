@@ -68,3 +68,30 @@ But there are also facilities for dynamically accessing the context, in
 particular for printing. So a context would be kept based on the currently
 evaluating module, and printing an identifier would compact it based on that
 context.
+
+----------------------------------------------------------------------------
+
+
+(module foo/bar/baz
+  (:import ...)
+  (:context {...})
+  
+JS imports:
+
+[left-pad :from :npm:left-pad]
+-> import left_pad from "left-pad"
+
+[foo :from :node:process]
+-> import foo from "node:process"
+
+[foo :from :js:./foo/bar.js]
+-> import foo from "./foo/bar.js"
+  
+bun imports:
+[normalize :from :lambdaisland/uri:normalize]
+import normalize from "../../../lambdaisland~uri/normalize.mjs"
+
+[foo :from ::my/local/file]
+import normalize from "../../../user/my/local/file.mjs"
+
+

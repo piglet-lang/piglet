@@ -44,19 +44,25 @@ function eval_bunny(data) {
             try {
                 let form = reader.read()
                 if (form) {
-                    let estree = analyzer.analyze(form).emit(cg)
-                    let js = astring.generate(estree)
                     if (trace) {
                         println("--- form ------------")
                         println(form)
-                        println("--- estree ----------")
-                        console.log(estree)
+                    }
+                    let estree = analyzer.analyze(form).emit(cg)
+                    // if (trace) {
+                    //     println("--- estree ----------")
+                    //     console.dir(estree, {depth: null})
+                    // }
+                    let js = astring.generate(estree)
+                    if (trace) {
                         println("--- js --------------")
                         println(js)
-                        println("--- result-----------")
                     }
                     if (repl_mode) {
                         let result = eval(js)
+                        if (trace) {
+                            println("--- result-----------")
+                        }
                         println(result)
                         stdout.write(prompt)
                         reader.truncate()
