@@ -48,11 +48,16 @@ function eval_bunny(data) {
                         println("--- form ------------")
                         println(form)
                     }
-                    let estree = analyzer.analyze(form).emit(cg)
-                    // if (trace) {
-                    //     println("--- estree ----------")
-                    //     console.dir(estree, {depth: null})
-                    // }
+                    const ast = analyzer.analyze(form)
+                    if (trace) {
+                        println("--- AST -------------")
+                        console.dir(ast, {depth: null})
+                    }
+                    let estree = cg.wrap_async_iife(ast, ast.emit(cg))
+                    if (trace) {
+                        println("--- estree ----------")
+                        console.dir(estree, {depth: null})
+                    }
                     let js = astring.generate(estree)
                     if (trace) {
                         println("--- js --------------")
@@ -63,7 +68,7 @@ function eval_bunny(data) {
                         if (trace) {
                             println("--- result-----------")
                         }
-                        println(result)
+                        result.then(println)
                         stdout.write(prompt)
                         reader.truncate()
                     } else {
