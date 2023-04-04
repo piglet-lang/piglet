@@ -1,5 +1,7 @@
-;; (module user)
+(module first/mod
+  (:import [s :from ::second/mod2]))
 
+(println (s:inc 8999))
 
 (def hello
   (fn* (x)
