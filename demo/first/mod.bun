@@ -1,29 +1,31 @@
 (module first/mod
   (:import [s :from ::second/mod2]))
 
+(js:console.log (find-module "first/mod"))
+
 (println (s:inc 8999))
 
 (def hello
   (fn* (x)
-       (js/console.log (+ "Hello, " x))))
+       (js:console.log (+ "Hello, " x))))
 
 (hello "bunny!")
 
 (defmacro foo (x)
   x)
 
-;; (js/console.log (bunny.lang/resolve (bunny.lang/symbol "bunny.lang", "=")))
-;; (js/console.log bunny.lang/Eq)
+;; (js:console.log (bunny.lang/resolve (bunny.lang/symbol "bunny.lang", "=")))
+;; (js:console.log bunny.lang/Eq)
 
-(js/console.log (first (cons 1 (cons 2 nil))))
-(js/console.log (seq? (cons 1 (cons 2 nil))))
-(js/console.log (iterable? (cons 1 (cons 2 nil))))
-(js/console.log (iterator? (cons 1 (cons 2 nil))))
-(js/console.log (iterator (array 1 2 3)))
-(js/console.log (first (array 1 2 3)))
+(js:console.log (first (cons 1 (cons 2 nil))))
+(js:console.log (seq? (cons 1 (cons 2 nil))))
+(js:console.log (iterable? (cons 1 (cons 2 nil))))
+(js:console.log (iterator? (cons 1 (cons 2 nil))))
+(js:console.log (iterator (array 1 2 3)))
+(js:console.log (first (array 1 2 3)))
 (println (rest (array 1 2 3)))
 (println (cons 5 (list 1 2 3)))
-(js/console.log Seq)
+(js:console.log Seq)
 
 (defmacro foo (a b)
   (list '+ a b))

@@ -1,4 +1,4 @@
 (module second/mod2
   )
 
-(def my-fn (fn* (x) (+ x 1)))
+(def inc (fn* (x) (+ x 1)))
