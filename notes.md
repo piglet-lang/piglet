@@ -88,10 +88,28 @@ JS imports:
 -> import foo from "./foo/bar.js"
   
 bun imports:
-[normalize :from :lambdaisland/uri:normalize]
-import normalize from "../../../lambdaisland~uri/normalize.mjs"
+[n :from :lambdaisland/uri:normalize]
+import n from "../../../lambdaisland~uri/normalize.mjs"
+
+(n:normalize ...)
+
 
 [foo :from ::my/local/file]
 import normalize from "../../../user/my/local/file.mjs"
 
+::foo
+:localpackage:foo
+"./foo"
 
+[b :from :bunny:lang]
+
+(b:str)
+(bunny:lang:str)
+
+Symbols:
+package:module:var
+
+Imports
+::module (= :localpkg:module)
+:package:module
+:special-prefix:module

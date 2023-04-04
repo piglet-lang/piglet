@@ -21,7 +21,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const cg = new CodeGen()
 const analyzer = new Analyzer()
 const reader = new StringReader("")
-global.$bunny$ = module_registry
+global.$bunny$ = module_registry.modules
 global.import = createRequire(import.meta.url)
 
 const {
@@ -68,9 +68,10 @@ function eval_bunny(data) {
                         if (trace) {
                             println("--- result-----------")
                         }
-                        result.then(println)
-                        stdout.write(prompt)
-                        reader.truncate()
+                        result.then((v)=>{println(v)
+                                          stdout.write(prompt)
+                                          reader.truncate()
+                                        })
                     } else {
                         eval(js)
                     }
