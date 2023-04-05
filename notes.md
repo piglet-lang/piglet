@@ -86,7 +86,12 @@ JS imports:
 
 [foo :from :js:./foo/bar.js]
 -> import foo from "./foo/bar.js"
-  
+
+Or maybe just use strings and pass through?
+
+[foo :from "./foo/bar.js"]
+[foo :from "node:fs"]
+
 bun imports:
 [n :from :lambdaisland/uri:normalize]
 import n from "../../../lambdaisland~uri/normalize.mjs"

@@ -1,13 +1,12 @@
 (module first/mod
   (:import [s :from ::second/mod2]))
 
-(js:console.log (find-module "first/mod"))
+(js:console.log (find-module ::first/mod))
 
 (println (s:inc 8999))
 
-(def hello
-  (fn* (x)
-       (js:console.log (+ "Hello, " x))))
+(defn hello [x]
+  (js:console.log (+ "Hello, " x)))
 
 (hello "bunny!")
 

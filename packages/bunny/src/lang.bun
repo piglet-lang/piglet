@@ -1,0 +1,4 @@
+(module lang)
+
+(defmacro defn [name argv body] 
+  (list 'def name (list 'fn* argv body)))

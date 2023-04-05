@@ -21,7 +21,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const cg = new CodeGen()
 const analyzer = new Analyzer()
 const reader = new StringReader("")
-global.$bunny$ = module_registry.modules
+global.$bunny$ = module_registry.packages
 global.import = createRequire(import.meta.url)
 
 const {

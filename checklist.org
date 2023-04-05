@@ -1,0 +1,14 @@
+- [ ] new class syntax
+- [ ] metadata syntax
+- [ ] let and destructuring
+- [ ] backtick/unquote/unquote-splice
+- [ ] full set of seq operations (filter/remove/some)
+- [ ] collection operations (includes?/has-key?/assoc/dissoc/disj)
+- [ ] seq/collection macros (doseq/for)
+- [ ] dictionary syntax
+- [ ] AOT compilation to modules
+- [ ] JS imports (string)
+- [ ] Package imports
+- [ ] Module expansion context
+- [ ] PrefixName to QName expansion
+- [ ] dynamic var bindings
