@@ -11,8 +11,10 @@ import * as astring from 'astring'
 import StringReader, {PartialParse} from "../lib/bunny/lang/StringReader.mjs"
 import Analyzer from "../lib/bunny/lang/Analyzer.mjs"
 import CodeGen from "../lib/bunny/lang/CodeGen.mjs"
-import {println, module_registry} from "../lib/bunny/lang.mjs"
+import {println, module_registry, prefix_name, resolve, symbol} from "../lib/bunny/lang.mjs"
 import bunny$$lang from "../lib/bunny/lang.mjs"
+import NodeCompiler from "../lib/bunny/node/NodeCompiler.mjs"
+
 
 process.on('unhandledRejection', (reason, promise) => {
     console.log('Unhandled Rejection at:', promise, 'reason:', reason);
@@ -21,8 +23,11 @@ process.on('unhandledRejection', (reason, promise) => {
 const cg = new CodeGen()
 const analyzer = new Analyzer()
 const reader = new StringReader("")
+const compiler = new NodeCompiler()
+
 global.$bunny$ = module_registry.packages
 global.import = createRequire(import.meta.url)
+await compiler.load(prefix_name("bunny", "lang"))
 
 const {
     values: { trace },
@@ -35,7 +40,13 @@ const {
 });
 
 let repl_mode = false
-let prompt = "#_> "
+
+function write_prompt() {
+    stdout.write("#_")
+    const mod = resolve(symbol("bunny:lang:*current-module*")).deref()
+    stdout.write(mod.pkg + ":" + mod.name)
+    stdout.write("=>")
+}
 
 function eval_bunny(data) {
     try {
@@ -69,9 +80,9 @@ function eval_bunny(data) {
                             println("--- result-----------")
                         }
                         result.then((v)=>{println(v)
-                                          stdout.write(prompt)
+                                          write_prompt()
                                           reader.truncate()
-                                        })
+                                         })
                     } else {
                         eval(js)
                     }
@@ -102,6 +113,6 @@ if (positionals[0]) {
     eval_bunny(readFileSync(positionals[0]))
 } else {
     repl_mode = stdin.isTTY
-    if (repl_mode) stdout.write(prompt)
+    if (repl_mode) write_prompt()
     stdin.on('data', eval_bunny)
 }
