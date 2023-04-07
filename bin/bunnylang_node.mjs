@@ -45,7 +45,7 @@ function write_prompt() {
     stdout.write("#_")
     const mod = resolve(symbol("bunny:lang:*current-module*")).deref()
     stdout.write(mod.pkg + ":" + mod.name)
-    stdout.write("=>")
+    stdout.write("=> ")
 }
 
 function eval_bunny(data) {
