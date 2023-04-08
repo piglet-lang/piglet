@@ -4,13 +4,13 @@
     <script type="module" src="./webdemo.mjs"></script>
     <script type="application/bunny" id="my-script">
 
-      (def app-div (js/document.getElementById "app"))
-      (def header (js/document.createElement "h1"))
+      (def app-div (js:document.getElementById "app"))
+      (def header (js:document.createElement "h1"))
 
-      (def add-child (fn* (container child)
-                       (.appendChild container child)))
+      (defn add-child [container child]
+       (.appendChild container child))
 
-      (add-child header (js/document.createTextNode "Hello from Bunny! 🐰"))
+      (add-child header (js:document.createTextNode "Hello from Bunny! 🐰"))
       (add-child app-div header)
       (def lst '(1 2 3))
 

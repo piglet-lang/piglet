@@ -1,29 +1,8 @@
 (module first/mod
   (:import [s :from ::second/mod2])
-  (:data-literals {:vector ...
-                   :dict ...})
-  (:context {"foaf" "http://xmlns.com/foaf/0.1/"}))
 
+  )
 
-{:foaf:gender/.../...}
-
-/
-
-foo/bar
-bar
-foo
-foo:bar
-foo:bar:baz
-name
-module:name
-pkg:mod:name
-
-bunny:lang
-bunny:lang:str
-
-[1 2,]
-
-(js:console.log (find-module ::first/mod))
 
 (println (s:inc 8999))
 
