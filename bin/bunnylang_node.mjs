@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright (c) Arne Brasseur 2023. All rights reserved.
 
 import process, {stdin, stdout} from 'node:process'
 import {isatty} from 'node:tty'

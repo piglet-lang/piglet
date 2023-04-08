@@ -31,6 +31,11 @@
 - [ ] dynamic var bindings
 - [ ] varargs
 - [ ] pluggable data structures
+- [ ] var shorthand
+- [ ] constructor shorthand
+- [ ] proper printer
+  - [ ] print dicts
+- [ ] vary-meta (requires protocol)
   
 
 ** API
