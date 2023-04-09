@@ -18,7 +18,7 @@
 
 ** Syntax and features
 
-- [ ] new class syntax
+- [X] new instance syntax
 - [ ] metadata syntax
 - [ ] let and destructuring
 - [ ] backtick/unquote/unquote-splice
