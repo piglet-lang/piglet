@@ -1,9 +1,9 @@
-# Bunny
+# Piglet
 
 A LISP.
 
 ```
-rlwrap npx pigletlang --trace
+rlwrap npx piglet-lang -v
 ```
 
 Copyright (c) Arne Brasseur 2023. All rights reserved.
