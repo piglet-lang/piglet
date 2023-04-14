@@ -9,13 +9,13 @@
 (defn hello [x]
   (js:console.log (+ "Hello, " x)))
 
-(hello "bunny!")
+(hello "piglet!")
 
 (defmacro foo (x)
   x)
 
-;; (js:console.log (bunny.lang/resolve (bunny.lang/symbol "bunny.lang", "=")))
-;; (js:console.log bunny.lang/Eq)
+;; (js:console.log (piglet.lang/resolve (piglet.lang/symbol "piglet.lang", "=")))
+;; (js:console.log piglet.lang/Eq)
 
 (js:console.log (first (cons 1 (cons 2 nil))))
 (js:console.log (seq? (cons 1 (cons 2 nil))))

@@ -1,6 +1,6 @@
-import bunny from "bunnylang/lang"
-import bunny from "bunnylang/NodeCompiler"
+import piglet from "pigletlang/lang"
+import piglet from "pigletlang/NodeCompiler"
 
-bunny.inter("*compiler*", new NodeCompiler(...))
+piglet.inter("*compiler*", new NodeCompiler(...))
 
-const bun_mod = await bunny.require(bunny.symbol("..."))
+const bun_mod = await piglet.require(piglet.symbol("..."))

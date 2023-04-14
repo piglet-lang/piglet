@@ -1,8 +1,8 @@
 (+ 1 1)
 
-(def Protocol (.-default (await (js:import "../lib/bunny/lang/Protocol2.mjs"))))
+(def Protocol (.-default (await (js:import "../lib/piglet/lang/Protocol2.mjs"))))
 
-(def p (new Protocol nil "bunny:lang" "Eq",
+(def p (new Protocol nil "piglet:lang" "Eq",
             [["=" [[["this", "that"] "checks equality"]]]]))
 (js:console.log p)
 

@@ -57,7 +57,7 @@ FQID (fully qualified ids)
 (module foo/bar
   (:context {"moo" "../moo"}))
   
-::moo -> :bunny-lang://package-name/foo/moo
+::moo -> :piglet-lang://package-name/foo/moo
 
 Use within a given module is always static, using the context from the module
 (and possibly parent modules, and the top-level package), so if a function
@@ -106,10 +106,10 @@ import normalize from "../../../user/my/local/file.mjs"
 :localpackage:foo
 "./foo"
 
-[b :from :bunny:lang]
+[b :from :piglet:lang]
 
 (b:str)
-(bunny:lang:str)
+(piglet:lang:str)
 
 Symbols:
 package:module:var

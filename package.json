@@ -1,5 +1,5 @@
 {
-    "name": "bunnylang",
+    "name": "pigletlang",
     "version": "0.0.8",
     "homepage": "",
     "author": {
@@ -11,7 +11,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/plexus/bunny.git"
+        "url": "https://github.com/plexus/piglet.git"
     },
     "description": "LISP compiler and runtime",
     "dependencies": {
@@ -23,20 +23,21 @@
         "readline-history": "^1.2.0"
     },
     "bin": {
-        "bunnylang": "bin/bunnylang_node.mjs"
+        "piglet": "lib/piglet/node/main.mjs",
+        "piglet-lang": "lib/piglet/node/main.mjs"
     },
     "exports": {
-        ".": "./lib/bunny/lang.mjs",
-        "./Analyzer": "./lib/bunny/lang/Analyzer.mjs",
-        "./CodeGen": "./lib/bunny/lang/CodeGen.mjs",
-        "./Cons": "./lib/bunny/lang/Cons.mjs",
-        "./IteratorSeq": "./lib/bunny/lang/IteratorSeq.mjs",
-        "./List": "./lib/bunny/lang/List.mjs",
-        "./Module": "./lib/bunny/lang/Module.mjs",
-        "./node": "./lib/bunny/lang/node.mjs",
-        "./SeqIterator": "./lib/bunny/lang/SeqIterator.mjs",
-        "./StringReader": "./lib/bunny/lang/StringReader.mjs",
-        "./Sym": "./lib/bunny/lang/Sym.mjs",
-        "./Var": "./lib/bunny/lang/Var.mjs"
+        ".": "./lib/piglet/lang.mjs",
+        "./Analyzer": "./lib/piglet/lang/Analyzer.mjs",
+        "./CodeGen": "./lib/piglet/lang/CodeGen.mjs",
+        "./Cons": "./lib/piglet/lang/Cons.mjs",
+        "./IteratorSeq": "./lib/piglet/lang/IteratorSeq.mjs",
+        "./List": "./lib/piglet/lang/List.mjs",
+        "./Module": "./lib/piglet/lang/Module.mjs",
+        "./node": "./lib/piglet/lang/node.mjs",
+        "./SeqIterator": "./lib/piglet/lang/SeqIterator.mjs",
+        "./StringReader": "./lib/piglet/lang/StringReader.mjs",
+        "./Sym": "./lib/piglet/lang/Sym.mjs",
+        "./Var": "./lib/piglet/lang/Var.mjs"
     }
 }

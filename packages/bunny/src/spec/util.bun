@@ -1,3 +1,0 @@
-(module bunny:spec/util)
-
-(defmacro testing [])
