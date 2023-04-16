@@ -1,3 +1,9 @@
 (module piglet:spec/util)
 
-(defmacro testing [])
+(defmacro
+    is= [this that]
+    )
+
+(defmacro
+    testing [desc & body]
+    )

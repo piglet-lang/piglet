@@ -19,22 +19,23 @@
 ** Syntax and features
 
 - [X] new instance syntax
-- [ ] metadata syntax
+- [X] Package imports
+- [X] PrefixName to QName expansion
+- [X] varargs
+- [X] Module expansion context
+- [X] dictionary syntax
+
 - [ ] let and destructuring
+- [ ] metadata syntax
 - [ ] backtick/unquote/unquote-splice
-- [ ] dictionary syntax
 - [ ] AOT compilation to modules
 - [ ] JS imports (string)
-- [X] Package imports
-- [ ] Module expansion context
-- [X] PrefixName to QName expansion
 - [ ] dynamic var bindings
-- [ ] varargs
 - [ ] pluggable data structures
 - [ ] var shorthand
 - [ ] constructor shorthand
-- [ ] proper printer
-  - [ ] print dicts
+- [X] proper printer
+  - [X] print dicts
 - [ ] vary-meta (requires protocol)
   
 
