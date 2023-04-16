@@ -37,6 +37,7 @@
 - [X] proper printer
   - [X] print dicts
 - [ ] vary-meta (requires protocol)
+- [ ] truthy? -> use for conditionals
   
 
 ** API
