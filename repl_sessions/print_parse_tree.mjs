@@ -17,7 +17,7 @@ print_parse_tree(
     // '{const {x,y} = foo()}',
     // '{const {x: x_,y: y_} = foo()}',
     // '{const {x: x_ = 123,y: y_} = foo()}',
-    // 'x = 123'
+    "foo()"
     // '{(123)}'
-    '( function() { let x = {(123);}; return x })'
+//    '( function() { let x = {(123);}; return x })'
 )
