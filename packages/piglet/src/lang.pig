@@ -3,7 +3,6 @@
 (def into (fn* [o coll] (reduce conj o coll)))
 
 (defmacro fn [argv & body]
-  (println body)
   (let [syms (map (fn* [_] (gensym "arg")) argv)]
     (cons 'fn* (cons syms
                      (list
