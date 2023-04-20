@@ -1,6 +1,6 @@
 (module piglet:spec/util)
 
-(defmacro is= [this that]
+(defn is= [this that]
   (if (= this that)
     (println "OK")
     (println (str "Expected " this " to equal " that)))
