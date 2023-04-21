@@ -6,6 +6,12 @@
 
 (def app (express:default))
 
+(def routes
+  [[:get "/" (fn [req]
+               {:status 200
+                :headers {"content-type" "text/html"}
+                :body (hiccup:html [:p "Hello, world"])})]])
+
 (.get app "/"
       (fn [req res]
         (.send res (hiccup:html [:p "Hello, world"]))))
