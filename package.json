@@ -16,6 +16,7 @@
     "description": "LISP compiler and runtime",
     "dependencies": {
         "astring": "^1.8.4",
+        "bencode": "^3.0.3",
         "express": "^4.18.2"
     },
     "devDependencies": {
