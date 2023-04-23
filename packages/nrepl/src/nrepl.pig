@@ -1,4 +1,4 @@
-(module nrepl
+(module :piglet:nrepl
   (:import [bencode :from "bencode"]
            [net :from "node:net"]))
 
@@ -64,7 +64,6 @@
             "ops" {"clone" {} "describe" {} "eval" {}}))))
 
 (defn ^:async op-eval [conn msg]
-  (println "OP_EVAL")
   (let [code (.-code msg)
         form (read-string code)
         result-p (eval form)

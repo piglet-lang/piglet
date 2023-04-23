@@ -1,4 +1,4 @@
-(module lang)
+(module :piglet:lang)
 
 (def into (fn* [o coll] (reduce conj o coll)))
 
@@ -63,3 +63,6 @@
 
 (defmacro when [cond & body]
   (list 'if cond (cons 'do body)))
+
+(defn repeat [n x]
+  (Repeat. n x))
