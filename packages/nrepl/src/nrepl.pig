@@ -20,8 +20,7 @@
 
     (dict? o)
     (reduce (fn [acc [k v]]
-              (oset acc (pig->js k) (pig->js v))
-              acc)
+              (conj! acc (pig->js k) (pig->js v)))
             (js:Object) o)
 
     (sequential? o)
@@ -31,7 +30,7 @@
 
 (defn js-obj [& kvs]
   (reduce (fn [o [k v]]
-            (oset o (name k) v) o)
+            (conj! o (name k) v))
           (js:Object)
           (partition 2 kvs)))
 
