@@ -25,24 +25,29 @@
 - [X] Module expansion context
 - [X] dictionary syntax
 
-- [ ] let and destructuring
-- [ ] metadata syntax
+- [-] let and destructuring
+  - [X] list / array destructuring
+  - [ ] dict destructuring
+- [X] metadata syntax
 - [ ] backtick/unquote/unquote-splice
 - [ ] AOT compilation to modules
-- [ ] JS imports (string)
+- [X] JS imports (string)
 - [ ] dynamic var bindings
 - [ ] pluggable data structures
 - [ ] var shorthand
-- [ ] constructor shorthand
+- [X] constructor shorthand
 - [X] proper printer
   - [X] print dicts
-- [ ] vary-meta (requires protocol)
-- [ ] truthy? -> use for conditionals
+- [X] with-meta
+- [ ] vary-meta
+- [X] truthy? -> use for conditionals
+- [ ] try/catch
   
 
 ** API
 
 - [X] range
+- [X] repeat
 - [X] various convenience functions
   - [X] inc
   - [X] dec
@@ -65,6 +70,7 @@
   - [ ] keep
 - [ ] collection operations (includes?/has-key?/assoc/dissoc/disj)
 - [ ] seq/collection macros (doseq/for)
+  - [ ] doseq
 - [-] functional composition
   - [ ] comp
   - [ ] juxt

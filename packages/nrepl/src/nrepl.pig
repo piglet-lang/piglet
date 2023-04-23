@@ -1,4 +1,4 @@
-(module :piglet:nrepl
+(module :nrepl:nrepl
   (:import [bencode :from "bencode"]
            [net :from "node:net"]))
 
@@ -97,3 +97,5 @@
   (let [server (net:createServer)]
     (.on server "connection" handle-connection)
     (.listen server port (fn [s] (println "Server listenining on" (.address server))))))
+
+(start! 9000)

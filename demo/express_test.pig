@@ -1,4 +1,4 @@
-(module express-test
+(module ::express-test
   (:import [express :from "express"]
            [hiccup :from ::hiccup]))
 

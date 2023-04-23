@@ -1,4 +1,4 @@
-(module hiccup)
+(module ::hiccup)
 
 (defn html [arg]
   (if (string? arg)
