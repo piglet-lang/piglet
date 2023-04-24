@@ -66,19 +66,32 @@
 (defn ^:async op-eval [conn msg]
   (let [code (.-code msg)
         form (read-string code)
-        result-p (eval form)
-        result (await result-p)]
-    (send-msg
-     conn
-     (response-for
-      msg
-      (js-obj "ns" (-repr *current-module*)
-              "value" (print-str result))))
-    (send-msg
-     conn
-     (response-for
-      msg
-      (js-obj "status" ["done"])))))
+        result-p (eval form)]
+    (.then result-p
+           (fn [result]
+             (send-msg
+              conn
+              (response-for
+               msg
+               (js-obj "ns" (-repr *current-module*)
+                       "value" (print-str result))))
+             (send-msg
+              conn
+              (response-for
+               msg
+               (js-obj "status" ["done"]))))
+           (fn [error]
+             (send-msg
+              conn
+              (response-for
+               msg
+               (js-obj "ns" (-repr *current-module*)
+                       "value" (str "Error: " (print-str error)))))
+             (send-msg
+              conn
+              (response-for
+               msg
+               (js-obj "status" ["done"])))))))
 
 (defn handle-data [conn data]
   (let [msg (bdecode data)
