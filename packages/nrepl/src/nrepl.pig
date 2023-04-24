@@ -2,6 +2,8 @@
   (:import [bencode :from "bencode"]
            [net :from "node:net"]))
 
+;;(in-mod ':nrepl:nrepl)
+
 (def sessions {})
 
 (defn pig->js [o]
@@ -86,7 +88,37 @@
               (response-for
                msg
                (js-obj "ns" (-repr *current-module*)
-                       "value" (str "Error: " (print-str error)))))
+                       "value" (print-str error))))
+             (send-msg
+              conn
+              (response-for
+               msg
+               (js-obj "status" ["done"])))))))
+
+
+(defn ^:async op-load-file [conn msg]
+  (let [code (.-file msg)
+        result-p (.eval_string *compiler* code)]
+    (.then result-p
+           (fn [result]
+             (send-msg
+              conn
+              (response-for
+               msg
+               (js-obj "ns" (-repr *current-module*)
+                       "value" (print-str result))))
+             (send-msg
+              conn
+              (response-for
+               msg
+               (js-obj "status" ["done"]))))
+           (fn [error]
+             (send-msg
+              conn
+              (response-for
+               msg
+               (js-obj "ns" (-repr *current-module*)
+                       "value" (print-str error))))
              (send-msg
               conn
               (response-for
@@ -100,7 +132,13 @@
     (cond
       (= op "clone") (op-clone conn msg)
       (= op "describe") (op-describe conn msg)
-      (= op "eval") (op-eval conn msg))))
+      (= op "eval") (op-eval conn msg)
+      (= op "load-file") (op-load-file conn msg)
+      :else (send-msg
+             conn
+             (response-for
+              msg
+              (js-obj "status" ["done"]))))))
 
 (defn handle-connection [conn]
   (println "New connection from" (.-remoteAddress conn) (.-remotePort conn))
@@ -110,5 +148,3 @@
   (let [server (net:createServer)]
     (.on server "connection" handle-connection)
     (.listen server port (fn [s] (println "Server listenining on" (.address server))))))
-
-(start! 9000)
