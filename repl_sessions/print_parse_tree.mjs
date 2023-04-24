@@ -18,6 +18,7 @@ print_parse_tree(
     // '{const {x: x_,y: y_} = foo()}',
     // '{const {x: x_ = 123,y: y_} = foo()}',
     // "const [x,y] = 1"
-    'async function foo() { await impor("bar")}'
+    // 'async function foo() { await impor("bar")}'
     //    '( function() { let x = {(123);}; return x })'
+'throw new Error("x")'
 )

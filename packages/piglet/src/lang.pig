@@ -15,8 +15,7 @@
         fntail (list syms
                      (apply list 'let (reduce into [] (map (fn* [bind arg] [bind arg]) argv-clean syms-clean))
                             body))
-        fntail (if ?name (cons ?name fntail) fntail)
-        ]
+        fntail (if ?name (cons ?name fntail) fntail)]
     (cons 'fn* fntail)))
 
 (defmacro defn [name argv & body]
@@ -28,6 +27,8 @@
 (defn inc [x] (+ x 1))
 (defn dec [x] (- x 1))
 (defn identity [x] x)
+(defn into! [target source]
+  (reduce conj! target source))
 
 (defmacro doseq [binds & body]
   (let [lrs (partition 2 binds)
@@ -66,3 +67,35 @@
 
 (defn repeat [n x]
   (Repeat. n x))
+
+(defn slurp [path]
+  (if *compiler*
+    (.slurp *compiler* path)
+    (throw (js:Error. "No compiler present"))))
+
+(defn concat [s1 s2]
+  (lazy-seq
+   (let [s1 (seq s1)]
+     (if s1
+       (cons (first s1) (concat (rest s1) s2))
+       s2))))
+
+(defn partial [f & args]
+  (fn [& args2]
+    (apply f (concat args args2))))
+
+(.extend
+ Walkable
+ js:Array [(fn -walk [this f] (js:Array.from this f))]
+ js:Map [(fn -walk [this f] (into! (js:Map.) (map (fn [[k v]]
+                                                    [(f k) (f v)]) this)))]
+ AbstractSeq [(fn -walk [this f] (map f this))]
+ Dict [(fn -walk [this f] (into {} (map (fn [[k v]] [(f k) (f v)]) this)))])
+
+(defn postwalk [f o]
+  (if (satisfies? Walkable o)
+    (-walk o (partial postwalk f))
+    (f o)))
+
+(defn expand [data]
+  )
