@@ -1,0 +1,4 @@
+(module :piglet:spec/all)
+
+(await (require '::spec/syntax))
+(await (require '::spec/dict-spec))

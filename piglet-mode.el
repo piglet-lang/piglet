@@ -15,9 +15,12 @@
 (require 'treesit)
 (require 'rainbow-delimiters)
 
+;;(setq treesit-language-source-alist nil)
 (add-to-list
  'treesit-language-source-alist
- '(piglet "https://github.com/piglet-lang/tree-sitter-piglet.git"))
+ '(piglet ;;"https://github.com/piglet-lang/tree-sitter-piglet.git"
+   "/home/arne/github/tree-sitter-piglet"
+   ))
 
 ;; (treesit-install-language-grammar 'piglet)
 (defvar piglet-mode-indent-offset
@@ -26,6 +29,7 @@
 (defvar piglet-ts--indent-rules
   '((piglet
      ((parent-is "list") parent-bol piglet-mode-indent-offset)
+     ((parent-is "vector") first-sibling 1)
      )))
 
 (defvar piglet-mode--font-lock-settings
