@@ -64,7 +64,7 @@
 
   ;; Font-lock.
   (setq-local treesit-font-lock-settings piglet-mode--font-lock-settings)
-  (setq-local treesit-font-lock-feature-list '(parens))
+  (setq-local treesit-font-lock-feature-list '((parens)))
 
   ;; Imenu.
   ;; (setq-local treesit-simple-imenu-settings '())
