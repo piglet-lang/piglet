@@ -1,6 +1,7 @@
 (module :nrepl:nrepl
-  (:import [bencode :from "bencode"]
-           [net :from "node:net"]))
+  (:import
+    [bencode :from "bencode"]
+    [net :from "node:net"]))
 
 ;;(in-mod ':nrepl:nrepl)
 
@@ -21,9 +22,10 @@
     (-repr o)
 
     (dict? o)
-    (reduce (fn [acc [k v]]
-              (conj! acc [(pig->js k) (pig->js v)]))
-            (js:Object) o)
+    (reduce
+      (fn [acc [k v]]
+        (conj! acc [(pig->js k) (pig->js v)]))
+      (js:Object) o)
 
     (sequential? o)
     (js:Array.from o pig->js)
@@ -31,10 +33,11 @@
     :else o))
 
 (defn js-obj [& kvs]
-  (reduce (fn [o [k v]]
-            (conj! o [(name k) v]))
-          (js:Object)
-          (partition 2 kvs)))
+  (reduce
+    (fn [o [k v]]
+      (conj! o [(name k) v]))
+    (js:Object)
+    (partition 2 kvs)))
 
 (defn bencode [data]
   ((.-encode bencode:default) (pig->js data)))
@@ -44,8 +47,8 @@
 
 (defn response-for [old-msg msg]
   (js:Object.assign
-   (js-obj :id (.-id old-msg) :session (.-session old-msg))
-   msg))
+    (js-obj :id (.-id old-msg) :session (.-session old-msg))
+    msg))
 
 (defn send-msg [conn msg]
   (println '<- msg)
@@ -58,87 +61,92 @@
 
 (defn op-describe [conn msg]
   (send-msg
-   conn
-   (response-for
-    msg
-    (js-obj "status" ["done"]
-            "aux" {}
-            "ops" {"clone" {} "describe" {} "eval" {}}))))
+    conn
+    (response-for
+      msg
+      (js-obj "status" ["done"]
+        "aux" {}
+        "ops" {"clone" {} "describe" {} "eval" {}}))))
 
 (defn ^:async op-eval [conn msg]
   (let [code (.-code msg)
-        form (read-string code)
-        result-p (eval form)]
+    form (read-string code)
+    result-p (eval form)]
     (.then result-p
-           (fn [result]
-             (send-msg
-              conn
-              (response-for
-               msg
-               (js-obj "ns" (-repr *current-module*)
-                       "value" (print-str result))))
-             (send-msg
-              conn
-              (response-for
-               msg
-               (js-obj "status" ["done"]))))
-           (fn [error]
-             (send-msg
-              conn
-              (response-for
-               msg
-               (js-obj "ns" (-repr *current-module*)
-                       "value" (print-str error))))
-             (send-msg
-              conn
-              (response-for
-               msg
-               (js-obj "status" ["done"])))))))
+      (fn [result]
+        (send-msg
+          conn
+          (response-for
+            msg
+            (js-obj
+              "ns" (-repr *current-module*)
+              "value" (print-str result))))
+        (send-msg
+          conn
+          (response-for
+            msg
+            (js-obj "status" ["done"]))))
+      (fn [error]
+        (send-msg
+          conn
+          (response-for
+            msg
+            (js-obj
+              "ns" (-repr *current-module*)
+              "value" (print-str error))))
+        (send-msg
+          conn
+          (response-for
+            msg
+            (js-obj "status" ["done"])))))))
 
 
 (defn ^:async op-load-file [conn msg]
   (let [code (.-file msg)
-        result-p (.eval_string *compiler* code)]
+    result-p (.eval_string *compiler* code)]
     (.then result-p
-           (fn [result]
-             (send-msg
-              conn
-              (response-for
-               msg
-               (js-obj "ns" (-repr *current-module*)
-                       "value" (print-str result))))
-             (send-msg
-              conn
-              (response-for
-               msg
-               (js-obj "status" ["done"]))))
-           (fn [error]
-             (send-msg
-              conn
-              (response-for
-               msg
-               (js-obj "ns" (-repr *current-module*)
-                       "value" (print-str error))))
-             (send-msg
-              conn
-              (response-for
-               msg
-               (js-obj "status" ["done"])))))))
+      (fn [result]
+        (send-msg
+          conn
+          (response-for
+            msg
+            (js-obj
+              "ns" (-repr *current-module*)
+              "value" (print-str result))))
+        (send-msg
+          conn
+          (response-for
+            msg
+            (js-obj "status" ["done"]))))
+      (fn [error]
+        (send-msg
+          conn
+          (response-for
+            msg
+            (js-obj
+              "ns" (-repr *current-module*)
+              "value" (print-str error))))
+        (send-msg
+          conn
+          (response-for
+            msg
+            (js-obj "status" ["done"])))))))
 
 (defn handle-data [conn data]
   (let [msg (bdecode data)
-        op (when msg (.-op msg))]
+    op (when msg (.-op msg))]
     (println '-> msg)
     (cond
       (= op "clone") (op-clone conn msg)
       (= op "describe") (op-describe conn msg)
       (= op "eval") (op-eval conn msg)
       (= op "load-file") (op-load-file conn msg)
-      :else (send-msg
-             conn
-             (response-for
-              msg
-              (js-obj "status" ["done"]))))))
+      :else
+      (send-msg
+        conn
+        (response-for
+          msg
+          (js-obj "status" ["done"]))))))
 
 (defn handle-connection [conn]
   (println "New connection from" (.-remoteAddress conn) (.-remotePort conn))
