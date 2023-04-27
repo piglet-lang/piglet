@@ -97,5 +97,10 @@
     (-walk o (partial postwalk f))
     (f o)))
 
-(defn expand [data]
-  )
+(defmacro time [& body]
+  (let [start (gensym "start")
+        result (gensym "result")]
+    (list 'let [start '(js:Date.)
+                result (list 'do body)]
+          (list 'println (list '- '(js:Date) start) )
+          result)))
