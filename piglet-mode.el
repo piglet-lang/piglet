@@ -28,7 +28,7 @@
 
 (defvar piglet-ts--indent-rules
   '((piglet
-     ((parent-is "list") parent-bol piglet-mode-indent-offset)
+     ((parent-is "list") first-sibling 2)
      ((parent-is "vector") first-sibling 1)
      )))
 
@@ -74,6 +74,7 @@
   ;; (setq-local treesit-simple-imenu-settings '())
 
   (treesit-major-mode-setup))
+
 
 (provide 'piglet-mode)
 

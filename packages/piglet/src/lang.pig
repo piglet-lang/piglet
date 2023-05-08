@@ -8,13 +8,13 @@
                             [nil ?name (cons argv body)])
         argv-clean (remove (fn* [a] (= a (symbol "&"))) argv)
         syms (map (fn* [a]
-                       (if (= a (symbol "&"))
-                         a
-                         (gensym "arg"))) argv)
+                    (if (= a (symbol "&"))
+                      a
+                      (gensym "arg"))) argv)
         syms-clean (remove (fn* [a] (= a (symbol "&"))) syms)
         fntail (list syms
-                     (apply list 'let (reduce into [] (map (fn* [bind arg] [bind arg]) argv-clean syms-clean))
-                            body))
+                 (apply list 'let (reduce into [] (map (fn* [bind arg] [bind arg]) argv-clean syms-clean))
+                   body))
         fntail (if ?name (cons ?name fntail) fntail)]
     (cons 'fn* fntail)))
 
