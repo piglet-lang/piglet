@@ -1,8 +1,6 @@
-Piglet, the Manual
-------------------
+= Piglet, the Manual
 
-The First Rule of Piglet Club
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+== The First Rule of Piglet Club
 
 Hello, stranger! I'm not sure how you got here, but you're here now. You may
 have a lot of questions, like "what am I even looking at"? And unfortunately
@@ -15,8 +13,7 @@ Until then we ask you not to post publicly on the open internet about Piglet.
 Feel free to look around, and maybe tell a friend if you're feeling excited, but
 please respect little Piglet's privacy, for now.
 
-The Basics
-~~~~~~~~~~~
+== The Basics
 
 Piglet is a LISP environment written in EcmaScript, which can run in any
 EcmaScript compliant runtime. Our main reference are the most recent releases of
@@ -25,11 +22,9 @@ popular browsers (Firefox, Safari, Chrome), and of Node.js.
 Piglet is heavily inspired by Clojure, so if you already know Clojure you're
 halfway there. Here are some of the main differences.
 
-Differences from Clojure/ClojureScript
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=== Differences from Clojure/ClojureScript
 
-Dict
-^^^^
+==== Dict
 
 What Clojure calls a (hash- or array-) map, Piglet calls a Dict (short for
 Dictionary). You can create one with a dict literal (curly braces) or with the
@@ -42,8 +37,7 @@ dict function.
 (dict :wake-time "10:00")
 -------------------
 
-Keyword/PrefixName/QName
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+==== Keyword/PrefixName/QName
 
 Keywords in Piglet are similar to Clojure Keywords, but we don't have namespaced
 keywords. You can use a slash (or multiple slashes), they have no special
@@ -143,8 +137,7 @@ package name.
 (name ::widget) ;;=> "https://piglet-lang.org/pkg/localpkg/widget"
 -------------------
 
-JavaScript integration
-~~~~~~~~~~~~~~~~~~~~~~~~
+=== JavaScript integration
 
 Piglet tries its best to make modern JavaScript features conveniently available.
 
