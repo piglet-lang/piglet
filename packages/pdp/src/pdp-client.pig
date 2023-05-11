@@ -1,6 +1,16 @@
 (module :pdp:pdp-client
   (:import [cbor :from "./cbor.mjs"]))
 
+;; Walking skeleton for a Piglet Dev Protocol client
+;;
+;; Connect to ws://localhost:17017. Waits for CBOR-encoded messages with {"op"
+;; "eval", "code" ...}, evaluates the code, and replies with {"op" "eval",
+;; "result" result-str}
+
+(def WebSocket (if js:WebSocket
+                 js:WebSocket
+                 @(.resolve (await (js-import "ws")) "default")))
+
 (def conn (js:WebSocket. "ws://localhost:17017"))
 
 (set!

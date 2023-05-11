@@ -1,0 +1,178 @@
+Piglet, the Manual
+------------------
+
+The First Rule of Piglet Club
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Hello, stranger! I'm not sure how you got here, but you're here now. You may
+have a lot of questions, like "what am I even looking at"? And unfortunately
+there's only so much I'm at liberty to say.
+
+We are developing Piglet in the open (i.e. you can find it online), but we are
+not ready to be public about it. For the broader context of why we're doing this
+project you'll have to wait for the announcement (which will eventually come).
+Until then we ask you not to post publicly on the open internet about Piglet.
+Feel free to look around, and maybe tell a friend if you're feeling excited, but
+please respect little Piglet's privacy, for now.
+
+The Basics
+~~~~~~~~~~~
+
+Piglet is a LISP environment written in EcmaScript, which can run in any
+EcmaScript compliant runtime. Our main reference are the most recent releases of
+popular browsers (Firefox, Safari, Chrome), and of Node.js.
+
+Piglet is heavily inspired by Clojure, so if you already know Clojure you're
+halfway there. Here are some of the main differences.
+
+Differences from Clojure/ClojureScript
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dict
+^^^^
+
+What Clojure calls a (hash- or array-) map, Piglet calls a Dict (short for
+Dictionary). You can create one with a dict literal (curly braces) or with the
+dict function.
+
+[source,piglet]
+-------------------
+{:size "L" :contents "green tea"}
+(type {}) ;;=> function Dict() {...}
+(dict :wake-time "10:00")
+-------------------
+
+Keyword/PrefixName/QName
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Keywords in Piglet are similar to Clojure Keywords, but we don't have namespaced
+keywords. You can use a slash (or multiple slashes), they have no special
+meaning. As in Clojure it is very common to use keywords as dict keys.
+
+[source,piglet]
+-------------------
+:wood-grain
+:widget42
+:my/fancy/keyword
+
+(def m {:shoes 12})
+
+(:shoes m) ;;=> 12
+-------------------
+
+You get a QName or fully qualified name by writing a `:` followed by a URI (it
+has to contain `://`)
+
+[source,piglet]
+-------------------
+:http://www.w3.org/2000/01/rdf-schema#comment
+-------------------
+
+Functionally these behave like keywords
+
+[source,piglet]
+-------------------
+(:http://www.w3.org/2000/01/rdf-schema#comment 
+ {:http://www.w3.org/2000/01/rdf-schema#comment "This is an interestings document"})
+;;=> "This is an interestings document"
+-------------------
+
+The idea here is to make RDF-style identifiers first class. These are well
+defined identifiers defined by an authority, i.e. the person who controls the
+domain name. Often (but not always) you can open the URI as a URL in your
+browser to find out more about its meaning.
+
+But typing out these complete URIs is anything but convenient, so Piglet allows
+for a shorthand, for instance the above QName can be written as
+
+[source,piglet]
+-------------------
+:rdfs:comment
+-------------------
+
+This looks like a Keyword, but the additional `:` makes this a `PrefixName`,
+which during compilation gets converted to a full `QName`. It's really just
+shorthand, in other words, it's functionally equivalent to writing out the full
+`QName`.
+
+The expansion is determined by the current "context", a mapping from prefixes to
+URIs. Piglet ships with a number of default prefixes built in, like `rdf`,
+`rdfs`, `owl`, `dc`, or `foaf`, but you can set up your own in a module
+declaration or (to be implemented) package specification.
+
+Note that when Piglet prints a QName, it will also check the context, and if it
+finds a suitable prefix it will print the shorter PrefixName version, rather
+than the full QName, so in day to day usage you rarely ever encounter the full
+QName form.
+
+[source,piglet]
+-------------------
+(type :rdfs:comment) ;;=> QName
+(type ':rdfs:comment) ;;=> PrefixName
+(type (read-string ":rdfs:comment") ;;=> PrefixName
+
+*qname-print-style* ;;=> :compact
+(print-str :foaf:name) ;;=> :foaf:name
+
+(set! *qname-print-style* :full) 
+(print-str :foaf:name) ;;=> ":http://xmlns.com/foaf/0.1/name"
+-------------------
+
+Here's a more real-world example:
+
+[source,piglet]
+-------------------
+(def comment
+ {:rdf:type :rdf:Property
+  :rdfs:comment "A description of the subject resource."
+  :rdfs:domain :rdfs:Resource
+  :rdfs:isDefinedBy "http://www.w3.org/2000/01/rdf-schema#"
+  :rdfs:label "comment"
+  :rdfs:range :rdfs:Literal})
+-------------------
+
+The `name` function can give you a string version of any of these different
+identifiers, e.g. when you need to write them to a file or send them over the
+wire. This will not include any leading `:`.
+
+If you leave off the prefix, then you get an identifier based on the current
+package name.
+
+[source,piglet]
+-------------------
+(name ::widget) ;;=> "https://piglet-lang.org/pkg/localpkg/widget"
+-------------------
+
+JavaScript integration
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Piglet tries its best to make modern JavaScript features conveniently available.
+
+Functions can be marked as async, and there's an await special form
+
+[source,piglet]
+-------------------
+(defn ^:async my-fn []
+  (await (js:fetch "...")))
+-------------------
+
+Arrays can be destructured.
+
+[source,piglet]
+-------------------
+(let [[x y] #js [1 2]] (+ x y))
+-------------------
+
+All Piglet datastructures implement Symbol.iterator.
+
+[source,piglet]
+-------------------
+(js:Map. {"hello" "world"})
+
+(js:Array.from (range 5))
+;; #js [0, 1, 2, 3, 4]
+-------------------
+
+Piglet protocols are implemented for JS arrays, Map instances, primitives,
+ArrayBuffer, Uint8/32/64Array, etc.
+
