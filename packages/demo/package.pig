@@ -1,4 +1,4 @@
-{;;:pkg:id :https://piglet-lang.org/pkg/localpkg ;; implied
+{:pkg:id https://my-project.org/packages/hello-world
  :pkg:paths ["."]
  :pkg:deps {piglet {:pkg:location "../piglet"}}
  :pkg:main ::demo

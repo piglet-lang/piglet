@@ -1,13 +1,28 @@
 (module :webdemo:webdemo
-  (:import [_ :from :pdp:pdp-client]))
+  (:import
+    [_ :from :pdp:pdp-client]
+    [dom :from :dom:dom]
+    [solid :from "solid-js"]
+    [solid-web :from "solid-js/web"]))
 
-(js:console.log "hello, piglet!")
-(def app-div (.getElementById js:document "app"))
-(def header (.createElement js:document "h1"))
+(println "hello, piglet!")
+(def app-div (dom:id->el "app"))
+(def header (dom:el "h1"))
 
-(defn add-child [container child]
-  (.appendChild container child))
+(conj! header (dom:text-node "Hello from Piglet! 🐷"))
+(conj! app-div header)
 
-(add-child header (.createTextNode js:document "Hello from Piglet! 🐷"))
-(add-child app-div header)
-(def lst '(1 2 3))
+;; (def x 3)
+
+;; (def m
+     ;;   (solid:createMemo (fn [] x)))
+
+;; (let [[count count!] (solid:createSignal 0)]
+;;   (def count count)
+;;   (def count! count!))
+
+
+;; (count! 3)
+
+;; (solid-web:template "<div>")
+;; (solid-web:untrack (fn [] 1))

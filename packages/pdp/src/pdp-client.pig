@@ -1,5 +1,5 @@
 (module :pdp:pdp-client
-  (:import [cbor :from "./cbor.mjs"]))
+  (:import [cbor :from "cbor"]))
 
 ;; Walking skeleton for a Piglet Dev Protocol client
 ;;
@@ -19,8 +19,19 @@
     (let [msg (cbor:decode (await (.arrayBuffer (.-data msg))))
           op (.-op msg)
           code (.-code msg)]
-      (if (= op "eval")
-        (.send conn
-          (cbor:encode
-            #js {"op" "eval"
-            "result" (print-str (await (.eval_string *compiler* code)))}))))))
+      (when (= op "eval")
+        (println code)
+        (.then
+          (.eval_string *compiler* code)
+          (fn [val]
+            (println '=> val)
+            (.send conn
+              (cbor:encode
+                #js {"op" "eval"
+                     "result" (print-str val)})))
+          (fn [err]
+            (js:console.log err)
+            (.send conn
+              (cbor:encode
+                #js {"op" "eval"
+                     "result" (print-str err)}))))))))

@@ -24,6 +24,13 @@
 (defmacro lazy-seq [& body]
   (list 'make-lazy-seq (cons 'fn* (cons '[] body))))
 
+(defn concat [s1 s2]
+  (lazy-seq
+    (let [s1 (seq s1)]
+      (if s1
+        (cons (first s1) (concat (rest s1) s2))
+        s2))))
+
 (defn inc [x] (+ x 1))
 (defn dec [x] (- x 1))
 (defn identity [x] x)
@@ -37,7 +44,28 @@
         inner-fn (cons 'do body)]
     (reduce (fn [acc [var coll]]
               (list 'reduce (list 'fn* ['_ var] acc) nil coll))
-            inner-fn (reverse (map list ls rs)))))
+      inner-fn (reverse (map list ls rs)))))
+
+(defmacro for [binds & body]
+  (let [lrs (partition 2 binds)
+        ls (map first lrs)
+        rs (map second lrs)
+        inner-fn (cons 'do body)
+        acc-sym (gensym "acc")
+        form (reduce (fn [form [var coll]]
+                       (list 'reduce (list 'fn*
+                                       [acc-sym var]
+                                       (list
+                                         (if (= form inner-fn)
+                                           'conj
+                                           'concat)
+                                         acc-sym
+                                         form))
+                         []
+                         coll))
+               inner-fn
+               (reverse (map list ls rs)))]
+    form))
 
 (defn macroexpand [form]
   (let [var (resolve (first form))]
@@ -45,8 +73,8 @@
 
 (defn in-mod [name]
   (.set_value
-   (resolve 'piglet:lang:*current-module*)
-   (ensure-module name)))
+    (resolve 'piglet:lang:*current-module*)
+    (ensure-module name)))
 
 (defn reload [mod]
   (set! (.-required (ensure-module mod)) false)
@@ -73,24 +101,45 @@
     (.slurp *compiler* path)
     (throw (js:Error. "No compiler present"))))
 
-(defn concat [s1 s2]
-  (lazy-seq
-   (let [s1 (seq s1)]
-     (if s1
-       (cons (first s1) (concat (rest s1) s2))
-       s2))))
-
 (defn partial [f & args]
   (fn [& args2]
     (apply f (concat args args2))))
 
-(.extend
- Walkable
- js:Array [(fn -walk [this f] (js:Array.from this f))]
- js:Map [(fn -walk [this f] (into! (js:Map.) (map (fn [[k v]]
-                                                    [(f k) (f v)]) this)))]
- AbstractSeq [(fn -walk [this f] (map f this))]
- Dict [(fn -walk [this f] (into {} (map (fn [[k v]] [(f k) (f v)]) this)))])
+(defn update [coll k f & args]
+  (assoc coll k (apply f (get coll k) args)))
+
+(defmacro extend-class [klass & protocols]
+  (let [proto-methods (reduce (fn [acc o]
+                                (if (symbol? o)
+                                  (conj acc [o])
+                                  (update acc (dec (count acc)) conj o)))
+                        []
+                        protocols)]
+
+    (cons 'do
+      (for [p proto-methods]
+        (list '.extend (first p) klass
+          (for [fn-tail (rest p)]
+            (cons 'fn fn-tail)))))))
+
+(defmacro extend-protocol [protocol & classes]
+  (let [class-methods (reduce (fn [acc o]
+                                (if (symbol? o)
+                                  (conj acc [o])
+                                  (update acc (dec (count acc)) conj o)))
+                        []
+                        classes)]
+    (cons '.extend
+      (cons protocol
+        (apply concat class-methods)))))
+
+(extend-protocol Walkable
+  js:Array [(fn -walk [this f] (js:Array.from this f))]
+
+  js:Map [(fn -walk [this f] (into! (js:Map.) (map (fn [[k v]]
+                                                     [(f k) (f v)]) this)))]
+  AbstractSeq [(fn -walk [this f] (map f this))]
+  Dict [(fn -walk [this f] (into {} (map (fn [[k v]] [(f k) (f v)]) this)))])
 
 (defn postwalk [f o]
   (if (satisfies? Walkable o)
@@ -102,5 +151,5 @@
         result (gensym "result")]
     (list 'let [start '(js:Date.)
                 result (list 'do body)]
-          (list 'println (list '- '(js:Date) start) )
-          result)))
+      (list 'println (list '- '(js:Date) start) )
+      result)))

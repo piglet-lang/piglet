@@ -2,8 +2,15 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <script type="importmap">
+      {"imports": 
+       {"solid-js": "/node_modules/solid-js/dist/solid.js",
+        "solid-js/web": "/node_modules/solid-js/web/dist/web.js",
+        "cbor": "/packages/pdp/src/cbor.mjs"}}
+    </script>
     <script type="module" src="../lib/piglet/browser/main.mjs"></script>
     <script type="piglet" src="./webdemo.pig"></script>
+
   </head>
   <body>
     <div id="app"></div>

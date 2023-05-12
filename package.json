@@ -17,6 +17,7 @@
     "dependencies": {
         "astring": "^1.8.4",
         "express": "^4.18.2",
+        "solid-js": "^1.7.5",
         "ws": "^8.13.0"
     },
     "devDependencies": {
