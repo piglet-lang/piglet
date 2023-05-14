@@ -133,6 +133,19 @@
       (cons protocol
         (apply concat class-methods)))))
 
+(defmacro specify! [object & protocols]
+  (let [proto-methods (reduce (fn [acc o]
+                                (if (symbol? o)
+                                  (conj acc [o])
+                    (update acc (dec (count acc)) conj o)))
+                                               []
+                        protocols)]
+    (cons 'do
+      (for [p proto-methods]
+        (list '.extend_object (first p) object
+          (for [fn-tail (rest p)]
+            (cons 'fn fn-tail)))))))
+
 (extend-protocol Walkable
   js:Array [(fn -walk [this f] (js:Array.from this f))]
 
