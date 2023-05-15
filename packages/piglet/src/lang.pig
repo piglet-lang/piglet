@@ -68,8 +68,7 @@
     form))
 
 (defn macroexpand [form]
-  (let [var (resolve (first form))]
-    (apply (.bind (.-invoke var) var) (rest form))))
+  (apply (resolve (first form)) (rest form)))
 
 (defn in-mod [name]
   (.set_value
@@ -139,12 +138,18 @@
                                   (conj acc [o])
                     (update acc (dec (count acc)) conj o)))
                                                []
-                        protocols)]
-    (cons 'do
-      (for [p proto-methods]
-        (list '.extend_object (first p) object
-          (for [fn-tail (rest p)]
-            (cons 'fn fn-tail)))))))
+                        protocols)
+        osym (gensym "object")]
+    (list 'let [osym object]
+      (cons 'do
+        (for [p proto-methods]
+          (list '.extend_object (first p) osym
+            (for [fn-tail (rest p)]
+              (cons 'fn fn-tail)))))
+      osym)))
+
+(defmacro reify [& protocols]
+  (cons 'specify! (cons #js {} protocols)))
 
 (extend-protocol Walkable
   js:Array [(fn -walk [this f] (js:Array.from this f))]

@@ -15,8 +15,8 @@
 (defn id->el [id]
   (.getElementById js:document id))
 
-(defn query1 [el qry]
+(defn query [el qry]
   (.querySelector el qry))
 
-(defn query [el qry]
+(defn query-all [el qry]
   (.querySelectorAll el qry))

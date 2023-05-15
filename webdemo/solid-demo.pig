@@ -9,7 +9,10 @@
   (let [[getter setter] (solid:createSignal init)]
     (specify! setter
       Derefable
-      (deref [_] (getter)))
+      (deref [_] (getter))
+      Swappable
+      (-swap! [_ f args]
+        (setter (apply f (getter) args))))
     setter))
 
 (defn memo [f]
@@ -35,11 +38,11 @@
 <p>Count: <span id=\"count\"></span></p>
 <p>Square: <span id=\"square\"></span></p>
 </div>")]
-    (js:setInterval (fn [] (counter (inc @counter))) 1000)
+    (js:setInterval (fn [] (swap! counter inc)) 1000)
     (fn []
       (let [el (tmpl)]
-        (solid-web:insert (dom:query1 el "#count") (fn [] @counter))
-        (solid-web:insert (dom:query1 el "#square") (fn [] @square))
+        (solid-web:insert (dom:query el "#count") (fn [] @counter))
+        (solid-web:insert (dom:query el "#square") (fn [] @square))
         el))))
 
 (solid-web:render
