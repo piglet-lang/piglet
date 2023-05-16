@@ -1,2 +1,3 @@
-{:pkg:id :https://piglet-lang.org/pkg/piglet
+{:pkg:id https://piglet-lang.org/packages/piglet
+ :pkg:version "0.0.1"
  :pkg:paths ["src"]}

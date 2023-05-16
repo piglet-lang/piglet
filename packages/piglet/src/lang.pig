@@ -171,3 +171,6 @@
                 result (list 'do body)]
       (list 'println (list '- '(js:Date) start) )
       result)))
+
+(defn != [x & xs]
+  (not (apply = x xs)))

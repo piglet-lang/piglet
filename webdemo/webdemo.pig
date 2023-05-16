@@ -9,3 +9,5 @@
 
 (conj! header (dom:text-node "Hello from Piglet! 🐷"))
 (conj! app-div header)
+
+(js:document.getElementById "app")

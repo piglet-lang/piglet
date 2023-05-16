@@ -1,5 +1,5 @@
 (module :pdp:pdp-client
-  (:import [cbor :from "cbor"]))
+  (:import [cbor :from "./cbor.mjs"]))
 
 ;; Walking skeleton for a Piglet Dev Protocol client
 ;;
@@ -7,16 +7,22 @@
 ;; "eval", "code" ...}, evaluates the code, and replies with {"op" "eval",
 ;; "result" result-str}
 
-(def WebSocket (if js:WebSocket
+(println (typeof js:WebSocket))
+(println "XXX" (!= "undefined" (typeof js:WebSocket)))
+
+(def WebSocket (if (!= "undefined" (typeof js:WebSocket))
                  js:WebSocket
                  @(.resolve (await (js-import "ws")) "default")))
 
-(def conn (js:WebSocket. "ws://localhost:17017"))
+(def conn (WebSocket. "ws://localhost:17017"))
+
+(set! (.-binaryType conn) "arraybuffer")
 
 (set!
   (.-onmessage conn)
   (fn ^:async on-message [msg]
-    (let [msg (cbor:decode (await (.arrayBuffer (.-data msg))))
+    (println)
+    (let [msg (cbor:decode (.-data msg))
           op (.-op msg)
           code (.-code msg)]
       (when (= op "eval")

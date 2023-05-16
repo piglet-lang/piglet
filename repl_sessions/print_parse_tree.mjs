@@ -20,5 +20,7 @@ print_parse_tree(
     // "const [x,y] = 1"
     // 'async function foo() { await impor("bar")}'
     //    '( function() { let x = {(123);}; return x })'
-'throw new Error("x")'
+    // 'throw new Error("x")',
+    'typeof x',
+    // 'try {} catch (e) {} finally {}'
 )
