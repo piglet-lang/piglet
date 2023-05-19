@@ -7,9 +7,6 @@
 ;; "eval", "code" ...}, evaluates the code, and replies with {"op" "eval",
 ;; "result" result-str}
 
-(println (typeof js:WebSocket))
-(println "XXX" (!= "undefined" (typeof js:WebSocket)))
-
 (def WebSocket (if (!= "undefined" (typeof js:WebSocket))
                  js:WebSocket
                  @(.resolve (await (js-import "ws")) "default")))

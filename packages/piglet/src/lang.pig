@@ -1,4 +1,4 @@
-(module :piglet:lang)
+(module lang)
 
 (def into (fn* [o coll] (reduce conj o coll)))
 
