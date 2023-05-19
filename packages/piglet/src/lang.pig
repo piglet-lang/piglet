@@ -24,12 +24,14 @@
 (defmacro lazy-seq [& body]
   (list 'make-lazy-seq (cons 'fn* (cons '[] body))))
 
-(defn concat [s1 s2]
-  (lazy-seq
-    (let [s1 (seq s1)]
-      (if s1
-        (cons (first s1) (concat (rest s1) s2))
-        s2))))
+(defn concat [s1 s2 & more]
+  (if (seq more)
+    (concat s1 (apply concat s2 more))
+    (lazy-seq
+      (let [s1 (seq s1)]
+        (if s1
+          (cons (first s1) (concat (rest s1) s2))
+          s2)))))
 
 (defn inc [x] (+ x 1))
 (defn dec [x] (- x 1))
@@ -160,9 +162,12 @@
   Dict [(fn -walk [this f] (into {} (map (fn [[k v]] [(f k) (f v)]) this)))])
 
 (defn postwalk [f o]
-  (if (satisfies? Walkable o)
-    (-walk o (partial postwalk f))
-    (f o)))
+  (let [o (if (satisfies? Walkable o)
+            (-walk o (partial postwalk f))
+            (f o))]
+    (if (satisfies? WithMeta o)
+      (with-meta o (meta o))
+      o)))
 
 (defmacro time [& body]
   (let [start (gensym "start")

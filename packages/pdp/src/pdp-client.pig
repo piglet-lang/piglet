@@ -1,4 +1,4 @@
-(module :pdp:pdp-client
+(module pdp-client
   (:import [cbor :from "./cbor.mjs"]))
 
 ;; Walking skeleton for a Piglet Dev Protocol client
