@@ -1,7 +1,7 @@
 (module :webdemo:webdemo
   (:import
-    [_ :from :pdp:pdp-client]
-    [dom :from :dom:dom]))
+    [_ :from piglet:pdp-client]
+    [dom :from piglet:dom]))
 
 (println "hello, piglet!")
 (def app-div (dom:id->el "app"))

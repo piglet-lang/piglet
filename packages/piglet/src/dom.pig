@@ -1,4 +1,4 @@
-(module :dom:dom)
+(module dom)
 
 (extend-class js:Node
   MutableCollection

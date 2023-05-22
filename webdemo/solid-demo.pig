@@ -1,7 +1,7 @@
 (module :webdemo:solid-demo
   (:import
-    [_ :from :pdp:pdp-client]
-    [dom :from :dom:dom]
+    [_ :from piglet:pdp-client]
+    [dom :from piglet:dom]
     [solid :from "solid-js"]
     [solid-web :from "solid-js/web"]))
 
