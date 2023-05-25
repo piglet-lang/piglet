@@ -1,9 +1,14 @@
-(module :webdemo:solid-demo
+(module solid-demo
   (:import
     [_ :from piglet:pdp-client]
     [dom :from piglet:dom]
     [solid :from "solid-js"]
-    [solid-web :from "solid-js/web"]))
+    [solid-web :from "solid-js/web"]
+    [p5 :from "p5"]))
+
+(do p5:color)
+
+(do (.-index module-registry))
 
 (defn signal [init]
   (let [[getter setter] (solid:createSignal init)]

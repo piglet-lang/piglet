@@ -7,6 +7,9 @@ dependencies:
   express:
     specifier: ^4.18.2
     version: 4.18.2
+  p5:
+    specifier: ^1.6.0
+    version: 1.6.0
   solid-js:
     specifier: ^1.7.5
     version: 1.7.5
@@ -470,6 +473,10 @@ packages:
     engines: {node: '>= 0.8'}
     dependencies:
       ee-first: 1.1.1
+    dev: false
+
+  /p5@1.6.0:
+    resolution: {integrity: sha512-RowF+RxfVUhJm/YKXL5TCFzTqnwAIwK6W1VGs9LAqSf3PCmLz9Igbxzlf0Ry5IMV71L42wipCdH/bDiNsqAstA==}
     dev: false
 
   /parseurl@1.3.3:
