@@ -6,9 +6,19 @@
     [solid-web :from "solid-js/web"]
     [p5 :from "p5"]))
 
-(do p5:color)
+;; FIXME
+;; (.-Color
+;;   (do p5:default))
 
-(do (.-index module-registry))
+(.-Color p5:default)
+
+;; also on window.p5
+(do js:p5.Color)
+
+;; FIXME
+;; (def {:props [Color Camera Matrix]} p5:default)
+
+(js:console.log (.-index module-registry))
 
 (defn signal [init]
   (let [[getter setter] (solid:createSignal init)]
