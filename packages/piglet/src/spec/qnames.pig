@@ -1,5 +1,5 @@
-(module :piglet:spec/qnames
-  (:import [u :from ::spec/util])
+(module spec/qnames
+  (:import [u :from spec/util])
   (:context {"my-prefix" "https://arnebrasseur.net/vocab/"}))
 
 (u:testing

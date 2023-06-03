@@ -1,4 +1,4 @@
-(module :piglet:spec/util)
+(module spec/util)
 
 (def indent 0)
 

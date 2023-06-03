@@ -1,5 +1,5 @@
-(module :piglet:spec/dict-spec
-  (:import [u :from ::spec/util]))
+(module spec/dict-spec
+  (:import [u :from spec/util]))
 
 (u:testing
   "Basic constructions"

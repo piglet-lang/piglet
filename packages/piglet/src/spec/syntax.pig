@@ -1,5 +1,5 @@
-(module :piglet:spec/syntax
-  (:import [u :from ::spec/util]))
+(module spec/syntax
+  (:import [u :from spec/util]))
 
 (u:testing
  "Syntax"

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Convenience entrypoint "for now". You can symlink this from somewhere on your
+# PATH so you can call `piglet` from anywhere.
+#
+# Adds a `--devtools` option which runs piglet through nodemon, so you get hot
+# reload in node while working on piglet itself, and it runs node with the
+# --inspect flag, so you can connect from chrome devtools.
+
+# Using a bash-ism here because to do this in POSIX in the face of symlinks is _very_ tedious, see https://stackoverflow.com/a/29835459
+PIGLET_HOME="$(dirname "$(realpath $0)")/.."
+echo "$PIGLET_HOME"
+
+if [ "$1" = "--devtools" ]; then
+  shift
+  exec rlwrap npx nodemon --inspect "${PIGLET_HOME}/lib/piglet/node/main.mjs" "$@"
+else
+  exec rlwrap node "${PIGLET_HOME}/lib/piglet/node/main.mjs" "$@"
+fi
