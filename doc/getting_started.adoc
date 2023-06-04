@@ -31,7 +31,7 @@ Command line flags:
 * `-p`: load a package given a path of a directory containing a
 `package.pig` file. Does not load any actual code, but allows importing
 modules from the package with `-i` or from code. Alternatively use
-`:pkg:deps` in `pacakge.edn`
+`:pkg:deps` in `package.edn`
 * `-i`: import a module, using `package:module`,
 e.g. `-i piglet:pdp-client` or `-i https://example.com/my-pkg:my-mod`
 * `-v`: inrease verbosity, when using the REPL this will print out

@@ -21,9 +21,14 @@
     (println)
     (let [msg (cbor:decode (.-data msg))
           op (.-op msg)
-          code (.-code msg)]
+          code (.-code msg)
+          location (.-location msg)
+          package (.-package msg)]
       (when (= op "eval")
         (println code)
+        (println "LOC" location)
+        (.set_value (resolve '*current-location*) location)
+        (.set_value (resolve '*current-package*) (.ensure_package module-registry package))
         (.then
           (.eval_string *compiler* code)
           (fn [val]
