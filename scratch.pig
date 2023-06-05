@@ -13,6 +13,6 @@
 
 (.-name (first (js:Object.values (.-methods p))))
 
-(reset-meta (.resolve *current-module* "=") [:a])
+(reset-meta! (.resolve *current-module* "=") [:a])
 
 (meta (.resolve *current-module* "="))

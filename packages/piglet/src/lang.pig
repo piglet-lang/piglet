@@ -48,7 +48,7 @@
               (list 'reduce (list 'fn* ['_ var] acc) nil coll))
       inner-fn (reverse (map list ls rs)))))
 
-(defmacro for [binds & body]
+(defn -for-sync [binds body]
   (let [lrs (partition 2 binds)
         ls (map first lrs)
         rs (map second lrs)
@@ -68,6 +68,31 @@
                inner-fn
                (reverse (map list ls rs)))]
     form))
+
+(defn -for-async [binds body]
+  (let [lrs (partition 2 binds)
+        ls (map first lrs)
+        rs (map second lrs)
+        inner-fn (cons 'do body)
+        acc-sym (gensym "acc")
+        form (reduce (fn [form [var coll]]
+                       (list 'reduce (list 'fn* '^:async for-fn [acc-sym var]
+                                       (list
+                                         (if (= form inner-fn)
+                                           'conj
+                                           'concat)
+                                         (list 'await acc-sym)
+                                         form))
+                         []
+                         coll))
+               inner-fn
+               (reverse (map list ls rs)))]
+    form))
+
+(defmacro for [binds & body]
+  (if (:async (meta binds))
+    (-for-async binds body)
+    (-for-sync binds body)))
 
 (defn macroexpand [form]
   (apply (resolve (first form)) (rest form)))
