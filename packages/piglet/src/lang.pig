@@ -204,3 +204,30 @@
 
 (defn != [x & xs]
   (not (apply = x xs)))
+
+(defmacro -> [x & forms]
+  (reduce (fn [acc form]
+            (if (sequential? form)
+              (apply list (first form) acc (rest form))
+              (list form acc)))
+    x
+    forms))
+
+(defmacro ->> [x & forms]
+  (reduce (fn [acc form]
+            (if (sequential? form)
+              (concat form (list acc))
+              (list form acc)))
+    x
+    forms))
+
+(defmacro cond-> [x & forms]
+  (let [pairs (partition 2 forms)]
+    (reduce (fn [acc [pred form]]
+              (let [acc-sym (gensym "acc")]
+                (list 'let [acc-sym acc]
+                  (list 'if pred (if (sequential? form)
+                                   (apply list (first form) acc-sym (rest form))
+                                   (list form acc-sym))
+                    acc-sym))))
+      x pairs)))
