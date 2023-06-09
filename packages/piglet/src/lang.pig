@@ -237,5 +237,3 @@
 
 (defn re-find [re s]
   (first (re-seq re s)))
-
-*current-module*
