@@ -23,23 +23,38 @@
           op (.-op msg)
           code (.-code msg)
           location (.-location msg)
-          package (.-package msg)]
-      (when (= op "eval")
-        (println code)
-        (println "LOC" location)
-        (.set_value (resolve '*current-location*) location)
-        (.set_value (resolve '*current-package*) (.ensure_package module-registry package))
-        (.then
-          (.eval_string *compiler* code)
-          (fn [val]
-            (println '=> val)
-            (.send conn
-              (cbor:encode
-                #js {"op" "eval"
-                     "result" (print-str val)})))
-          (fn [err]
-            (js:console.log err)
-            (.send conn
-              (cbor:encode
-                #js {"op" "eval"
-                     "result" (print-str err)}))))))))
+          module (.-module msg)
+          package (.-package msg)
+          var (.-var msg)]
+      (println msg)
+      (when location
+        (.set_value (resolve '*current-location*) location))
+      (when module
+        (.set_value (resolve '*current-module*) (.ensure_module module-registry package module)))
+      (when package
+        (.set_value (resolve '*current-package*) (.ensure_package module-registry package)))
+      (cond
+        (= "resolve-meta" op)
+        (do
+          (println "Resolving" var "in" *current-module* ":" (resolve (symbol var)) " / " (meta (resolve (symbol var))))
+          (.send conn (cbor:encode #js {"op" "resolve-meta"
+                                        "to" (oget msg "reply-to")
+                                        "result" (print-str (meta (resolve (symbol var))))})))
+
+        (= "eval" op)
+        (do
+          (println code)
+          (.then
+            (.eval_string *compiler* code location (.-start msg) (.-line msg))
+            (fn [val]
+              (println '=> val)
+              (.send conn
+                (cbor:encode
+                  #js {"op" "eval"
+                       "result" (print-str val)})))
+            (fn [err]
+              (js:console.log err)
+              (.send conn
+                (cbor:encode
+                  #js {"op" "eval"
+                       "result" (print-str err)})))))))))

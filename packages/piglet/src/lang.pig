@@ -45,7 +45,7 @@
         rs (map second lrs)
         inner-fn (cons 'do body)]
     (reduce (fn [acc [var coll]]
-              (list 'reduce (list 'fn* ['_ var] acc) nil coll))
+              (list 'reduce (list 'fn ['_ var] acc) nil coll))
       inner-fn (reverse (map list ls rs)))))
 
 (defn -for-sync [binds body]
@@ -55,7 +55,7 @@
         inner-fn (cons 'do body)
         acc-sym (gensym "acc")
         form (reduce (fn [form [var coll]]
-                       (list 'reduce (list 'fn*
+                       (list 'reduce (list 'fn
                                        [acc-sym var]
                                        (list
                                          (if (= form inner-fn)
@@ -76,7 +76,7 @@
         inner-fn (cons 'do body)
         acc-sym (gensym "acc")
         form (reduce (fn [form [var coll]]
-                       (list 'reduce (list 'fn* '^:async for-fn [acc-sym var]
+                       (list 'reduce (list 'fn '^:async for-fn [acc-sym var]
                                        (list
                                          (if (= form inner-fn)
                                            'conj
@@ -231,3 +231,11 @@
                                    (list form acc-sym))
                     acc-sym))))
       x pairs)))
+
+(defn re-seq [re s]
+  (.match s (js:RegExp. re "g")))
+
+(defn re-find [re s]
+  (first (re-seq re s)))
+
+*current-module*
