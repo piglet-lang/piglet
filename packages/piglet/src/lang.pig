@@ -127,6 +127,11 @@
     (.slurp *compiler* path)
     (throw (js:Error. "No compiler present"))))
 
+(defn spit [path content]
+  (if *compiler*
+    (.spit *compiler* path content)
+    (throw (js:Error. "No compiler present"))))
+
 (defn partial [f & args]
   (fn [& args2]
     (apply f (concat args args2))))
@@ -233,7 +238,16 @@
       x pairs)))
 
 (defn re-seq [re s]
-  (.match s (js:RegExp. re "g")))
+  (.match s (if (instance? js:RegExp re)
+              re
+              (js:RegExp. re "g"))))
 
 (defn re-find [re s]
   (first (re-seq re s)))
+
+;; separator first, for partial application
+(defn join [sep strings]
+  (.join strings sep))
+
+(defn split [sep string]
+  (.split string sep))
