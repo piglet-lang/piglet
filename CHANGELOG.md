@@ -1,10 +1,9 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- [browser] resolve piglet:lang relative to the location that browser/main.mjs was loaded from
+  - This enables loading Piglet from a CDN
 
 # 0.0.17 (2023-06-11 / 8449a7)
 
