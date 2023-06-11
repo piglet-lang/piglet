@@ -15,7 +15,10 @@ release:
   
   .
   wq
+  EOF
+  
   git add package.json CHANGELOG.md
   git commit -m "Release ${VERSION}"
   git tag "${VERSION}"
-  EOF
+  git push --tags
+  pnpm publish
