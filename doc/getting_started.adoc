@@ -70,28 +70,116 @@ See below for setting up Emacs.
 === Running in the browser
 
 Piglet itself is written to run in the browser from source without any
-additional tooling or compilation, you just need something to serve up
-the files over HTTP. An easy option for that is python’s built-in http
-server.
+additional tooling or compilation, you just need something to serve up the files
+over HTTP. The easiest way to get started is by using the jsDeliver CDN, which
+will pull files from the npm release:
 
-Run this in piglet’s root directory:
+[source,html]
+----
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script type="importmap">
+      {"imports": {"astring": "https://cdn.jsdelivr.net/npm/astring@latest/dist/astring.mjs"}}
+    </script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/piglet-lang@0.0.19/lib/piglet/browser/main.mjs"></script>
+    <script type="piglet">
+      (js:console.log "Hello from Piglet 🐷!")
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>
+----
+
+The `piglet/browser/main.mjs` entry point will run any `script` tags it finds
+with type="piglet". They can be inline scripts like the one above, or reference
+a file to load with `src="..."`.
+
+Notice the `importmap`, this is standard browser feature, not anything Piglet
+related. Piglet requires `astring` to convert JS AST (known as ESTree), to JS.
+When we `import "astring"` the browser needs to know where `astring` is supposed
+to come from. In Node.js there's automatic resolution based on `node_modules`,
+in the browser you use `importmap` to specify a URL.
+
+You can use `importmap` to make other JS libraries available as well, which you
+can then import with a simple short name.
+
+[source,html]
+----
+<script type="importmap">
+  {"imports":
+   {"astring": "https://cdn.jsdelivr.net/npm/astring@latest/dist/astring.mjs",
+    "solid-js": "https://cdn.jsdelivr.net/npm/solid-js@latest/dist/solid.js"}}
+</script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/piglet-lang@latest/lib/piglet/browser/main.mjs"></script>
+<script type="piglet">
+  (module main
+   (:import [solid :from "solid-js"]))
+
+  (js:console.log (js:Object.keys (.-vars (find-module 'solid))))
+</script>
+----
+
+To load JS files that are included in your own package, use relative paths:
+`(:import [util :from "util.js"])`. Note that these have to be valid ES6
+modules.
+
+Using `<script type="piglet">` will evaluate the given code (inline or from a
+file) as scripts, simply evaluating forms from top to bottom. If you want to
+bundle a bunch of modules in a package, and/or load modules from other packages,
+then point piglet first at the package location, which contains its
+`package.pig`
+
+Say you have the following `package.pig` at `http://example.com/my/pkg/package.pig`:
+
+[source,piglet]
+----
+{:pkg:name https://packages.example.com/my-pkg
+ :pkg:paths ["src"]}
+----
+
+And a module at `http://example.com/my/pkg/src/main.pig`.
+
+Then you could load it with:
+
+[source,html]
+----
+<script type="piglet">
+  ;; Load //example.com/my/pkg/package.pig
+  (load-package "//example.com/my/pkg")
+  ;; Load the module
+  (require 'https://packages.example.com/my-pkg:main)
+</script>
+----
+
+Your package can in turn depend on other packages, which will get loaded and
+resolved too.
+
+A piglet web project could look like this:
+
+[source]
+----
+
+.
+├── index.html
+├── package.pig
+└── src
+    └── main.pig
+----
+
+Where from `index.html` you do `(load-package js:window.location)`, and then
+continue to require your main module.
+
+The `http-server` package can be useful here.
 
 [source,shell]
 ----
-python3 -m http.server 8000
+pnpm i http-server -g
+http-server --port 8000 --cors
 ----
-
-Now visit http://localhost:8000/webdemo/.
-
-Have a look at `webdemo/index.html` for how that works. The main entry
-point for browsers is `lib/piglet/browser/main.mjs`. This will in turn
-look for `<script>` tags with `type=application/piglet`, and run them.
-The piglet code can be inside the HTML document, or linked to with a
-`src=".../foo/bar.pig"`.
-
-To load JS libraries (and you have to load at least `astring` for the
-code generation) you need an `importmap`, see `index.html` for what that
-looks like.
 
 === Setting up Emacs
 
@@ -168,7 +256,24 @@ M-x pdp-start-server!
 
 Now start piglet with `piglet -i piglet:pdp-client`, and you should see
 a (noisy) message in your minibuffer. Now you can use
-`pdp-eval-last-sexp`, `pdp-eval-outer-sexp`, `pdp-eval-buffer` etc.
+
+- `pdp-eval-last-sexp`
+- `pdp-eval-outer-sexp`
+- `pdp-eval-buffer`
+- `pdp-eval-region`
+- `pdp-jump-to-definition`
+
+Note that jump-to-definition is a standalone command, not backed by Xref, and so
+you won't be able to "pop back" as you might be used to.
+
+PDP messages carry the current package, module, buffer-file-name, source
+location, etc. This ensures that when you eval a form in a module's buffer, it's
+evaluated in that module, not whatever module is currently active or most
+recently loaded. We don't auto-eval module declarations though, so if you have
+any imports you will have to eval the module form before those are available.
+
+Reporting the filename and source location ensures that var metadata is correct,
+which in turn ensures that jump-to-definition can do its job.
 
 === Creating your first project
 

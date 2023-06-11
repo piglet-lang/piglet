@@ -251,3 +251,6 @@
 
 (defn split [sep string]
   (.split string sep))
+
+(defn load-package [pkg-loc]
+  (.load_package *compiler* pkg-loc))

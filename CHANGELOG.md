@@ -2,9 +2,12 @@
 
 ## Added
 
+- `load-package` as shorthand for `(.load_package *compiler* ...)`
+- More getting started docs on how to use in the browser
+
 ## Fixed
 
-## Changed
+- [browser] only resolve relative JS imports, leave the others to be handled by the browser (i.e. by an `importmap`)
 
 # 0.0.19 (2023-06-11 / 9f059e)
 
