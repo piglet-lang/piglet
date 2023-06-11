@@ -1,5 +1,13 @@
 # Unreleased
 
+## Added
+
+## Fixed
+
+## Changed
+
+# 0.0.19 (2023-06-11 / 9f059e)
+
 ## Fixed
 
 - [browser] resolve piglet:lang relative to the location that browser/main.mjs was loaded from
