@@ -2,6 +2,14 @@
 
 ## Added
 
+## Fixed
+
+## Changed
+
+# 0.0.20 (2023-06-11 / 29fedf)
+
+## Added
+
 - `load-package` as shorthand for `(.load_package *compiler* ...)`
 - More getting started docs on how to use in the browser
 
