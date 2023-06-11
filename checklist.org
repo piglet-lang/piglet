@@ -51,14 +51,14 @@
 - [X] various convenience functions
   - [X] inc
   - [X] dec
-- [ ] threading macros
-  - [ ] ->
-  - [ ] ->>
+- [-] threading macros
+  - [X] ->
+  - [X] ->>
   - [ ] <<-
   - [ ] some->
   - [ ] some->>
   - [ ] as->
-  - [ ] cond->
+  - [X] cond->
   - [ ] cond->>
 - [-] predicates
   - [ ] some?
