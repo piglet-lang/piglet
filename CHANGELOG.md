@@ -2,6 +2,14 @@
 
 ## Added
 
+## Fixed
+
+## Changed
+
+# 0.0.17 (2023-06-11 / 8449a7)
+
+## Added
+
 - `bin/piglet` convenience wrapper
 - "Getting Started" doc
 - pdp-client
