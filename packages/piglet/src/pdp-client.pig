@@ -11,7 +11,7 @@
                  js:WebSocket
                  @(.resolve (await (js-import "ws")) "default")))
 
-(def conn (WebSocket. "ws://localhost:17017"))
+(def conn (WebSocket. "ws://127.0.0.1:17017"))
 
 (set! (.-binaryType conn) "arraybuffer")
 
