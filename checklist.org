@@ -29,19 +29,19 @@
   - [X] list / array destructuring
   - [ ] dict destructuring
 - [X] metadata syntax
-- [ ] backtick/unquote/unquote-splice
-- [ ] AOT compilation to modules
 - [X] JS imports (string)
-- [ ] dynamic var bindings
-- [ ] pluggable data structures
-- [ ] var shorthand
 - [X] constructor shorthand
 - [X] proper printer
   - [X] print dicts
 - [X] with-meta
-- [ ] vary-meta
 - [X] truthy? -> use for conditionals
+- [ ] backtick/unquote/unquote-splice
+- [ ] dynamic var bindings
+- [ ] pluggable data structures
+- [ ] var shorthand
+- [ ] vary-meta
 - [ ] try/catch
+- [ ] AOT compilation to modules
   
 
 ** API
