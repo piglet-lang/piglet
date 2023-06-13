@@ -181,6 +181,15 @@ pnpm i http-server -g
 http-server --port 8000 --cors
 ----
 
+==== Source Maps
+
+The BrowserCompiler is able to generate source maps, which are inlined into the evaluated code. To enable this, make sure the `source-map` library is loaded.
+
+[source,html]
+----
+<script type="application/javascript" src="https://unpkg.com/source-map@0.7.3/dist/source-map.js"></script>
+----
+
 === Setting up Emacs
 
 Requirements: Emacs 29 compiled with tree-sitter.
@@ -203,7 +212,8 @@ need to make sure that it gets compiled with tree-sitter enabled.
 For Debian/Ubuntu based distros, install `libtree-sitter0` (and possibly
 also `libtree-sitter-dev`).
 
-....
+[source,shell]
+----
 git clone https://github.com/emacs-mirror/emacs
 cd emacs
 git co emacs-29
@@ -213,7 +223,7 @@ git co emacs-29
 make -j4
 # replace 4 with the number of cores you have
 sudo make install
-....
+----
 
 Now you need to set up piglet-emacs, which contains the `piglet-mode`
 major mode, and a PDP (piglet dev protocol) server implementation.
@@ -263,8 +273,15 @@ a (noisy) message in your minibuffer. Now you can use
 - `pdp-eval-region`
 - `pdp-jump-to-definition`
 
-Note that jump-to-definition is a standalone command, not backed by Xref, and so
-you won't be able to "pop back" as you might be used to.
+Note that jump-to-definition is a standalone command, not backed by Xref, but we
+do push a marker onto xref's marker stack before jumping, so you can jump back
+as you are used to. When using piglet on a web project you can enable the
+`url-handler-mode` globalized minor mode, to make Emacs load files over the HTTP
+when jumping to definition. (In such a scenario the `:location` metadata on the
+var is a URL, rather than a filename.)
+
+Note that you can open a file and do a `pdp-eval-buffer` to have all vars
+in that module reflect the location as reported by Emacs.
 
 PDP messages carry the current package, module, buffer-file-name, source
 location, etc. This ensures that when you eval a form in a module's buffer, it's

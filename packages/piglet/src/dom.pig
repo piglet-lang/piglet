@@ -50,6 +50,7 @@
 
 (defn parent [el] (.-parentElement el))
 (defn children [el] (.-children el))
+(defn child-nodes [el] (.-childNodes el))
 (defn first-child [el] (.-firstChild el))
 (defn last-child [el] (.-lastChild el))
 (defn first-el-child [el] (.-firstElementChild el))
@@ -59,7 +60,7 @@
 (defn inner-html [el] (.-innerHTML el))
 (defn outer-html [el] (.-outerHTML el))
 
-(defn append-child [el child] (.appendChild el child))
+(defn append-child [el child] (.appendChild el child) el)
 
 (defn split-tag [tag]
   (let [tag-str (or (.-suffix tag) (name tag))
@@ -76,7 +77,7 @@
   (let [tag (first form)
         tail (rest form)
         [tag-ns tag id kls] (split-tag tag)]
-    [tag-ns
+    [(or tag-ns nil)
      tag
      (cond-> (if (dict? (first tail))
                (first tail)

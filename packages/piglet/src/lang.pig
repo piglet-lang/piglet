@@ -254,3 +254,18 @@
 
 (defn load-package [pkg-loc]
   (.load_package *compiler* pkg-loc))
+
+(defn number? [v]
+  (not (js:isNaN v)))
+
+(defn comp [& fns]
+  (fn [v]
+    (reduce (fn [acc f]
+              (f acc))
+      v (reverse fns))))
+
+(defn mapcat [f coll]
+  (reduce (fn [acc c]
+            (into acc (f c)))
+    []
+    coll))
