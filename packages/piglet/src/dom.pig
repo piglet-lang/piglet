@@ -21,6 +21,9 @@
 (defn text-node [doc text]
   (.createTextNode doc text))
 
+(defn comment [doc text]
+  (.createComment doc text))
+
 (defn find-by-id [doc id]
   (.getElementById doc id))
 
@@ -61,6 +64,8 @@
 (defn outer-html [el] (.-outerHTML el))
 
 (defn append-child [el child] (.appendChild el child) el)
+(defn append [el & children] (apply (.bind (.-append el) el) children) el)
+(defn prepend [el & children] (apply (.bind (.-prepend el) el) children) el)
 
 (defn split-tag [tag]
   (let [tag-str (or (.-suffix tag) (name tag))
@@ -86,14 +91,17 @@
        (assoc :id id)
        (seq kls)
        (update :class str kls))
-      (if (dict? (first tail))
-        (rest tail)
-        tail)]))
+     (if (dict? (first tail))
+       (rest tail)
+       tail)]))
 
 (defn dom [doc form]
   (cond
-    (string? form)
-    (.createTextNode doc form)
+    (and (object? form) (.-nodeType form)) ;; quacks like a Node
+    form
+
+    (or (string? form) (number? form))
+    (.createTextNode doc (str form))
 
     (vector? form)
     (cond

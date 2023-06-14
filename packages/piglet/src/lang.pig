@@ -269,3 +269,14 @@
             (into acc (f c)))
     []
     coll))
+
+(defmacro comment [& _]
+  nil)
+
+(defn list? [o]
+  (instance? List o))
+
+(defn object? [o]
+  (and
+    (not (nil? o))
+    (= "object" (typeof o))))
