@@ -51,10 +51,12 @@
               (.send conn
                 (cbor:encode
                   #js {"op" "eval"
+                       "to" (oget msg "reply-to")
                        "result" (print-str val)})))
             (fn [err]
               (js:console.log err)
               (.send conn
                 (cbor:encode
                   #js {"op" "eval"
+                       "to" (oget msg "reply-to")
                        "result" (print-str err)})))))))))

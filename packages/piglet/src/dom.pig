@@ -115,13 +115,14 @@
             el (create-el doc tag-ns tag)]
         (set-attrs el attrs)
         (when (seq children)
-          (append-child el (dom doc children)))
+          (doseq [c children]
+            (append el (dom doc c))))
         el)
 
       (fn? (first form))
       (dom doc (apply (first form) (rest form))))
 
-    (seq? form)
+    (sequential? form)
     (fragment doc (map (partial dom doc) form))
 
     :else

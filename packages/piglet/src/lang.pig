@@ -31,7 +31,7 @@
       (let [s1 (seq s1)]
         (if s1
           (cons (first s1) (concat (rest s1) s2))
-          s2)))))
+          (seq s2))))))
 
 (defn inc [x] (+ x 1))
 (defn dec [x] (- x 1))
@@ -67,7 +67,7 @@
                          coll))
                inner-fn
                (reverse (map list ls rs)))]
-    form))
+    (list 'seq form)))
 
 (defn -for-async [binds body]
   (let [lrs (partition 2 binds)
@@ -168,8 +168,8 @@
   (let [proto-methods (reduce (fn [acc o]
                                 (if (symbol? o)
                                   (conj acc [o])
-                    (update acc (dec (count acc)) conj o)))
-                                               []
+                                  (update acc (dec (count acc)) conj o)))
+                        []
                         protocols)
         osym (gensym "object")]
     (list 'let [osym object]
@@ -182,22 +182,6 @@
 
 (defmacro reify [& protocols]
   (cons 'specify! (cons #js {} protocols)))
-
-(extend-protocol Walkable
-  js:Array [(fn -walk [this f] (js:Array.from this f))]
-
-  js:Map [(fn -walk [this f] (into! (js:Map.) (map (fn [[k v]]
-                                                     [(f k) (f v)]) this)))]
-  AbstractSeq [(fn -walk [this f] (map f this))]
-  Dict [(fn -walk [this f] (into {} (map (fn [[k v]] [(f k) (f v)]) this)))])
-
-(defn postwalk [f o]
-  (let [o (if (satisfies? Walkable o)
-            (-walk o (partial postwalk f))
-            (f o))]
-    (if (satisfies? WithMeta o)
-      (with-meta o (meta o))
-      o)))
 
 (defmacro time [& body]
   (let [start (gensym "start")
@@ -294,6 +278,7 @@
 (defn object? [o]
   (and
     (not (nil? o))
+    (not (array? o))
     (= "object" (typeof o))))
 
 (defn type-name [o]
@@ -318,8 +303,8 @@
         (oset obj (if (or
                         (instance? js:Symbol k)
                         (string? k))
-                  k
-                  (name k))
+                    k
+                    (name k))
           (->js v)))
       obj)
 
@@ -343,3 +328,37 @@
 ;; FIXME: replace once we have real vectors
 (defn mapv [f & colls]
   (js:Array.from (apply map f colls)))
+
+(defn oassoc [o & kvs]
+  (let [o (js:Object.assign #js {} o)]
+    (doseq [[k v] (partition 2 kvs)]
+      (oset o k v)
+      o)))
+
+(defn min [& vals]
+  (reduce (fn [a b]
+            (if (< a b) a b))
+    vals))
+
+(defn max [& vals]
+  (reduce (fn [a b]
+            (if (< a b) b a))
+    vals))
+
+(def ffirst (comp first first))
+(def not= (comp not =))
+
+(defmacro doto [o & forms]
+  (let [sym (gensym "o")]
+    (concat
+      (list 'let [sym o])
+      (for [f forms]
+        (if (list? f)
+          (cons (first f) (cons sym (rest f)))
+          (list f sym)))
+      [sym])))
+
+(defn empty? [coll]
+  (if (satisfies? Empty coll)
+    (-empty? coll)
+    (boolean (seq coll))))
