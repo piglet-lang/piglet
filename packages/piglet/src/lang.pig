@@ -276,7 +276,70 @@
 (defn list? [o]
   (instance? List o))
 
+(defn boolean? [o]
+  (or
+    (=== true o)
+    (=== false o)))
+
+(defn object [& kvs]
+  (let [o #js {}]
+    (doseq [[k v] (partition 2 kvs)]
+      (oset o (if (or
+                    (instance? js:Symbol k)
+                    (string? k))
+                k
+                (name k))
+        v))))
+
 (defn object? [o]
   (and
     (not (nil? o))
     (= "object" (typeof o))))
+
+(defn type-name [o]
+  (and (object? o)
+    (.-constructor o)
+    (.-name
+      (.-constructor o))))
+
+(defn ->js [o]
+  (println "CONVERTING" o)
+  (cond
+    (or
+      (nil? o)
+      (number? o)
+      (string? o)
+      (boolean? o))
+    o
+
+    (dict? o)
+    (let [obj #js {}]
+      (doseq [[k v] o]
+        (oset obj (if (or
+                        (instance? js:Symbol k)
+                        (string? k))
+                  k
+                  (name k))
+          (->js v)))
+      obj)
+
+    (sequential? o)
+    (do
+      (println "SEQUENTIAL" o)
+      (js:Array.from o ->js))
+
+    :else
+    (str o)))
+
+(defn take [n coll]
+  (when (and (seq coll) (< 0 n))
+    (cons (first coll)
+      (lazy-seq (take (dec n) (rest coll))))))
+
+;; FIXME: replace once we have real vectors
+(defn vector [& args]
+  (js:Array.from args))
+
+;; FIXME: replace once we have real vectors
+(defn mapv [f & colls]
+  (js:Array.from (apply map f colls)))
