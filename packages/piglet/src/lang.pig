@@ -176,8 +176,8 @@
       (cons 'do
         (for [p proto-methods]
           (list '.extend_object (first p) osym
-            (for [fn-tail (rest p)]
-              (cons 'fn fn-tail)))))
+            (into [] (for [fn-tail (rest p)]
+                       (cons 'fn fn-tail))))))
       osym)))
 
 (defmacro reify [& protocols]
@@ -281,6 +281,12 @@
     (not (array? o))
     (= "object" (typeof o))))
 
+(defn oassoc [o & kvs]
+  (let [o (js:Object.assign #js {} o)]
+    (doseq [[k v] (partition 2 kvs)]
+      (oset o k v)
+      o)))
+
 (defn type-name [o]
   (and (object? o)
     (.-constructor o)
@@ -309,12 +315,57 @@
       obj)
 
     (sequential? o)
-    (do
-      (println "SEQUENTIAL" o)
-      (js:Array.from o ->js))
+    (js:Array.from o ->js)
 
     :else
     (str o)))
+
+(defn ->pig [o]
+  (cond
+    ;; Convert plain JSON-like objects, leave constructed objects alone
+    (and
+      (object? o)
+      (or
+        (nil? (.-constructor o))
+        (= js:Object (.-constructor o))))
+    (reify
+      DictLike
+      (-keys [_] (map keyword (js:Object.keys o)))
+      (-vals [_] (map ->pig (js:Object.values o)))
+      Associative
+      (-assoc [_ k v]
+        (if (or (string? k) (keyword? k))
+          (->pig (oassoc o k v))
+          (assoc
+            (into {} (map (fn [[k v]] [(keyword k) (->pig v)]))
+              (js:Object.entries o))
+            k v)))
+      Lookup
+      (-get [_ k] (->pig (oget o k)))
+      (-get [_ k v] (->pig (oget o k v)))
+      Conjable
+      (-conj [this [k v]] (assoc this k v))
+      Counted
+      (-count [_] (.-length o))
+      ;; FIXME: a call like `(-repr ...)` here would call this specific
+      ;; implementation function, instead of the protocol method, thus causing
+      ;; infinite recursion.
+      ;; FIXME: we have a built-in, non-overridable package alias for piglet, we
+      ;; should probably also add a default but overridable module alias to
+      ;; `lang`
+      Repr
+      (-repr [this] (piglet:lang:-repr (into {} this)))
+      Seqable
+      (-seq [_]
+        (seq (map (fn [[k v]] [(keyword k)
+                               (->pig v)])
+               (js:Object.entries o)))))
+
+    (array? o)
+    (lazy-seq (map ->pig o))
+
+    :else
+    o))
 
 (defn take [n coll]
   (when (and (seq coll) (< 0 n))
@@ -328,12 +379,6 @@
 ;; FIXME: replace once we have real vectors
 (defn mapv [f & colls]
   (js:Array.from (apply map f colls)))
-
-(defn oassoc [o & kvs]
-  (let [o (js:Object.assign #js {} o)]
-    (doseq [[k v] (partition 2 kvs)]
-      (oset o k v)
-      o)))
 
 (defn min [& vals]
   (reduce (fn [a b]
@@ -357,6 +402,9 @@
           (cons (first f) (cons sym (rest f)))
           (list f sym)))
       [sym])))
+
+(defn boolean [b]
+  (not (not b)))
 
 (defn empty? [coll]
   (if (satisfies? Empty coll)
