@@ -1,0 +1,133 @@
+= JavaScript integration
+
+Piglet tries its best to make modern JavaScript features conveniently available.
+
+== Literals
+
+The `#js` reader dispatch causes the compiler to emit JavaScript literals,
+either Arrays or Objects.
+
+[source,piglet]
+-------------------
+#js [1 2 3]
+#js {:foo 1 :bar 2}
+-------------------
+
+Note that `#js` is not recursive, if you need nested JS arrays/objects, you need
+to prefix each of them. Otherwise you'll end up with Piglet datasctructures
+(Vector, Dict) inside your JS Arrays/Objects.
+
+[source,piglet]
+-------------------
+#js [#js {:sound "Oink"}]
+-------------------
+
+== Calling functions and looking up properties
+
+The `js:` prefix is considered special, symbols with this prefix are converted
+directly to JavaScript names.
+
+[source,piglet]
+-------------------
+(js:String "hello")
+-------------------
+
+You can chain property lookups directly onto this:
+
+[source,piglet]
+-------------------
+(js:console.log "hello")
+(js:window.document.createElement "div") 
+-------------------
+
+A symbol starting with a period is converted to a method call:
+
+[source,piglet]
+-------------------
+(.appendChild el child) 
+-------------------
+
+A symbol starting with `.-` does a property lookup, rather than a function
+invocation.
+
+[source,piglet]
+-------------------
+(.-oink #js {:oink "OINK"})
+(.-length "xxx")
+-------------------
+
+== Protocol support
+
+JavaScript built-ins like Arrays, Objects, but also Map instances, ArrayBuffer,
+Uint8/32/64Array, etc. all implement one or more Piglet protocols, which means
+they can be used directly with many of Piglet's core functions.
+
+At a minimum these all implement Seqable, which means you can generally treat
+them as a sequential collection. So you can call functions like `first` or `map`
+on them, and they can take part in destructuring.
+
+Arrays can be destructured.
+
+[source,piglet]
+-------------------
+(let [[x y] #js [1 2]] (+ x y))
+(map (fn [[k v]] (str k "--" v)) #js {:foo 1})
+=> ("foo--1")
+-------------------
+
+Converselt, all Piglet datastructures implement Symbol.iterator. So you can
+generally use them in JavaScript functions that take some kind of iterable
+collection.
+
+[source,piglet]
+-------------------
+(js:Map. {"hello" "world"})
+
+(js:Array.from (range 5))
+;; #js [0, 1, 2, 3, 4]
+-------------------
+
+== Object API
+
+JavaScript Object leads a bit of a double life, it is used as a generic
+key-value container (as seen in JSON), but it also acts as the basis for any
+constructed Objects based on classes or prototypes.
+
+This leads to a bit of a conundrum, for simple value objects it would be
+appealing to extend Piglet's built-ins that also work with Dicts, but this
+behavior would generally not make sense for constructed objects (with a type and
+methods).
+
+For this reason we've decided to be explicit when dealing with JavaScript
+objects, by creating a parallel API that mirrors a lot of the functions that
+work with dicts, but that instead work with objects. These all start with an `o`
+
+- `oget`
+- `oset`
+- `oassoc`
+- `okeys`
+- `ovals`
+
+Note that `js:Object` does implement the `Seqable` protocol, so you can use
+plain Object instances with any sequence functions like `map`, `filter`, or
+`reduce`.
+
+== Working with promises
+
+Functions can be marked as async, and there's an await special form
+
+[source,piglet]
+-------------------
+(defn ^:async my-fn []
+  (await (js:fetch "...")))
+-------------------
+
+For loops also support `^:async`, the result is a promise to a seq.
+
+[source,piglet]
+-------------------
+(for ^:async [url ["http://example.com"]]
+  (js:fetch url))
+-------------------
+
+
