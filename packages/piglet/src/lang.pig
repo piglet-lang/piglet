@@ -191,6 +191,11 @@
 (defn update [coll k f & args]
   (assoc coll k (apply f (get coll k) args)))
 
+(defn update-in [coll path f & args]
+  (if (= 1 (count path))
+    (apply update coll (first path) f args)
+    (apply update-in coll (butlast path) update (last path) f args)))
+
 (defmacro extend-class [klass & protocols]
   (let [proto-methods (reduce (fn [acc o]
                                 (if (symbol? o)
@@ -205,16 +210,30 @@
           (for [fn-tail (rest p)]
             (cons 'fn fn-tail)))))))
 
+(defmacro defprotocol [proto-name & methods]
+  `(.intern
+     (Protocol.
+       ~(meta proto-name)
+       ~(.-fqn (.-fqn *current-module*))
+       ~(name proto-name)
+       ~(js:Array.from
+          (for [[method-name argv doc] methods]
+            ;; TODO: multiple arities
+            (let [arities #js [#js [(js:Array.from argv name) (or doc nil)]]]
+              #js [(name method-name) arities]))))
+     *current-module*))
+
 (defmacro extend-protocol [protocol & classes]
   (let [class-methods (reduce (fn [acc o]
                                 (if (symbol? o)
-                                  (conj acc [o])
-                                  (update acc (dec (count acc)) conj o)))
+                                  (conj acc [o []])
+                                  (update-in acc [(dec (count acc)) 1] conj
+                                    `(fn ~@o))))
                         []
                         classes)]
-    (cons '.extend
-      (cons protocol
-        (apply concat class-methods)))))
+    `(.extend
+       ~protocol
+       ~@(apply concat class-methods))))
 
 (defmacro specify! [object & protocols]
   (let [proto-methods (reduce (fn [acc o]
@@ -461,3 +480,11 @@
   (if (satisfies? Empty coll)
     (-empty? coll)
     (boolean (seq coll))))
+
+(defprotocol HasKey
+  (has-key? [this k]))
+
+(extend-protocol HasKey
+  Dict
+  (has-key? [d k]
+    (.has d k)))
