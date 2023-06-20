@@ -2,19 +2,71 @@
 
 (def into (fn* [o coll] (reduce conj o coll)))
 
+(def some (fn* [pred coll]
+            (reduce (fn* [_ v]
+                      (if (pred v)
+                        (reduced v)
+                        false))
+              false
+              coll)))
+
+(def list? (fn* [o] (instance? List o)))
+
+(def syntax-quote*
+  (fn* syntax-quote* [form gensyms]
+    (if (list? form)
+      (if (= 'unquote (first form))
+        (second form)
+        (if (some (fn* [f] (and (list? f) (= 'unquote-splice (first f)))) form)
+          (cons 'concat (map (fn* [f]
+                             (if (and (list? f) (= 'unquote-splice (first f)))
+                               (second f)
+                               [(syntax-quote* f gensyms)]))
+                        form))
+          (cons 'list  (map (fn* [f] (syntax-quote* f gensyms)) form))))
+
+      (if (vector? form)
+        (list 'into []
+          (cons 'concat
+            (map (fn* [f]
+                   (if (and (list? f) (= 'unquote-splice (first f)))
+                     (second f)
+                     [(syntax-quote* f gensyms)]))
+              form)))
+
+        (if (symbol? form)
+          (if (= "#" (last (name form)))
+            (let [sym-name (.replace (name form) "#" "")
+                  gsym (oget gensyms sym-name (gensym sym-name))]
+              (oset gensyms sym-name gsym)
+              (list 'quote gsym))
+            (let [var (resolve form)]
+              (if var
+                (list 'quote (.-fqn var))
+                (list 'quote form))))
+
+          (list 'quote form))))))
+
+(defmacro syntax-quote [form]
+  (syntax-quote* form #js {}))
+
 (defmacro fn [?name argv & body]
   (let [[?name argv body] (if (symbol? ?name)
                             [?name argv body]
-                            [nil ?name (cons argv body)])
+                            [nil ?name (if (=== undefined argv)
+                                         []
+                                         (cons argv body))])
         argv-clean (remove (fn* [a] (= a (symbol "&"))) argv)
         syms (map (fn* [a]
                     (if (= a (symbol "&"))
                       a
                       (gensym "arg"))) argv)
         syms-clean (remove (fn* [a] (= a (symbol "&"))) syms)
-        fntail (list syms
-                 (apply list 'let (reduce into [] (map (fn* [bind arg] [bind arg]) argv-clean syms-clean))
-                   body))
+        fntail (if (seq body)
+                 (list syms
+                   (apply list 'let (reduce into [] (map (fn* [bind arg] [bind arg]) argv-clean syms-clean))
+                     body))
+                 (list syms))
         fntail (if ?name (cons ?name fntail) fntail)]
     (cons 'fn* fntail)))
 
@@ -257,9 +309,6 @@
 (defmacro comment [& _]
   nil)
 
-(defn list? [o]
-  (instance? List o))
-
 (defn boolean? [o]
   (or
     (=== true o)
@@ -294,7 +343,6 @@
       (.-constructor o))))
 
 (defn ->js [o]
-  (println "CONVERTING" o)
   (cond
     (or
       (nil? o)
