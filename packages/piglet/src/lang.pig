@@ -336,6 +336,9 @@
       (oset o k v)
       o)))
 
+(defn okeys [o] (js:Object.keys o))
+(defn ovals [o] (js:Object.values o))
+
 (defn type-name [o]
   (and (object? o)
     (.-constructor o)
