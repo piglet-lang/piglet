@@ -336,6 +336,14 @@
               (f acc))
       v (reverse fns))))
 
+(defn juxt
+  [& fns]
+  (fn [& args]
+    (reduce (fn [acc f]
+              (conj acc (apply f args)))
+      []
+      fns)))
+
 (defn mapcat [f coll]
   (reduce (fn [acc c]
             (into acc (f c)))
