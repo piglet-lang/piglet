@@ -32,8 +32,7 @@
 
   (u:testing
     "Retrieving elements"
-    (u:is (= (:foo {:foo "bar"}) "bar")))
-  )
+    (u:is (= (:foo {:foo "bar"}) "bar"))))
 
 (u:testing "QName"
   (u:testing
@@ -47,5 +46,5 @@
     (u:is (= :my-prefix:fruit :https://arnebrasseur.net/vocab/fruit))
 
     "Self reference"
-    (u:is (= ::fruit :https://piglet-lang.org/pkg/piglet/fruit))
+    (u:is (= ::fruit :https://piglet-lang.org/packages/piglet#fruit))
     ))

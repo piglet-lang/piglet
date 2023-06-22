@@ -1,5 +1,7 @@
 (module lang)
 
+;; Low level bootstrapping, get enough stuff together to go from fn* to fn/defn
+
 (def into (fn* [o coll] (reduce conj o coll)))
 
 (def some (fn* [pred coll]
@@ -196,6 +198,11 @@
     (apply update coll (first path) f args)
     (apply update-in coll (butlast path) update (last path) f args)))
 
+(defn assoc-in [coll path v]
+  (update-in coll (butlast path) assoc (last path) v))
+
+;; Protocols
+
 (defmacro extend-class [klass & protocols]
   (let [proto-methods (reduce (fn [acc o]
                                 (if (symbol? o)
@@ -253,6 +260,16 @@
 
 (defmacro reify [& protocols]
   (cons 'specify! (cons #js {} protocols)))
+
+(defprotocol HasKey
+  (has-key? [this k]))
+
+(extend-protocol HasKey
+  Dict
+  (has-key? [d k]
+    (.has d k)))
+
+;; More API in no particular order
 
 (defmacro time [& body]
   (let [start (gensym "start")
@@ -364,40 +381,79 @@
     (.-name
       (.-constructor o))))
 
+(defn into-array [o]
+  (js:Array.from o))
+
+;; Lazy version with Proxy
 (defn ->js [o]
   (cond
-    (or
-      (nil? o)
-      (number? o)
-      (string? o)
-      (boolean? o))
-    o
-
     (dict? o)
-    (let [obj #js {}]
-      (doseq [[k v] o]
-        (oset obj (if (or
-                        (instance? js:Symbol k)
-                        (string? k))
-                    k
-                    (name k))
-          (->js v)))
-      obj)
+    (js:Proxy. #js {}
+      #js {:apply (fn [_ this args]
+                    (apply o args))
+           :has (fn [_ prop]
+                  (or
+                    (has-key? o (keyword prop))
+                    (has-key? o prop)))
+           :get (fn [_ prop _]
+                  (cond
+                    (has-key? o (keyword prop))
+                    (get o (keyword prop))
+                    (has-key? o prop)
+                    (get o prop)))
+           :getOwnPropertyDescriptor (fn [_ prop]
+                                       (cond
+                                         (has-key? o (keyword prop))
+                                         #js {:enumerable true
+                                              :configurable true
+                                              :writable false
+                                              :value (->js (get o (keyword prop)))}
+                                         (has-key? o prop)
+                                         #js {:enumerable true
+                                              :configurable true
+                                              :writable false
+                                              :value (->js (get o prop))}))
+           :ownKeys (fn [_]
+                      (js:Array.from (map name (keys o))))})
 
-    (sequential? o)
-    (js:Array.from o ->js)
+    (and
+      (sequential? o)
+      (not (array? o)))
+    (into-array (map ->js o))
 
     :else
-    (str o)))
+    o))
+
+;; Eager version
+;; #_(defn ->js [o]
+;;     (cond
+;;       (or
+;;         (nil? o)
+;;         (number? o)
+;;         (string? o)
+;;         (boolean? o))
+;;       o
+
+;;       (dict? o)
+;;       (let [obj #js {}]
+;;         (doseq [[k v] o]
+;;           (oset obj (if (or
+;;                           (instance? js:Symbol k)
+;;                           (string? k))
+;;                       k
+;;                       (name k))
+;;             (->js v)))
+;;         obj)
+
+;;       (sequential? o)
+;;       (js:Array.from o ->js)
+
+;;       :else
+;;       (str o)))
 
 (defn ->pig [o]
   (cond
-    ;; Convert plain JSON-like objects, leave constructed objects alone
-    (and
-      (object? o)
-      (or
-        (nil? (.-constructor o))
-        (= js:Object (.-constructor o))))
+    (object? o)
     (reify
       DictLike
       (-keys [_] (map keyword (js:Object.keys o)))
@@ -442,6 +498,11 @@
     (cons (first coll)
       (lazy-seq (take (dec n) (rest coll))))))
 
+(defn drop [n coll]
+  (if (<= n 0)
+    coll
+    (drop (dec n) (rest coll))))
+
 ;; FIXME: replace once we have real vectors
 (defn vector [& args]
   (js:Array.from args))
@@ -481,10 +542,20 @@
     (-empty? coll)
     (boolean (seq coll))))
 
-(defprotocol HasKey
-  (has-key? [this k]))
+(defn select-keys [m keyseq]
+  (into {} (map (fn [k] [k (get m k)]) keyseq)))
 
-(extend-protocol HasKey
-  Dict
-  (has-key? [d k]
-    (.has d k)))
+(defn apropos [s]
+  (filter (fn [n]
+            (.includes n s))
+    (map (fn [v] (.-name v))
+      (ovals
+        (.-vars (find-module 'piglet:lang))))))
+
+(defn run! [f coll]
+  (reduce (fn [_ o]
+            (f o)) nil coll)
+  nil)
+
+(defn sort [coll]
+  (.sort (into-array coll)))
