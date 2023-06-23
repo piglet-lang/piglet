@@ -6,9 +6,8 @@
 
 (def some (fn* [pred coll]
             (reduce (fn* [_ v]
-                      (if (pred v)
-                        (reduced v)
-                        false))
+                      (let [res (pred v)]
+                        (if res (reduced res) res)))
               false
               coll)))
 
@@ -25,16 +24,19 @@
                                (second f)
                                [(syntax-quote* f gensyms)]))
                         form))
-          (cons 'list  (map (fn* [f] (syntax-quote* f gensyms)) form))))
+          (cons 'list (map (fn* [f] (syntax-quote* f gensyms)) form))))
 
       (if (vector? form)
-        (list 'into []
-          (cons 'concat
-            (map (fn* [f]
-                   (if (and (list? f) (= 'unquote-splice (first f)))
-                     (second f)
-                     [(syntax-quote* f gensyms)]))
-              form)))
+        (if (some (fn* [f] (and (list? f) (= 'unquote-splice (first f)))) form)
+          (list 'into []
+            (cons 'concat
+              (map (fn* [f]
+                     (if (and (list? f) (= 'unquote-splice (first f)))
+                       (second f)
+                       [(syntax-quote* f gensyms)]))
+                form)))
+          (into []
+            (map (fn* [f] (syntax-quote* f gensyms)) form)))
 
         (if (symbol? form)
           (if (= "#" (last (name form)))
@@ -75,8 +77,14 @@
 (defmacro defn [name argv & body]
   (list 'def name (apply list 'fn name argv body)))
 
+(defmacro cond [& args]
+  (let [pairs (reverse (partition 2 args))]
+    (reduce (fn [acc [test then]]
+              (list 'if test then acc)) nil pairs)))
+
 (defmacro lazy-seq [& body]
-  (list 'make-lazy-seq (cons 'fn* (cons '[] body))))
+  ;; can't use ~@body here because concat is not yet defined
+  (list 'make-lazy-seq (list 'fn* [] (cons 'do body))))
 
 (defn concat [s1 s2 & more]
   (if (seq more)
@@ -97,31 +105,31 @@
   (let [lrs (partition 2 binds)
         ls (map first lrs)
         rs (map second lrs)
-        inner-fn (cons 'do body)]
-    (reduce (fn [acc [var coll]]
-              (list 'reduce (list 'fn ['_ var] acc) nil coll))
-      inner-fn (reverse (map list ls rs)))))
+        inner-fn `(do ~@body)]
+    (reduce (fn [form [var coll]]
+              (cond
+                (and (keyword? var)
+                  (= :when var))
+                `(when ~coll
+                   ~form)
+
+                (= :let var)
+                `(let ~coll ~form)
+
+                :else
+                `(reduce (fn [_# ~var] ~form) nil ~coll)))
+      inner-fn
+      (reverse (map list ls rs)))))
 
 (defn -for-sync [binds body]
   (let [lrs (partition 2 binds)
         ls (map first lrs)
         rs (map second lrs)
-        inner-fn (cons 'do body)
-        acc-sym (gensym "acc")
-        form (reduce (fn [form [var coll]]
-                       (list 'reduce (list 'fn
-                                       [acc-sym var]
-                                       (list
-                                         (if (= form inner-fn)
-                                           'conj
-                                           'concat)
-                                         acc-sym
-                                         form))
-                         []
-                         coll))
-               inner-fn
-               (reverse (map list ls rs)))]
-    (list 'seq form)))
+        result (gensym "result")
+        inner-fn `(conj! ~result ~@body)]
+    `(let [~result #js []]
+       (doseq ~binds ~inner-fn)
+       ~result)))
 
 (defn -for-async [binds body]
   (let [lrs (partition 2 binds)
@@ -160,11 +168,6 @@
   (set! (.-required (ensure-module mod)) false)
   (require mod))
 
-(defmacro cond [& args]
-  (let [pairs (reverse (partition 2 args))]
-    (reduce (fn [acc [test then]]
-              (list 'if test then acc)) nil pairs)))
-
 (defn count [o]
   (if (satisfies? Counted o)
     (-count o)
@@ -172,6 +175,17 @@
 
 (defmacro when [cond & body]
   (list 'if cond (cons 'do body)))
+
+(defmacro if-let [binding if-true if-false]
+  `(let ~binding
+     (if ~(first binding)
+       ~if-true
+       ~if-false)))
+
+(defmacro when-let [binding & body]
+  `(if-let ~binding
+     (do ~@body)
+     nil))
 
 (defn repeat [n x]
   (Repeat. n x))
@@ -279,8 +293,15 @@
       (list 'println (list '- '(js:Date) start) )
       result)))
 
-(defn != [x & xs]
-  (not (apply = x xs)))
+(defn comp [& fns]
+  (fn [& args]
+    (let [fns (reverse fns)]
+      (reduce (fn [acc f]
+                (f acc))
+        (apply (first fns) args)
+        (rest fns)))))
+
+(def not= (comp not =))
 
 (defmacro -> [x & forms]
   (reduce (fn [acc form]
@@ -319,7 +340,7 @@
 
 ;; separator first, for partial application
 (defn join [sep strings]
-  (.join strings sep))
+  (.join (js:Array.from strings str) sep))
 
 (defn split [sep string]
   (.split string sep))
@@ -329,12 +350,6 @@
 
 (defn number? [v]
   (not (js:isNaN v)))
-
-(defn comp [& fns]
-  (fn [v]
-    (reduce (fn [acc f]
-              (f acc))
-      v (reverse fns))))
 
 (defn juxt
   [& fns]
@@ -401,26 +416,29 @@
                     (apply o args))
            :has (fn [_ prop]
                   (or
-                    (has-key? o (keyword prop))
-                    (has-key? o prop)))
+                    (has-key? o prop)
+                    (and (string? prop)
+                      (has-key? o (keyword prop)))))
            :get (fn [_ prop _]
                   (cond
-                    (has-key? o (keyword prop))
-                    (get o (keyword prop))
                     (has-key? o prop)
-                    (get o prop)))
+                    (->js (get o prop))
+                    (and (string? prop)
+                      (has-key? o (keyword prop)))
+                    (->js (get o (keyword prop)))))
            :getOwnPropertyDescriptor (fn [_ prop]
                                        (cond
-                                         (has-key? o (keyword prop))
-                                         #js {:enumerable true
-                                              :configurable true
-                                              :writable false
-                                              :value (->js (get o (keyword prop)))}
                                          (has-key? o prop)
                                          #js {:enumerable true
                                               :configurable true
                                               :writable false
-                                              :value (->js (get o prop))}))
+                                              :value (->js (get o prop))}
+                                         (and (string? prop)
+                                           (has-key? o (keyword prop)))
+                                         #js {:enumerable true
+                                              :configurable true
+                                              :writable false
+                                              :value (->js (get o (keyword prop)))}))
            :ownKeys (fn [_]
                       (js:Array.from (map name (keys o))))})
 
@@ -459,47 +477,76 @@
 ;;       :else
 ;;       (str o)))
 
-(defn ->pig [o]
-  (cond
-    (object? o)
-    (reify
-      DictLike
-      (-keys [_] (map keyword (js:Object.keys o)))
-      (-vals [_] (map ->pig (js:Object.values o)))
-      Associative
-      (-assoc [_ k v]
-        (if (or (string? k) (keyword? k))
-          (->pig (oassoc o k v))
-          (assoc
-            (into {} (map (fn [[k v]] [(keyword k) (->pig v)]))
-              (js:Object.entries o))
-            k v)))
-      Lookup
-      (-get [_ k] (->pig (oget o k)))
-      (-get [_ k v] (->pig (oget o k v)))
-      Conjable
-      (-conj [this [k v]] (assoc this k v))
-      Counted
-      (-count [_] (.-length o))
-      ;; FIXME: a call like `(-repr ...)` here would call this specific
-      ;; implementation function, instead of the protocol method, thus causing
-      ;; infinite recursion.
-      ;; FIXME: we have a built-in, non-overridable package alias for piglet, we
-      ;; should probably also add a default but overridable module alias to
-      ;; `lang`
-      Repr
-      (-repr [this] (piglet:lang:-repr (into {} this)))
-      Seqable
-      (-seq [_]
-        (seq (map (fn [[k v]] [(keyword k)
-                               (->pig v)])
-               (js:Object.entries o)))))
+(defmacro -with-cache [cache key body]
+  `(if-let [val# (get @~cache ~key)]
+     val#
+     (let [val# ~body]
+       (swap! ~cache assoc ~key val#)
+       val#)))
 
-    (array? o)
-    (lazy-seq (map ->pig o))
+(defn reference [v]
+  (reify
+    Swappable
+    (-swap! [this f args]
+      (set! (.-val this) (apply f (.-val this) args)))
+    Derefable
+    (deref [this]
+      (.-val this))
+    TaggedValue
+    (-tag [this] "reference")
+    (-tag-value [this] (.val this))))
 
-    :else
-    o))
+(defn ->pig [o opts]
+  (let [opts (or opts {:exclude [js:Date]})]
+    (cond
+      (and
+        (object? o)
+        (not (some (fn [t]
+                     (= t (type o))) (:exclude opts))))
+      (let [cache (reference {})
+            realize-dict (fn [] (-with-cache cache :dict
+                                  (into {}
+                                    (map (fn [[k v]] [(keyword k) (->pig v)])
+                                      (js:Object.entries o)))))]
+        (reify
+          DictLike
+          (-keys [_] (-with-cache cache :keys (map keyword (js:Object.keys o))))
+          (-vals [_] (vals (realize-dict)))
+          Associative
+          (-assoc [_ k v]
+            (assoc (realize-dict)
+              k v))
+          Lookup
+          (-get [_ k] (-with-cache cache [:key k] (->pig (oget o k))))
+          (-get [_ k v] (if (js:Object.hasOwn o (name k))
+                          (-with-cache cache [:key k] (->pig (oget o k)))
+                          v))
+          Conjable
+          (-conj [this [k v]] (assoc this k v))
+          Counted
+          (-count [_] (.-length (js:Object.keys o)))
+          ;; FIXME: a call like `(-repr ...)` here would call this specific
+          ;; implementation function, instead of the protocol method, thus causing
+          ;; infinite recursion.
+          ;; FIXME: we have a built-in, non-overridable package alias for piglet, we
+          ;; should probably also add a default but overridable module alias to
+          ;; `lang`
+          Repr
+          (-repr [this] (piglet:lang:-repr (realize-dict)))
+          Seqable
+          (-seq [_]
+            (-with-cache cache :seq
+              (let [entries (js:Object.entries o)]
+                (when (not= 0 (.-length entries))
+                  (map (fn [[k v]] [(keyword k)
+                                    (->pig v)])
+                    entries)))))))
+
+      (array? o)
+      (lazy-seq (map ->pig o))
+
+      :else
+      o)))
 
 (defn take [n coll]
   (when (and (seq coll) (< 0 n))
@@ -530,7 +577,6 @@
     vals))
 
 (def ffirst (comp first first))
-(def not= (comp not =))
 
 (defmacro doto [o & forms]
   (let [sym (gensym "o")]
@@ -553,12 +599,14 @@
 (defn select-keys [m keyseq]
   (into {} (map (fn [k] [k (get m k)]) keyseq)))
 
-(defn apropos [s]
-  (filter (fn [n]
-            (.includes n s))
-    (map (fn [v] (.-name v))
-      (ovals
-        (.-vars (find-module 'piglet:lang))))))
+(defn apropos [mod s]
+  (if (= undefined s)
+    (apropos 'piglet-lang s)
+    (filter (fn [n]
+              (.includes n s))
+      (map (fn [v] (.-name v))
+        (ovals
+          (.-vars (find-module mod)))))))
 
 (defn run! [f coll]
   (reduce (fn [_ o]

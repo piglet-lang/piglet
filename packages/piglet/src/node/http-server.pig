@@ -10,12 +10,14 @@
   (specify!
     (http:createServer
       (fn ^:async x [req res]
+        (println 'http<- (keys (->pig req)))
         (let [response (await (handler {:method (.-method req)
-                                        :url (.-url req)
+                                        :path (.-url req)
                                         :headers (into {}
                                                    (map (fn [[k v]]
                                                           [(.toLowerCase k) v])
                                                      (partition 2 (.-rawHeaders req))))}))]
+          (println 'http-> response)
           (.writeHead res (:status response) (->js (:headers response)))
           (.end res (:body response)))))
     LifeCycle
@@ -36,7 +38,8 @@
         (if (= :json (:content-type res))
           (-> res
             (assoc-in [:headers "Content-Type"] "application/json")
-            (update :body (comp js:JSON.stringify ->js)))))))
+            (update :body (comp js:JSON.stringify ->js)))
+          res))))
 
   (def server (-> handler
                 json-body-mw
