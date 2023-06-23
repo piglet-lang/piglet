@@ -350,6 +350,13 @@
     []
     coll))
 
+(defn merge [& maps]
+  (when (some identity maps)
+    (reduce (fn [acc m]
+              (conj acc m))
+      {}
+      maps)))
+
 (defmacro comment [& _]
   nil)
 
