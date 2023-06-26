@@ -485,7 +485,7 @@
        val#)))
 
 (defn reference [v]
-  (reify
+  (specify! #js {:val v}
     Swappable
     (-swap! [this f args]
       (set! (.-val this) (apply f (.-val this) args)))

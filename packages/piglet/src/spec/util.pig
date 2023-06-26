@@ -13,8 +13,9 @@
        ~(cond
           (= '= pred)
           `(msg "\u001b[31m[!!]" ~form "\u001b[0m"
-             "Expected" ~(print-str (nth form 2))
-             "got" ~(nth form 1))))))
+             "Expected" ~(print-str (nth form 1))
+             "to be" ~(nth form 1)
+             ", got" ~(nth form 2))))))
 
 (defmacro testing [& body]
   (seq

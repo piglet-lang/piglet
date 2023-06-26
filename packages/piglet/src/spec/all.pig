@@ -1,5 +1,7 @@
 (module spec/all
-  (:import [u :from spec/util])
+  (:import
+    [u :from spec/util]
+    [_ :from spec/destructuring])
   (:context {"my-prefix" "https://arnebrasseur.net/vocab/"}))
 
 (u:testing "Numbers"

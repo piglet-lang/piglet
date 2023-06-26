@@ -1,0 +1,369 @@
+Note: this is currently as much a design document as it is language
+documentation. Some of what is described here currently works, some of
+it does not work, but we intend it to eventually work, and some of it
+might still be up for discussion.
+
+= Destructuring
+
+There are multiple places where we accept ``binding forms''. A binding
+form is either a single symbol, or a collection literal containing
+symbols, where these symbols become bound to values.
+
+* `fn` / `defn`
+* `let`
+* `for`
+* `doseq`
+* `def`
+
+The first four introduce local variables in the scope of their block.
+The last one interns vars into the current namespace.
+
+== binding a single symbol
+
+This is the base case, eg
+
+[source,piglet]
+----
+(let [sauce :bolognese]
+  (= sauce :bolognese))
+
+(for [sauce [:bolognese :bechamel]]
+  ,,,)
+  
+(def sauce :bolognese)
+----
+
+All of these introduce a variable called ``sauce''. In the first and
+second cases this is a local variable that exists only within the scope
+of the `let`/`for` block. In the final case it’s a var in the current
+namespace.
+
+Wherever a symbol like this can occur, you can also use a vector
+(`[...]`) or dict (`{...}`) literal, for sequential or associative
+destructuring.
+
+== sequential destructuring
+
+[source,piglet]
+----
+(let [[a b c] coll]
+  )
+----
+
+Is equivalent to
+
+[source,piglet]
+----
+(let [a (first coll)
+    b (first (rest coll))
+    c (first (first (rest coll)))]
+  ,,,)
+----
+
+Coll can be anything that can also be passed to `seq`, in other words
+that is either a Seq or is Seqable, including arrays, vectors, lists,
+JavaScript iterables, iterators, strings, `nil`.
+
+If the collection is longer than the binding form then trailing elements
+are ignored, if it is shorter than the leftover bindings are bound to
+nil.
+
+[source,piglet]
+----
+(let [[a b c] (range 10)]
+  [a b c])
+=> [0 1 2]
+
+(let [[a b c] ["oink"]]
+  [a b c])
+=> [1 nil nil]
+----
+
+Implementation note: currently we compile sequential destructuring to
+JavaScript’s array destructuring:
+
+[source,piglet]
+----
+--- form ------------
+(let [[a b c] (range 10)]
+  [a b c])
+  
+--- js --------------
+const [a6, b4, c2] = $piglet$["https://piglet-lang.org/packages/piglet"].lang.range(10)
+----
+
+This works because all Piglet collections implement `[Symbol.iterator]`,
+and is partly done because at least in theory using native constructs
+allows the runtime to better optimize. But we have not yet verified that
+it’s actually faster in existing runtimes.
+
+However this is causing some unintended side effects:
+
+[source,piglet]
+----
+--- form ------------
+(let [[_ _ c] (range 10)]
+  c)
+
+--- js --------------
+const [_$UNDERSCORE$_21, _$UNDERSCORE$_21, c4] = $piglet$["https://piglet-lang.org/packages/piglet"].lang.range(10);
+=> SyntaxError: Identifier '_$UNDERSCORE$_21' has already been declared
+----
+
+So we will likely change this to use sequence operations instead.
+
+=== & splat
+
+The `&` special symbol can be used to bind any remaining elements. It
+has to be followed by a single binding form.
+
+[source,piglet]
+----
+(let [[x & xs] oink] ,,,)
+----
+
+Is equivalent to
+
+[source,piglet]
+----
+(let [x (first oink)
+      xs (rest oink)]
+  ,,,)
+----
+
+=== :as
+
+Sometimes you want to both sequentially destructure a collection, and
+bind the collection to a single variable. For this you can use `:as`,
+which must be followed by a single symbol.
+
+A real-world-ish example
+
+[source,piglet]
+----
+(for [[name address timestamp :as row] table-data
+      :when (< timestamp cut-off)]
+  (encode row))
+----
+
+Generally this pattern
+
+[source,piglet]
+----
+(let [[a b c :as x] oink]
+  )
+----
+
+Is equivalent to
+
+[source,piglet]
+----
+(let [x oink
+      [a b c] oink]
+  )
+----
+
+Which in the case of a `let` isn’t that useful, but in function argument
+destructuring, `for`/`doseq`, or `def` it can be quite useful.
+
+The pair `:as symbol` must either come first or last in the vector:
+
+[source,piglet]
+----
+(let [[:as groink
+       bark pant sniff] pigstuff]
+  ,,,)
+  
+(let [[bark pant sniff
+       :as groink] pigstuff]
+  ,,,)
+----
+
+When combined with the splat the `:as ...` must still come either first
+in the vector or all the way at the end, not in between the splat and
+the other binding forms.
+
+[source,piglet]
+----
+;; valid
+(let [[:as groink
+       bark pant sniff & more] pigstuff]
+  ,,,)
+
+;; valid
+(let [[bark pant sniff & more
+       :as groink] pigstuff]
+  ,,,)
+  
+;; invalid
+(let [[bark pant sniff :as groing & more] pigstuff]
+  ,,,)
+----
+
+=== Combining
+
+Note that sequential destructuring is valid _anywhere where a binding
+form is valid_, including within other binding forms. In other words, it
+can be nested.
+
+[source,piglet]
+----
+(let [[oink [groink pant] & [gulp sniff]] piggy]
+  ,,,)
+----
+
+As shown here the form following the splat (`&`) is a binding form, and
+can be further destructured. The symbol following `:as` on the other
+hand is not a general binding form, it must be a symbol.
+
+=== Associative Destructuring
+
+Instead of a symbol or a vector literal, a binding form can consist of a
+dict literal. This is used to destructure associative data structures
+(those that implement the `Lookup` protocol), like a dict. The keys of
+the dict literal are binding forms, the values are used for lookup into
+the associative data structure.
+
+[source,piglet]
+----
+(let [{oink :oink groink :groink} piggy]
+  (str "piggy goes " oink "... " groink "..."))
+----
+
+This is equivalent to
+
+[source,piglet]
+----
+(let [oink (get piggy :oink)
+      groink (get piggy :groink)]
+  (str "piggy goes " oink "... " groink "..."))
+----
+
+Note that this may be somewhat unintuitive when coming from languages
+where the value (the right hand side) is the binding form. However it is
+consistent, in that binding happens from right to left.
+
+[source,piglet]
+----
+(let [{oink #_<- :oink} #_<- piggy]
+  (str "piggy goes " oink "... "))
+----
+
+The values in the dict literal don’t have to be keywords, any value is
+valid, including `nil`, and composite (collection) values.
+
+[source,piglet]
+----
+(def piggy
+  {nil "... oink?"
+   :groink "GROINKKKK"
+   [:sniff :sniff] "snnnnfff snnnfff snnfffff"})
+   
+(let [{nil-sound nil} piggy]
+  (str "nil-piggy goes " nil-sound"))
+   
+(let [{sniff-sound [:sniff :sniff]} piggy]
+  (str "sniffing piggy goes " sniff-sound"))
+----
+
+Note that each key in this dict literal (each left hand side) is a general
+binding form, so it can in turn be a vector or dict form, which can in turn
+contain other arbitrary binding forms.
+
+[source,piglet]
+----
+(let [{[a b c] :numbers} {:numbers (range 10)}]
+  [a b c])
+=> [0 1 2]
+----
+
+==== Extending `Lookup`
+
+Since dict destructuring compiles to `get` invocations, it is possible
+to have arbitrary object types opt-in to being ``destructible''.
+
+[source,piglet]
+----
+(def cool-pig
+  (reify
+    Lookup
+    (get [this k]
+      (when (= k :groink)
+        "wwwwassup you swinezzz?"))))
+
+(let [{groink :groink} cool-pig]
+  (str "Cool pig goes " groink))
+=> "Cool pig goes wwwwassup you swinezzz?"
+----
+
+Piglet provides `Lookup` implementations for dicts, `js:Map`, vectors,
+`js:Array`, and `nil`. For vectors and arrays their indices (starting
+from zero) will be looked up. Destructuring `nil` has the same effect as
+destructuring an empty collection, so all symbols in the bounding form
+will be bound to `nil`.
+
+[source,piglet]
+----
+(let [{sound :sound} (js:Map. [[:sound "oink"]])
+      {pig-name 2] ["peanut" "poppy" "teacup"]]
+  (str pig-name " goes " sound))
+=> "teacup goes oink"
+----
+
+Note to implementors: any missing keys MUST cause the resulting value to
+be bound to `nil`, and NOT to `undefined`.
+
+==== Special keys
+
+Apart from valid binding forms (symbols, vectors, dicts), the keys in a
+dict destructuring form can be keywords or qnames. We support (want to
+support) the following:
+
+* `:keys [...]` bulk destructure keyword lookup
+* `:strs [...]` bulk destructure string lookup
+* `:syms [...]` bulk destructure symbol lookup
+* `:props [...]` bulk destructure object properties
+
+[source,piglet]
+----
+(let [{:keys [oink bark]} piggy] ,,,)
+;; equivalent to 
+(let [oink (get piggy :oink)
+      bark (get piggy :bark)] ,,,)
+
+(let [{:strs [oink bark]} piggy] ,,,)
+;; equivalent to 
+(let [oink (get piggy "oink")
+      bark (get piggy "bark")] ,,,)
+
+(let [{:syms [oink bark]} piggy] ,,,)
+;; equivalent to 
+(let [oink (get piggy 'oink)
+      bark (get piggy 'bark)] ,,,)
+      
+(let [{:props [oink bark]} piggy] ,,,)
+;; equivalent to 
+(let [oink (.-oink piggy)
+      bark (.-bark piggy)] ,,,)
+----
+
+The first three of these (`keys`/`strs`/`syms`) can also be used as
+suffixes to a QName (or a PrefixName, assuming the prefix used is
+present in the module’s context, so it can be expanded to a QName).
+
+This will result in QName lookups with the same prefix, and each
+individual suffix.
+
+[source,piglet]
+----
+(module pigsty
+  (:context {pigsty "https://pigsty-vocab.example.org/v1.0/#"}))
+
+(def piggy
+  {:pigsty:name "Teacup"
+   :pigsty:loves ["brocolli" "apricots"]})
+   
+(let [{:pigsty:keys [name]
+       [food1 food2] :pigsty:loves} piggy]
+  (str name " loves " food1 ", and " food2))
+----
