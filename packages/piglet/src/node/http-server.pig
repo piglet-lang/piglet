@@ -10,16 +10,27 @@
   (specify!
     (http:createServer
       (fn ^:async x [req res]
-        (println 'http<- (keys (->pig req)))
-        (let [response (await (handler {:method (.-method req)
-                                        :path (.-url req)
-                                        :headers (into {}
-                                                   (map (fn [[k v]]
-                                                          [(.toLowerCase k) v])
-                                                     (partition 2 (.-rawHeaders req))))}))]
-          (println 'http-> response)
-          (.writeHead res (:status response) (->js (:headers response)))
-          (.end res (:body response)))))
+        (let [url (js:URL. (.-url req) "http://example.com") ;; js:URL does not like relative
+              response (handler {:method (.-method req)
+                                 :path (.-pathname url)
+                                 :query-params (into {} (.-searchParams url))
+                                 :headers (into {}
+                                            (map (fn [[k v]]
+                                                   [(.toLowerCase k) v])
+                                              (partition 2 (.-rawHeaders req))))})]
+          (.then response
+            (fn [response]
+              (println 'http-> response)
+              (.writeHead res (:status response) (->js (:headers response)))
+              (.end res (:body response)))
+            (fn [error]
+              (let [msg
+                    (str "Error in request handler: " (.-message error)
+                      "\n\n"
+                      (.-stack error))]
+                (println msg)
+                (.writeHead res 500 #js {"Content-Type" "text/plain"})
+                (.end res msg)))))))
     LifeCycle
     (start! [server]
       (.listen server (:port opts) (:host opts "localhost")))

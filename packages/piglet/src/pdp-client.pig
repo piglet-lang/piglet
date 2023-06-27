@@ -72,7 +72,7 @@
             ;; TODO (.includes prefix "://")
             (.includes prefix ":")
             (let [[alias suffix] (split ":" prefix)]
-              (when-let [mod (find-module (symbol alias))]
+              (if-let [mod (find-module (symbol alias))]
                 (reply {:candidates (map (fn [c] (str alias ":" c))
                                       (completion-candidates mod suffix))})
                 (reply {:candidates []})))

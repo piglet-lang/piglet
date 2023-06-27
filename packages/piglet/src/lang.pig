@@ -340,7 +340,9 @@
 
 ;; separator first, for partial application
 (defn join [sep strings]
-  (.join (js:Array.from strings str) sep))
+  (.join (js:Array.from strings
+           ;; Prevent the idx argument being passed to str
+           (fn [s] (str s))) sep))
 
 (defn split [sep string]
   (.split string sep))
@@ -601,12 +603,14 @@
 
 (defn apropos [mod s]
   (if (= undefined s)
-    (apropos 'piglet-lang s)
+    (apropos 'piglet:lang mod)
     (filter (fn [n]
               (.includes n s))
       (map (fn [v] (.-name v))
         (ovals
-          (.-vars (find-module mod)))))))
+          (.-vars (if (instance? Module mod)
+                    mod
+                    (find-module mod))))))))
 
 (defn run! [f coll]
   (reduce (fn [_ o]

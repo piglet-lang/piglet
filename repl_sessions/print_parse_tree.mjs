@@ -21,6 +21,7 @@ print_parse_tree(
     // 'async function foo() { await impor("bar")}'
     //    '( function() { let x = {(123);}; return x })'
     // 'throw new Error("x")',
-    'typeof x',
+    // 'typeof x',
     // 'try {} catch (e) {} finally {}'
+    "aoo(await(bar.baz()))"
 )
