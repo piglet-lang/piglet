@@ -6,10 +6,15 @@
   (start! [server])
   (stop! [server]))
 
+(defn as-promise [v]
+  (if (.-then v)
+    v
+    (js:Promise. (fn [res rej] (res v)))))
+
 (defn create-server [handler opts]
   (specify!
     (http:createServer
-      (fn ^:async x [req res]
+      (fn [req res]
         (let [url (js:URL. (.-url req) "http://example.com") ;; js:URL does not like relative
               response (handler {:method (.-method req)
                                  :path (.-pathname url)
@@ -18,7 +23,7 @@
                                             (map (fn [[k v]]
                                                    [(.toLowerCase k) v])
                                               (partition 2 (.-rawHeaders req))))})]
-          (.then response
+          (.then (as-promise response)
             (fn [response]
               (println 'http-> response)
               (.writeHead res (:status response) (->js (:headers response)))

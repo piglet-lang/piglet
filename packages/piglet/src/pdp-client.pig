@@ -52,7 +52,11 @@
         (= "resolve-meta" op)
         (do
           (println "Resolving" var "in" *current-module* ":" (resolve (symbol var)) " / " (meta (resolve (symbol var))))
-          (reply {:result (print-str (meta (resolve (symbol var))))}))
+          (let [var (resolve (symbol var))
+                val @var]
+            (reply {:result (print-str (meta (if (instance? Module val)
+                                               val
+                                               var)))})))
 
         (= "eval" op)
         (do

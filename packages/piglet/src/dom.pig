@@ -24,7 +24,7 @@
 (defn comment [doc text]
   (.createComment doc text))
 
-(defn find-by-id [doc id]
+(defn el-by-id [doc id]
   (.getElementById doc id))
 
 (defn query [el qry]
@@ -90,7 +90,7 @@
        id
        (assoc :id id)
        (seq kls)
-       (update :class str kls))
+       (update :class str (join " " kls)))
      (if (dict? (first tail))
        (rest tail)
        tail)]))

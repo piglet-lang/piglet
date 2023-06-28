@@ -13,6 +13,8 @@
 
 (def list? (fn* [o] (instance? List o)))
 
+(def object? nil)
+
 (def syntax-quote*
   (fn* syntax-quote* [form gensyms]
     (if (list? form)
@@ -44,20 +46,37 @@
                   gsym (oget gensyms sym-name (gensym sym-name))]
               (oset gensyms sym-name gsym)
               (list 'quote gsym))
-            (let [var (resolve form)]
-              (if var
-                (list 'quote (.-fqn var))
-                (list 'quote form))))
 
-          (list 'quote form))))))
+            (if (= "." (last (name form)))
+              (let [vname (.slice (name form) 0 -1)
+                  var (resolve (symbol vname))]
+                (if var
+                  (list 'quote (symbol (str (.-fqn var) ".")))
+                  (list 'quote form)))
+              (let [var (resolve form)]
+                (if var
+                  (list 'quote (.-fqn var))
+                  (list 'quote form)))))
+
+          (if (object? form)
+            (reduce
+              (fn* [acc kv]
+                (oset acc (first kv) (syntax-quote* (second kv) gensyms)))
+              #js {}
+              (js:Object.entries form))
+
+            (list 'quote form)))))))
 
 (defmacro syntax-quote [form]
   (syntax-quote* form #js {}))
 
+(def undefined? (fn* undefined? [o]
+                  (= (typeof o) "undefined")))
+
 (defmacro fn [?name argv & body]
   (let [[?name argv body] (if (symbol? ?name)
                             [?name argv body]
-                            [nil ?name (if (=== undefined argv)
+                            [nil ?name (if (undefined? argv)
                                          []
                                          (cons argv body))])
         argv-clean (remove (fn* [a] (= a (symbol "&"))) argv)
@@ -498,6 +517,12 @@
     (-tag [this] "reference")
     (-tag-value [this] (.val this))))
 
+(defn constantly [v]
+  (fn* [] v))
+
+(defn reset! [r v]
+  (swap! r (constantly v)))
+
 (defn ->pig [o opts]
   (let [opts (or opts {:exclude [js:Date]})]
     (cond
@@ -602,7 +627,7 @@
   (into {} (map (fn [k] [k (get m k)]) keyseq)))
 
 (defn apropos [mod s]
-  (if (= undefined s)
+  (if (undefined? s)
     (apropos 'piglet:lang mod)
     (filter (fn [n]
               (.includes n s))
@@ -619,3 +644,6 @@
 
 (defn sort [coll]
   (.sort (into-array coll)))
+
+(defn identifier? [i]
+  (instance? AbstractIdentifier i))
