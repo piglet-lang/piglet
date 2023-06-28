@@ -647,3 +647,10 @@
 
 (defn identifier? [i]
   (instance? AbstractIdentifier i))
+
+(defn get-in [o path fallback]
+  (if (= 1 (count path))
+    (get o (first path) (if (undefined? fallback)
+                          nil
+                          fallback))
+    (get-in (get o (first path)) (rest path) fallback)))
