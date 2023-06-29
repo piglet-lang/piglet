@@ -75,7 +75,10 @@
     (cons 'fn* fntail)))
 
 (defmacro defn [name argv & body]
-  (list 'def name (apply list 'fn name argv body)))
+  (let [[doc-string argv body] (if (string? argv)
+                                 [argv (first body) (rest body)]
+                                 [nil argv body])]
+    (list 'def name (apply list 'fn name argv body))))
 
 (defmacro cond [& args]
   (let [pairs (reverse (partition 2 args))]
