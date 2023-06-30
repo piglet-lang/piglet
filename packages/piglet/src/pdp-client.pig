@@ -24,7 +24,6 @@
 (set!
   (.-onmessage conn)
   (fn ^:async on-message [msg]
-    (println)
     (let [msg (->pig (cbor:decode (.-data msg)))
           op (:op msg)
           code (:code msg)
@@ -39,9 +38,9 @@
                                 (assoc :to reply-to)
                                 :->
                                 (into answer))]
-                    (println '<- reply)
+                    ;;(println '<- reply)
                     (.send conn (cbor:encode (->js reply)))))]
-      (println '-> msg)
+      ;;(println '-> msg)
       (when location
         (.set_value (resolve '*current-location*) location))
       (when module

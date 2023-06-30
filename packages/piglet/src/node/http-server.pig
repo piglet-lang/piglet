@@ -25,7 +25,7 @@
                                               (partition 2 (.-rawHeaders req))))})]
           (.then (as-promise response)
             (fn [response]
-              (println 'http-> response)
+              ;; (println 'http-> response)
               (.writeHead res (:status response) (->js (:headers response)))
               (.end res (:body response)))
             (fn [error]

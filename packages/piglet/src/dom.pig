@@ -39,6 +39,9 @@
     (doseq [[prop val] v]
       (.setProperty (.-style el) (name prop) val))
 
+    (and (= :class k) (vector? v))
+    (.setAttribute el "classList" (join " " v))
+
     :else
     (.setAttribute el (name k) v))
   el)
@@ -75,7 +78,7 @@
     [(.-base tag)
      tag-name
      (when id (.substring id 1))
-     (map (fn [s] (.substring s 1)) kls)]))
+     (mapv (fn [s] (.substring s 1)) kls)]))
 
 ;; FIXME (defn spit-el [[tag & tail]] ,,,)
 (defn split-el [form]
@@ -90,7 +93,10 @@
        id
        (assoc :id id)
        (seq kls)
-       (update :class str (join " " kls)))
+       (update :class (fn [class-prop]
+                        (if (vector? class-prop)
+                          (into kls class-prop)
+                          (conj kls class-prop)))))
      (if (dict? (first tail))
        (rest tail)
        tail)]))

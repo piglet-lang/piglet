@@ -2,6 +2,8 @@
 
 ;; Low level bootstrapping, get enough stuff together to go from fn* to fn/defn
 
+(def TypedArray (js:Object.getPrototypeOf js:Int8Array))
+
 (def into (fn* [o coll] (reduce conj o coll)))
 
 (def some (fn* [pred coll]
@@ -524,12 +526,12 @@
   (swap! r (constantly v)))
 
 (defn ->pig [o opts]
-  (let [opts (or opts {:exclude [js:Date]})]
+  (let [opts (or opts {:exclude [js:Date TypedArray]})]
     (cond
       (and
         (object? o)
         (not (some (fn [t]
-                     (= t (type o))) (:exclude opts))))
+                     (instance? t o)) (:exclude opts))))
       (let [cache (reference {})
             realize-dict (fn [] (-with-cache cache :dict
                                   (into {}
