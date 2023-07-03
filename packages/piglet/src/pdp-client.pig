@@ -40,12 +40,11 @@
                                 (into answer))]
                     ;;(println '<- reply)
                     (.send conn (cbor:encode (->js reply)))))]
-      ;;(println '-> msg)
-      (when location
+      (when (string? location)
         (.set_value (resolve '*current-location*) location))
-      (when module
+      (when (string? module)
         (.set_value (resolve '*current-module*) (.ensure_module module-registry package module)))
-      (when package
+      (when (string? package)
         (.set_value (resolve '*current-package*) (.ensure_package module-registry package)))
       (cond
         (= "resolve-meta" op)
