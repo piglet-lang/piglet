@@ -133,3 +133,20 @@
 
     :else
     (dom doc (str form))))
+
+(defonce LISTENERS (js:Symbol (str `LISTENERS)))
+
+(defn listen! [el k evt f]
+  (when (not (oget el LISTENERS))
+    (oset el LISTENERS (reference {})))
+  (let [listeners (oget el LISTENERS)]
+    (when-let [l (get-in @listeners [k evt])]
+      (.removeEventListener el evt k))
+    (swap! listeners assoc-in [k evt] f)
+    (.addEventListener el evt f)))
+
+(defn unlisten! [el k evt]
+  (let [listeners (oget el LISTENERS)]
+    (when-let [l (get-in @listeners [k evt])]
+      (.removeEventListener el evt k)
+      (swap! listeners update k dissoc evt))))
