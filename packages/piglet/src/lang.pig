@@ -654,3 +654,28 @@
                           nil
                           fallback))
     (get-in (get o (first path)) (rest path) fallback)))
+
+(defmacro defonce [sym form]
+  `(when (not (resolve '~sym))
+     (def ~sym ~form)))
+
+(defn rand-int [n]
+  (js:Math.floor (* n (js:Math.random))))
+
+(defn rand-nth [coll]
+  (nth coll (rand-int (count coll))))
+
+(defn fnil [f arg]
+  (fn [x & xs]
+    (if (nil? x)
+      (apply f arg xs)
+      (apply f x xs))))
+
+(defn frequencies [coll]
+  (reduce (fn [acc el]
+            (update acc el (fnil inc 0)))
+    {}
+    coll))
+
+(defn repeatedly [f]
+  (cons (f) (lazy-seq (repeatedly f))))
