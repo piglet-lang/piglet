@@ -422,10 +422,8 @@
 (defn ovals [o] (js:Object.values o))
 
 (defn type-name [o]
-  (and (object? o)
-    (.-constructor o)
-    (.-name
-      (.-constructor o))))
+  (when (.-constructor o)
+    (.-name (.-constructor o))))
 
 (defn into-array [o]
   (js:Array.from o))
