@@ -114,7 +114,7 @@
      (u:is (= 1 @(resolve 'xxx))))
      )
 
-(ui:testing
+(u:testing
   "Sequential destructuring - binding collection :as"
   (u:testing
     "fn"
@@ -165,9 +165,9 @@
     (u:is (= 1 @(resolve 'xxx))))
   )
 
-(ui:testing
+(u:testing
   "Sequential destructuring - combining splat and :as binding"
-  (ui:testing
+  (u:testing
     "let"
     (u:is (= [0 [1 2] [0 1 2]] (let [[x & xs :as row] (range 3)] [x xs row])))
     (u:is (= [0 [1 2] [0 1 2]] (let [[:as row x & xs] (range 3)] [x xs row])))
@@ -176,9 +176,9 @@
     )
   )
 
-(ui:testing
+(u:testing
   "Sequential destructuring - nested bindings"
-  (ui:testing
+  (u:testing
     "let"
     (u:is (= [1 10 11 2 3] 
             (let [[x [a b] & [m n]] [1 [10 11 12] 2 3 4]]
@@ -189,7 +189,7 @@
     ;;           [x row row-rest]))))
     ))
 
-(ui:testing
+(u:testing
   "Associative destructuring"
   (u:testing
     "fn"
@@ -212,9 +212,9 @@
     (u:is (= 1 @(resolve 'xxx))))
   )
 
-(ui:testing
+(u:testing
   "Associative destructuring - non keyword values"
-  (ui:testing
+  (u:testing
     "fn"
     (u:is (= [1 2] ((fn [{x nil y [:a :b]}] [x y])
                      {nil 1 [:a :b] 2})))
@@ -222,16 +222,16 @@
     (u:is (= [1 2] (let [{x nil y [:a :b]} {nil 1 [:a :b 2]}]
                      [x y])))))
 
-(ui:testing
+(u:testing
   "Associative destructuring - general binding form"
-  (ui:testing
+  (u:testing
     "let"
     (u:is (= [0 1 2]
             (let [{[x y z] :numbers} {:numbers (range 10)}])))))
 
-(ui:testing
+(u:testing
   "Associative destructuring - extending Lookup"
-  (ui:testing
+  (u:testing
     "let"
     (def xy-obj
       (reify
@@ -243,7 +243,32 @@
             (= k nil) 3
             (= k [:a :b]) 4
             :else 5))))
-    (ui:is (= [1 2 3 4 5] 
-             (let [{a :x b :y c nil d [:a :b] e :oink} xy-obj]
+    (u:is (= [1 2 3 4 5] 
+            (let [{a :x b :y c nil d [:a :b] e :oink} xy-obj]
                [a b c d e])))))
+
+(u:testing
+  "Associative destructring - special keys"
+  ;; TODO
+  )
+
+(u:testing
+  "Associative destructring - special keys mixed with default binding"
+  ;; TODO
+  )
+
+(u:testing
+  "Associative destructring - QName lookups with prefix"
+  ;; TODO
+  )
+
+(u:testing
+  "Associative destructring - special keys with :default binding"
+  ;; TODO
+  )
+
+(u:testing
+  "Associative destructring - special keys with :as binding"
+  ;; TODO
+  )
 
