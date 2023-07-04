@@ -473,9 +473,7 @@
            :ownKeys (fn [_]
                       (js:Array.from (map name (keys o))))})
 
-    (and
-      (sequential? o)
-      (not (array? o)))
+    (vector? o)
     (into-array (map ->js o))
 
     :else
@@ -692,3 +690,7 @@
 
 (defn merge [m & ms]
   (reduce into m ms))
+
+(defn keep [f & colls]
+  (filter identity
+    (apply map f colls)))
