@@ -42,32 +42,41 @@
           (into []
             (map (fn* [f] (syntax-quote* f gensyms)) form)))
 
-        (if (symbol? form)
-          (if (= "#" (last (name form)))
-            (let [sym-name (.replace (name form) "#" "")
-                  gsym (oget gensyms sym-name (gensym sym-name))]
-              (oset gensyms sym-name gsym)
-              (list 'quote gsym))
+        (if (dict? form)
+          (reduce (fn* [acc kv]
+                    (println acc kv)
+                    (assoc acc
+                      (syntax-quote* (first kv) gensyms)
+                      (syntax-quote* (second kv) gensyms)))
+            {}
+            form)
 
-            (if (= "." (last (name form)))
-              (let [vname (.slice (name form) 0 -1)
-                  var (resolve (symbol vname))]
-                (if var
-                  (list 'quote (symbol (str (.-fqn var) ".")))
-                  (list 'quote form)))
-              (let [var (resolve form)]
-                (if var
-                  (list 'quote (.-fqn var))
-                  (list 'quote form)))))
+          (if (symbol? form)
+            (if (= "#" (last (name form)))
+              (let [sym-name (.replace (name form) "#" "")
+                    gsym (oget gensyms sym-name (gensym sym-name))]
+                (oset gensyms sym-name gsym)
+                (list 'quote gsym))
 
-          (if (object? form)
-            (reduce
-              (fn* [acc kv]
-                (oset acc (first kv) (syntax-quote* (second kv) gensyms)))
-              #js {}
-              (js:Object.entries form))
+              (if (= "." (last (name form)))
+                (let [vname (.slice (name form) 0 -1)
+                      var (resolve (symbol vname))]
+                  (if var
+                    (list 'quote (symbol (str (.-fqn var) ".")))
+                    (list 'quote form)))
+                (let [var (resolve form)]
+                  (if var
+                    (list 'quote (.-fqn var))
+                    (list 'quote form)))))
 
-            (list 'quote form)))))))
+            (if (object? form)
+              (reduce
+                (fn* [acc kv]
+                  (oset acc (first kv) (syntax-quote* (second kv) gensyms)))
+                #js {}
+                (js:Object.entries form))
+
+              (list 'quote form))))))))
 
 (defmacro syntax-quote [form]
   (syntax-quote* form #js {}))
@@ -410,6 +419,7 @@
   (and
     (not (nil? o))
     (not (array? o))
+    (not (piglet-object? o))
     (= "object" (typeof o))))
 
 (defn oassoc [o & kvs]
@@ -679,3 +689,6 @@
 
 (defn repeatedly [f]
   (cons (f) (lazy-seq (repeatedly f))))
+
+(defn merge [m & ms]
+  (reduce into m ms))
