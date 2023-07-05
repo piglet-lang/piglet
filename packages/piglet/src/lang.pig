@@ -247,7 +247,7 @@
 
 ;; Protocols
 
-(defmacro extend-class [klass & protocols]
+(defmacro extend-type [klass & protocols]
   (let [proto-methods (reduce (fn [acc o]
                                 (if (symbol? o)
                                   (conj acc [o])

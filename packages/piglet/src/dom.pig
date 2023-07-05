@@ -1,7 +1,7 @@
 (module dom)
 
 (defn extend-interfaces! [window]
-  (extend-class (.-Node window)
+  (extend-type (.-Node window)
     MutableCollection
     (-conj! [parent child]
       (.appendChild parent child)
