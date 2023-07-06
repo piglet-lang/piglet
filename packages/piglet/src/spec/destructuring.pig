@@ -74,11 +74,10 @@
         (swap! res conj [x y]))
       (u:is (= [[0 0] [1 1] [2 2]] @res)))
     "def"
-    ;; FIXME
-    (u:is (= nil (resolve 'xxx)))
-    (def xxx 1)
-    (u:is (= 1 @(resolve 'xxx))))
-  )
+    (def [x y] [0 1])
+    (u:is (= 0 @(resolve 'x)))
+    (u:is (= 1 @(resolve 'y)))))
+
 
 ;; (u:testing
 ;;   "Sequential destructuring - variable sinkhole"
