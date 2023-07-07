@@ -3,6 +3,7 @@
     [http :from node/http-server]
     [path :from "node:path"]
     [fs :from "node:fs"]
+    [fsp :from "node:fs/promises"]
     [url :from "node:url"]
     [process :from "node:process"]
     [mime-db :from "mime-db"]))
@@ -82,10 +83,26 @@
       :else
       "application/octet-stream")))
 
-(defn file-response [file]
-  {:status 200
-   :headers {"Content-Type" (media-type file)}
-   :body (fs:readFileSync file)})
+(defn ^:async file-response [etag file]
+  (-> (fsp:stat file)
+    (.then
+      (fn [stat]
+        (println file etag (hash (:mtime stat)) (and etag (= (str (hash (:mtime stat))) etag)))
+        (if (and etag (= (str (hash (:mtime stat))) etag))
+          {:status 304
+           :headers {}
+           :body ""}
+          (.then (fsp:readFile file)
+            (fn [data]
+              {:status 200
+               :headers {"Content-Type" (media-type file)
+                         "ETag" (hash (:mtime stat))}
+               :body data})))))
+    (.then
+      identity
+      (fn [err]
+        {:status 500
+         :body (str "Error loading file: " err)}))))
 
 (def four-oh-four
   {:status 404
@@ -115,7 +132,7 @@
 
 (defn handler [req]
   (if-let [file (find-resource (:path req))]
-    (file-response file)
+    (file-response (get-in req [:headers "if-none-match"]) file)
     (let [parts (split "/" (:path req))
           [_ pkg-path] parts
           ;; FIXME: [... & more] not yet working inside let
@@ -125,7 +142,7 @@
         (if (fs:existsSync file)
           (if (= ["package.pig"] more)
             (package-pig-response pkg-path pkg-loc file)
-            (file-response file))
+            (file-response (get-in req [:headers "if-none-match"]) file))
           four-oh-four)))))
 
 (def server (http:create-server
