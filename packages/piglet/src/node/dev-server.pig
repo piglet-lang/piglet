@@ -87,7 +87,6 @@
   (-> (fsp:stat file)
     (.then
       (fn [stat]
-        (println file etag (hash (:mtime stat)) (and etag (= (str (hash (:mtime stat))) etag)))
         (if (and etag (= (str (hash (:mtime stat))) etag))
           {:status 304
            :headers {}

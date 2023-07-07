@@ -15,7 +15,12 @@
 
 (def list? (fn* [o] (instance? List o)))
 
-(def object? nil)
+(def object? (fn* [o]
+               (and
+                 (not (nil? o))
+                 (not (array? o))
+                 (not (piglet-object? o))
+                 (= "object" (typeof o)))))
 
 (def syntax-quote*
   (fn* syntax-quote* [form gensyms]
@@ -414,13 +419,6 @@
                 k
                 (name k))
         v))))
-
-(defn object? [o]
-  (and
-    (not (nil? o))
-    (not (array? o))
-    (not (piglet-object? o))
-    (= "object" (typeof o))))
 
 (defn oassoc [o & kvs]
   (let [o (js:Object.assign #js {} o)]
