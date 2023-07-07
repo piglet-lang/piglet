@@ -692,3 +692,25 @@
 (defn keep [f & colls]
   (filter identity
     (apply map f colls)))
+
+;; TODO: support for hierarchies
+(defmacro defmulti [name key-fn]
+  `(def ~name (let [key-fn# ~key-fn
+                    methods# (reference {})
+                    ;; FIXME why is this specify not working
+                    dispatch# (specify! (fn ~'dispatch [arg# & args#]
+                                          (let [v# (key-fn# arg#)]
+                                            (if-let [m# (get @methods# v#)]
+                                              (apply m# arg# args#)
+                                              (if-let [m# (:default @methods#)]
+                                                (apply m# arg# args#)
+                                                (throw (js:Error. (str "No method found in " '~name " for dispatch value " v#)))))))
+                                Repr
+                                (-repr [this]
+                                  (str "<Multimethod " '~name ">")))]
+                (set! (.-methods dispatch#) methods#)
+                dispatch#)))
+
+(defmacro defmethod [name val & fn-tail]
+  `(swap! (:methods ~name)
+     assoc ~val (fn ~@fn-tail)))
