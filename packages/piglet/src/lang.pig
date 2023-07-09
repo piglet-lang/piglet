@@ -383,7 +383,10 @@
   (.split string sep))
 
 (defn load-package [pkg-loc]
-  (.load_package *compiler* pkg-loc))
+  (.then (.load_package *compiler* pkg-loc)
+    (fn [pkg]
+      (set! *current-package* pkg)
+      pkg)))
 
 (defn number? [v]
   (not (js:isNaN v)))
