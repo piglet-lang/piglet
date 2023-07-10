@@ -117,17 +117,23 @@
      :headers {"Content-Type" "application/piglet?charset=UTF-8"}
      :body
      (print-str
-       (update pkg-pig :pkg:deps
-         (fn [deps]
-           (into {}
-             (map (fn [[alias spec]]
-                    [alias (update spec :pkg:location
-                             (fn [loc]
-                               (let [new-pkg-path (str (gensym "pkg"))]
-                                 (swap! package-locations assoc new-pkg-path
-                                   (path:resolve pkg-loc loc))
-                                 (str "/" new-pkg-path))))])
-               deps)))))}))
+       (-> pkg-pig
+         (update :pkg:name
+           (fn [name]
+             (if name
+               name
+               (qsym (str (url:pathToFileURL pkg-loc))))))
+         (update :pkg:deps
+           (fn [deps]
+             (into {}
+               (map (fn [[alias spec]]
+                      [alias (update spec :pkg:location
+                               (fn [loc]
+                                 (let [new-pkg-path (str (gensym "pkg"))]
+                                   (swap! package-locations assoc new-pkg-path
+                                     (path:resolve pkg-loc loc))
+                                   (str "/" new-pkg-path))))])
+                 deps))))))}))
 
 (defn handler [req]
   (if-let [file (find-resource (:path req))]
