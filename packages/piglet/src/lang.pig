@@ -100,6 +100,7 @@
                     (if (= a (symbol "&"))
                       a
                       (gensym "arg"))) argv)
+        syms (with-meta syms (meta argv))
         syms-clean (remove (fn* [a] (= a (symbol "&"))) syms)
         fntail (if (seq body)
                  (list syms
