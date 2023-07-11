@@ -17,6 +17,7 @@
     "dependencies": {
         "astring": "^1.8.4",
         "express": "^4.18.2",
+        "jsdom": "^22.1.0",
         "p5": "^1.6.0",
         "solid-js": "^1.7.5",
         "source-map": "^0.7.4",

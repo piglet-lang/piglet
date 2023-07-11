@@ -1,12 +1,14 @@
 (module node/dev-server
   (:import
+    piglet:dom
     [http :from node/http-server]
-    [path :from "node:path"]
     [fs :from "node:fs"]
     [fsp :from "node:fs/promises"]
-    [url :from "node:url"]
+    [jsdom :from "jsdom"]
+    [mime-db :from "mime-db"]
+    [path :from "node:path"]
     [process :from "node:process"]
-    [mime-db :from "mime-db"]))
+    [url :from "node:url"]))
 
 ;; Dev HTTP server for Piglet web projects.
 ;;
@@ -49,6 +51,16 @@
   (reference
     {"self" (process:cwd)
      "piglet" piglet-lang-path}))
+
+(def packages ;; pkg-loc -> pkg-pig
+  (reference {}))
+
+(def main-module (reference nil))
+
+(def import-map
+  (reference
+    {"astring"
+     (path:resolve piglet-lang-path "./node_modules/astring/dist/astring.mjs")}))
 
 (def ext->mime
   (into {"pig" ["application/piglet" true "UTF-8"]}
@@ -103,58 +115,158 @@
         {:status 500
          :body (str "Error loading file: " err)}))))
 
+(defn import-map-response [etag path]
+  (file-response etag (get @import-map path)))
+
 (def four-oh-four
   {:status 404
    :body ""})
 
+(defn ^:async slurp-package-pig [pkg-pig-loc]
+  (-> pkg-pig-loc
+    slurp
+    await
+    read-string
+    expand-qnames))
+
+(defn munge-and-store-pkg-pig [pkg-pig pkg-loc]
+  (if-let [pp (get @packages pkg-loc)]
+    pp
+    (let [pp
+          (-> pkg-pig
+            (update :pkg:name
+              (fn [name]
+                (if name
+                  name
+                  (qsym (str (url:pathToFileURL pkg-loc))))))
+            (update :pkg:deps
+              (fn [deps]
+                (into {}
+                  (map (fn [[alias spec]]
+                         [alias (update spec :pkg:location
+                                  (fn [loc]
+                                    (let [new-pkg-path (str (gensym (path:basename loc)))]
+                                      (swap! package-locations assoc new-pkg-path
+                                        (path:resolve pkg-loc loc))
+                                      (str "/" new-pkg-path))))])
+                    deps)))))]
+      (swap! packages assoc pkg-loc pp)
+      pp)))
+
 (defn ^:async package-pig-response [url-path pkg-loc pkg-pig-loc]
-  (let [pkg-pig (-> pkg-pig-loc
-                  slurp
-                  await
-                  read-string
-                  expand-qnames)]
+  (let [pkg-pig (slurp-package-pig pkg-pig-loc)]
     {:status 200
      :headers {"Content-Type" "application/piglet?charset=UTF-8"}
-     :body
+     :body (print-str (munge-and-store-pkg-pig pkg-pig pkg-loc))}))
+
+(defn pig->html [h]
+  (str "<!DOCTYPE html>\n")
+  (.-outerHTML
+    (dom:dom
+      (.-window.document (jsdom:JSDOM. ""))
+      h)))
+
+(defn index-html []
+  [:html
+   [:head
+    [:meta {:charset "utf-8"}]
+    [:meta {:content "width=device-width, initial-scale=1" :name "viewport"}]
+    [:script {:type "importmap"}
+     (js:JSON.stringify (->js {:imports (into {}
+                                          (map (fn [k]
+                                                 [k (str "/npm/" k)])
+                                            (keys @import-map)))}))]
+    [:script {:type "application/javascript"
+              :src "https://unpkg.com/source-map@0.7.3/dist/source-map.js"}]
+    [:script {:type "module" :src "/piglet/lib/piglet/browser/main.mjs?verbosity=1"}]
+    [:script {:type "piglet"}
      (print-str
-       (-> pkg-pig
-         (update :pkg:name
-           (fn [name]
-             (if name
-               name
-               (qsym (str (url:pathToFileURL pkg-loc))))))
-         (update :pkg:deps
-           (fn [deps]
-             (into {}
-               (map (fn [[alias spec]]
-                      [alias (update spec :pkg:location
-                               (fn [loc]
-                                 (let [new-pkg-path (str (gensym "pkg"))]
-                                   (swap! package-locations assoc new-pkg-path
-                                     (path:resolve pkg-loc loc))
-                                   (str "/" new-pkg-path))))])
-                 deps))))))}))
+       '(load-package "/self"))
+     (print-str
+       '(require 'https://piglet-lang.org/packages/piglet:pdp-client))
+     (when-let [main @main-module]
+       (print-str (list 'require (list 'quote main))))]]
+   [:body [:div#app]]])
+
+(defn handle-missing [req]
+  (if (or
+        (= "/" (:path req))
+        (= "/index.html" (:path req)))
+    {:status 200
+     :body (pig->html (index-html))}
+    four-oh-four))
+
 
 (defn handler [req]
   (if-let [file (find-resource (:path req))]
     (file-response (get-in req [:headers "if-none-match"]) file)
-    (let [parts (split "/" (:path req))
-          [_ pkg-path] parts
+    (let [parts (rest (split "/" (:path req)))
+          [pkg-path] parts
           ;; FIXME: [... & more] not yet working inside let
-          more (rest (rest parts))
+          more (rest parts)
           pkg-loc (get @package-locations pkg-path)]
-      (let [file (and pkg-loc (str pkg-loc "/" (join "/" more)))]
-        (if (fs:existsSync file)
-          (if (= ["package.pig"] more)
-            (package-pig-response pkg-path pkg-loc file)
-            (file-response (get-in req [:headers "if-none-match"]) file))
-          four-oh-four)))))
+      (if (= "npm" pkg-path)
+        (import-map-response (get-in req [:headers "if-none-match"]) (join "/" more))
+        (let [file (and pkg-loc (str pkg-loc "/" (join "/" more)))]
+          (if (fs:existsSync file)
+            (if (= ["package.pig"] more)
+              (package-pig-response pkg-path pkg-loc file)
+              (file-response (get-in req [:headers "if-none-match"]) file))
+            (handle-missing req)))))))
 
-(def server (http:create-server
-              (fn [req] (handler req))
-              {:port 1234}))
+;; TODO: Handle wildcards
+;; TODO: scope imports to piglet package
+(defn expand-exports [npm-pkg-name npm-pkg-loc exports]
+  (cond
+    (string? exports)
+    [[npm-pkg-name (path:resolve (str npm-pkg-loc "/") exports)]]
 
-(println "Starting http server")
-(http:start! server)
+    (:import exports)
+    [[npm-pkg-name (path:resolve (str npm-pkg-loc "/") (:import exports))]]
 
-#_ (http:stop! server)
+    (:default exports)
+    [[npm-pkg-name (path:resolve (str npm-pkg-loc "/") (:default exports))]]
+
+    :else
+    (apply concat
+      (for [[k v] exports]
+        (cond
+          (= "." k)
+          (expand-exports npm-pkg-name npm-pkg-loc v)
+          (.startsWith k "./")
+          (expand-exports (str npm-pkg-name (.substring k 1)) npm-pkg-loc v)
+          :else
+          (expand-exports k npm-pkg-loc v))))))
+
+(defn ^:async register-package [loc]
+  (let [pkg-pig (await (slurp-package-pig (str loc "/package.pig")))
+        munged (munge-and-store-pkg-pig pkg-pig loc)]
+    (doseq [dir (fs:readdirSync (str loc "/node_modules"))]
+      (when (not (= "." (first dir)))
+        (let [npm-pkg-loc  (str loc "/node_modules/" dir)
+              package_json (js:JSON.parse (fs:readFileSync (str npm-pkg-loc "/package.json")))]
+          (swap! import-map into
+            (expand-exports dir npm-pkg-loc (:exports package_json))))))
+    (await
+      (js:Promise.all
+        (map (fn ^:async handle-dep [[alias dep-spec]]
+               (println pkg-pig loc (:pkg:location dep-spec))
+               (await (register-package (path:resolve loc (:pkg:location dep-spec)))))
+          (:pkg:deps pkg-pig))))))
+
+(def port 1234)
+
+(defn ^:async main []
+  (let [pkg-pig (await (slurp-package-pig (str (process:cwd) "/package.pig")))]
+    (when-let [main (:pkg:main pkg-pig)]
+      (reset! main-module main)))
+  (await (register-package (process:cwd)))
+
+  (let [server (http:create-server
+                 (fn [req] (handler req))
+                 {:port port})]
+
+    (println "Starting http server on port" port)
+    (http:start! server)))
+
+(await (main))
