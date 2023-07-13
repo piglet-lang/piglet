@@ -116,6 +116,7 @@
          :body (str "Error loading file: " err)}))))
 
 (defn import-map-response [etag path]
+  ;; (println "GET" (str "/npm/" path) '-> (get @import-map path))
   (file-response etag (get @import-map path)))
 
 (def four-oh-four
@@ -196,7 +197,6 @@
      :body (pig->html (index-html))}
     four-oh-four))
 
-
 (defn handler [req]
   (if-let [file (find-resource (:path req))]
     (file-response (get-in req [:headers "if-none-match"]) file)
@@ -211,7 +211,9 @@
           (if (fs:existsSync file)
             (if (= ["package.pig"] more)
               (package-pig-response pkg-path pkg-loc file)
-              (file-response (get-in req [:headers "if-none-match"]) file))
+              (do
+                ;; (println "GET" (:path req) '-> file)
+                (file-response (get-in req [:headers "if-none-match"]) file)))
             (handle-missing req)))))))
 
 ;; TODO: Handle wildcards
@@ -246,7 +248,7 @@
         (let [npm-pkg-loc  (str loc "/node_modules/" dir)
               package_json (js:JSON.parse (fs:readFileSync (str npm-pkg-loc "/package.json")))]
           (swap! import-map into
-            (expand-exports dir npm-pkg-loc (:exports package_json))))))
+            (expand-exports dir npm-pkg-loc (or (:exports package_json) (:main package_json)))))))
     (await
       (js:Promise.all
         (map (fn ^:async handle-dep [[alias dep-spec]]
