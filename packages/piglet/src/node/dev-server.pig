@@ -179,7 +179,7 @@
                                             (keys @import-map)))}))]
     [:script {:type "application/javascript"
               :src "https://unpkg.com/source-map@0.7.3/dist/source-map.js"}]
-    [:script {:type "module" :src "/piglet/lib/piglet/browser/main.mjs?verbosity=1"}]
+    [:script {:type "module" :src "/piglet/lib/piglet/browser/main.mjs?verbosity=0"}]
     [:script {:type "piglet"}
      (print-str
        '(load-package "/self"))

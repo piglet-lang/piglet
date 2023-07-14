@@ -204,13 +204,8 @@
   (set! (.-required (ensure-module mod)) false)
   (require mod))
 
-(defn count [o]
-  (if (satisfies? Counted o)
-    (-count o)
-    (.-length (js:Array.from o))))
-
 (defmacro when [cond & body]
-  (list 'if cond (cons 'do body)))
+  `(if ~cond (do ~@body)))
 
 (defmacro if-let [binding if-true if-false]
   `(let ~binding
@@ -322,12 +317,10 @@
 ;; More API in no particular order
 
 (defmacro time [& body]
-  (let [start (gensym "start")
-        result (gensym "result")]
-    (list 'let [start '(js:Date.)
-                result (list 'do body)]
-      (list 'println (list '- '(js:Date) start) )
-      result)))
+  `(let [start# (js:Date.)
+         result# (do ~@body)]
+     (println (- (js:Date.) start#) "ms")
+     result#))
 
 (defn comp [& fns]
   (fn [& args]
