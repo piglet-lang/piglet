@@ -7,19 +7,52 @@ project right now, then this should help you get going.
 
 Requirements: Nodejs >=17
 
-The easiest way to get started is the `bin/piglet` script. You can symlink this
-from somewhere on your `PATH` to get a `piglet` command in your shell.
+Some appetisers
 
-Without any arguments this drops you into a REPL, or can you can specify
-expressions (-e), packages (-p), or modules (-i) to load and run.
+[source,shell]
+----
+npm install -g piglet-lang@latest
 
-Under the hood this just invokes node like this, but it does a couple of extra
-things for convenience.
+# Drop into a REPL
+piglet
+
+# Run expression and exit
+piglet -e '(println (time (reduce + (range 10000))))'
+
+# Dev server for frontend dev
+piglet -i piglet:node/dev-server
+
+# Piglet Dev Protocol client for browser integration
+# (Requires a running server, e.g. inside emacs)
+piglet -i piglet:pdp-client
+
+# Hot reload Piglet's own code (JS code, not Piglet code), and allow
+# connecting from Chromium devtools (look for the green button, top left)
+piglet --devtools
+
+# See emitted Javascript
+piglet -v
+----
+
+As shown here you can get access to the `piglet` script by installing the
+`piglet-lang` package with npm/pnpm. You can also run it through npx (`npx
+piglet-lang@latest`), but that adds a significant overhead to startup.
+
+You can also just clone the repo and symlink `bin/piglet` to somewhere on your
+`PATH`.
+
+Without any arguments the `piglet` command drops you into a REPL, or can you can
+specify expressions (-e), packages (-p), or modules (-i) to load and run.
+
+Under the hood this just invokes node like this, which is itself a fairly basic
+Node.js sript to load the compiler and interpret command line flags.
 
 [source,shell]
 ----
 node lib/piglet/node/main.mjs
 ----
+
+The `piglet` wrapper script does do a couple of extra things for convenience.
 
 * Resolves the path to `node/main.mjs` based on the location of the script, so
   you can call it from anywhere
@@ -71,8 +104,58 @@ See below for setting up Emacs.
 
 Piglet itself is written to run in the browser from source without any
 additional tooling or compilation, you just need something to serve up the files
-over HTTP. The easiest way to get started is by using the jsDeliver CDN, which
-will pull files from the npm release:
+over HTTP. 
+
+==== With `piglet:node/dev-server` 
+
+In principle you don't need any tooling to run Piglet, but when doing in-browser
+dev there's a significant amount of wiring, especially when depending on other
+piglet packages, or on npm packages (or piglet packages which depend on nodejs
+packages). That's why we created the dev-server, which will generate an
+`index.html`, rewrite your `package.pig` files so the browser knows where to
+load things from, and generate an `importmap` so npm packages can be imported
+with plain specifiers.
+
+To use this, create a `package.pig` with a `:pkg:main` entry
+
+[source,piglet]
+----
+;; package.pig
+{:pkg:paths ["src"]
+ :pkg:main webproj}
+----
+
+And create a main module:
+
+[source,piglet]
+----
+;; src/webpro.pig
+(module webproj)
+
+(js:alert "it works!")
+----
+
+Now run the dev-server, and open your browser at localhost:1234.
+
+[source,shell]
+----
+piglet -i piglet:node/dev-server
+----
+
+You can put static assets under `public/`, they will be served at the root.
+
+Currently the dev-server is not really configurable yet, so there are a bunch of
+behaviors that you may or may not want. Currently it sets verbosity to 0, loads
+a pdp-client, and includes source-maps. Once we add a `-m`/`--main` flag to
+`piglet` that will become the way to invoke the dev-server, and will allow you
+to pass in command line flags.
+
+===== Without the dev-server
+
+What follows is how it used to work, and it's still interesting documentation to
+see how to set things up yourself. The easiest way to get started without the
+dev-server is by using the jsDeliver CDN, which will pull files from the npm
+release:
 
 [source,html]
 ----
@@ -173,7 +256,9 @@ A piglet web project could look like this:
 Where from `index.html` you do `(load-package js:window.location)`, and then
 continue to require your main module.
 
-The `http-server` package can be useful here.
+The `http-server` package can be useful here. Note that you'll have to run a
+separate http-sever in each piglet package you're depending on. Make sure to
+enable `--cors` so requests between them don't get blocked.
 
 [source,shell]
 ----
@@ -299,7 +384,7 @@ which in turn ensures that jump-to-definition can do its job.
 mkdir my-proj
 cd my-proj
 cat <<EOF > package.pig
-{:pkg:name https://example.com/my-pkg
+{;; :pkg:name https://example.com/my-pkg  ; optional
  :pkg:paths ["src"]
  :pkg:deps {}}
 EOF
