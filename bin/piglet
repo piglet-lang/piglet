@@ -11,7 +11,7 @@
 # Using a bash-ism here because to do this in POSIX in the face of symlinks is _very_ tedious, see https://stackoverflow.com/a/29835459
 PIGLET_HOME="$(dirname "$(realpath $0)")/.."
 
-RLWRAP="$(which rlwrapx)"
+RLWRAP="$(which rlwrap)"
 
 if [ -z "$RLWRAP" ]; then
     echo "rlwrap not found on PATH, make sure it's installed for history and line editing in the REPL."
@@ -24,12 +24,12 @@ if [ "$1" = "--devtools" ]; then
         pnpm i -g nodemon
     fi
 
-    if [ -z "$RLWRAP"]; then
+    if [ -z "$RLWRAP" ]; then
         exec nodemon --watch "${PIGLET_HOME}" --inspect "${PIGLET_HOME}/lib/piglet/node/main.mjs" "--" "$@"
     fi
     exec "$RLWRAP" nodemon --watch "${PIGLET_HOME}" --inspect "${PIGLET_HOME}/lib/piglet/node/main.mjs" "--" "$@"
 else
-    if [ -z "$RLWRAP"]; then
+    if [ -z "$RLWRAP" ]; then
         exec node "${PIGLET_HOME}/lib/piglet/node/main.mjs" "$@"
     fi
     exec "$RLWRAP" node "${PIGLET_HOME}/lib/piglet/node/main.mjs" "$@"

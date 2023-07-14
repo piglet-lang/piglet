@@ -28,9 +28,9 @@
         "nodemon": "^2.0.21",
         "readline-history": "^1.2.0"
     },
-    "bin": {
-        "piglet": "lib/piglet/node/main.mjs",
-        "piglet-lang": "lib/piglet/node/main.mjs"
+    "scripts": {
+        "piglet": "bin/piglet",
+        "piglet-lang": "bin/piglet"
     },
     "exports": {
         ".": "./lib/piglet/lang.mjs",
