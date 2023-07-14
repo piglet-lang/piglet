@@ -1,15 +1,5 @@
 # Unreleased
 
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.0.22 (2023-07-14 / 5e2ac4)
-
-## Fixed
-
 - `bin/piglet` tweaks
 
 # 0.0.21 (2023-07-14 / 9bda98)

@@ -28,7 +28,7 @@
         "nodemon": "^2.0.21",
         "readline-history": "^1.2.0"
     },
-    "scripts": {
+    "bin": {
         "piglet": "bin/piglet",
         "piglet-lang": "bin/piglet"
     },
