@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Convenience entrypoint "for now". You can symlink this from somewhere on your
-# PATH so you can call `piglet` from anywhere.
+# PATH so you can call `piglet` from anywhere. This is also the main executable
+# we expose for npm/npx.
 #
 # Adds a `--devtools` option which runs piglet through nodemon, so you get hot
 # reload in node while working on piglet itself, and it runs node with the
@@ -10,14 +11,26 @@
 # Using a bash-ism here because to do this in POSIX in the face of symlinks is _very_ tedious, see https://stackoverflow.com/a/29835459
 PIGLET_HOME="$(dirname "$(realpath $0)")/.."
 
-if [ "$1" = "--devtools" ]; then
-  shift
-  # not using npx because it messes up rlwrap
-  if [ -z "$(which nodemon)" ]; then
-    pnpm i -g nodemon
-  fi
+RLWRAP="$(which rlwrapx)"
 
-  exec rlwrap nodemon --watch "${PIGLET_HOME}" --inspect "${PIGLET_HOME}/lib/piglet/node/main.mjs" "--" "$@"
+if [ -z "$RLWRAP" ]; then
+    echo "rlwrap not found on PATH, make sure it's installed for history and line editing in the REPL."
+fi
+
+if [ "$1" = "--devtools" ]; then
+    shift
+    # not using npx because it messes up rlwrap
+    if [ -z "$(which nodemon)" ]; then
+        pnpm i -g nodemon
+    fi
+
+    if [ -z "$RLWRAP"]; then
+        exec nodemon --watch "${PIGLET_HOME}" --inspect "${PIGLET_HOME}/lib/piglet/node/main.mjs" "--" "$@"
+    fi
+    exec "$RLWRAP" nodemon --watch "${PIGLET_HOME}" --inspect "${PIGLET_HOME}/lib/piglet/node/main.mjs" "--" "$@"
 else
-  exec rlwrap node "${PIGLET_HOME}/lib/piglet/node/main.mjs" "$@"
+    if [ -z "$RLWRAP"]; then
+        exec node "${PIGLET_HOME}/lib/piglet/node/main.mjs" "$@"
+    fi
+    exec "$RLWRAP" node "${PIGLET_HOME}/lib/piglet/node/main.mjs" "$@"
 fi

@@ -5,38 +5,38 @@ project right now, then this should help you get going.
 
 === Running inside nodejs
 
-Requirements: Nodejs >=18 (we need parseArgs)
+Requirements: Nodejs >=17
 
-There’s a `main.mjs` for Node.js which can drop you into a REPL, or can
-load and run files or modules you give it.
+The easiest way to get started is the `bin/piglet` script. You can symlink this
+from somewhere on your `PATH` to get a `piglet` command in your shell.
+
+Without any arguments this drops you into a REPL, or can you can specify
+expressions (-e), packages (-p), or modules (-i) to load and run.
+
+Under the hood this just invokes node like this, but it does a couple of extra
+things for convenience.
 
 [source,shell]
 ----
 node lib/piglet/node/main.mjs
 ----
 
-The `bin/piglet` script does the same, but with some added conveniences.
-
-* Resolves the path to `node/main.mjs` based on the location of the
-script, so you can call it from anywhere
-* Calls piglet with `rlwrap`, so you get REPL history and editing
+* Resolves the path to `node/main.mjs` based on the location of the script, so
+  you can call it from anywhere
+* Calls piglet with `rlwrap` (if it's available), so you get REPL history and
+  line editing
 * Adds a `--devtools` flag (see below)
-
-You should symlink `bin/piglet` to somewhere on your `$PATH`, so you can
-just invoke piglet from anywhere with `piglet`. What follows assumes you
-have that done
 
 Command line flags:
 
-* `-p`: load a package given a path of a directory containing a
-`package.pig` file. Does not load any actual code, but allows importing
-modules from the package with `-i` or from code. Alternatively use
-`:pkg:deps` in `package.edn`
-* `-i`: import a module, using `package:module`,
-e.g. `-i piglet:pdp-client` or `-i https://example.com/my-pkg:my-mod`
-* `-v`: inrease verbosity, when using the REPL this will print out
-intermediate steps in the evaluation, like the form, generated JS code,
-or AST
+* `-p`: register a package given a path of a directory containing a
+  `package.pig` file. Does not load any actual code, but allows importing
+  modules from the package with `-i` or from code. Alternatively use `:pkg:deps`
+  in `package.pig`
+* `-i`: import a module, using `package:module`, e.g. `-i piglet:pdp-client` or
+  `-i https://example.com/my-pkg:my-mod`
+* `-v`: inrease verbosity, when using the REPL this will print out intermediate
+  steps in the evaluation, like the form, generated JS code, or AST
 
 You can also pass positional arguments, which should be paths to `.pig`
 script files. These will be evaluated in order.
