@@ -10,6 +10,9 @@ dependencies:
   jsdom:
     specifier: ^22.1.0
     version: 22.1.0
+  mime-db:
+    specifier: ^1.52.0
+    version: 1.52.0
   p5:
     specifier: ^1.6.0
     version: 1.6.0

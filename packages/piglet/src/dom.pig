@@ -8,9 +8,9 @@
       parent)))
 
 (defn create-el [doc xmlns tag]
-  (if xmlns
-    (.createElementNS doc xmlns tag)
-    (.createElement doc tag)))
+  (if tag
+    (.createElementNS doc xmlns (name tag))
+    (.createElement doc (name xmlns))))
 
 (defn fragment [doc els]
   (let [fragment (.createDocumentFragment doc)]
@@ -27,7 +27,7 @@
 (defn el-by-id [doc id]
   (.getElementById doc id))
 
-(defn query [el qry]
+(defn query-one [el qry]
   (.querySelector el qry))
 
 (defn query-all [el qry]
@@ -118,7 +118,9 @@
         (keyword? (first form))
         (qname? (first form)))
       (let [[tag-ns tag attrs children] (split-el form)
-            el (create-el doc tag-ns tag)]
+            el (if tag-ns
+                 (create-el doc tag-ns tag)
+                 (create-el doc tag))]
         (set-attrs el attrs)
         (when (seq children)
           (doseq [c children]
@@ -137,16 +139,16 @@
 (defonce LISTENERS (js:Symbol (str `LISTENERS)))
 
 (defn listen! [el k evt f]
-  (when (not (oget el LISTENERS))
-    (oset el LISTENERS (reference {})))
-  (let [listeners (oget el LISTENERS)]
+  (when (not (get el LISTENERS))
+    (assoc! el LISTENERS (reference {})))
+  (let [listeners (get el LISTENERS)]
     (when-let [l (get-in @listeners [k evt])]
       (.removeEventListener el evt k))
     (swap! listeners assoc-in [k evt] f)
     (.addEventListener el evt f)))
 
 (defn unlisten! [el k evt]
-  (let [listeners (oget el LISTENERS)]
+  (let [listeners (get el LISTENERS)]
     (when-let [l (get-in @listeners [k evt])]
       (.removeEventListener el evt k)
       (swap! listeners update k dissoc evt))))

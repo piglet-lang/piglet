@@ -56,6 +56,60 @@ invocation.
 (.-length "xxx")
 -------------------
 
+Note that this is a low-level way of accessing properties, which will always do
+a simple JS object property lookup. Generally you can look up properties in JS
+objects the same way you do in Piglet dictionaries.
+
+[source,piglet]
+-------------------
+(:oink #js {:oink "OINK"})
+(get {:oink "OINK"} :oink)
+-------------------
+
+== Manipulating data
+
+Generally working with JS collections (arrays and objects, Set and Map
+instances), you can simply use the same functions you use with Piglet
+collections like dictionaries and lists.
+
+- `conj`
+- `assoc`
+- `dissoc`
+- `into`
+- `get`
+- `get-in`
+- `assoc-in`
+- `update`
+- `update-in`
+
+But note that these are all pure functions, they don't change the collection you
+pass them, but instead create a new one. In other words: they need to copy over
+the entire collection each time you call them. This means that update and insert
+operations will get slower the more elements there are in the collection. This
+isn't so much a concern with Piglet's data structures since those are designed
+so we don't need to copy the entire collection (or at least they will be once we
+get around to it).
+
+We also have versions of these functions that do change the collection
+"in-place".
+
+- `conj!`
+- `assoc!`
+- `dissoc!`
+- `into!`
+- `assoc-in!`
+- `update!`
+- `update-in!`
+
+[source,piglet]
+-------------------
+(let [x #js {}]
+  (assoc-in! x [:x :y] 1)
+  (update-in! x [:x :y] inc)
+  x)
+=> #js {:x #js {:y 2}}
+-------------------
+
 == Protocol support
 
 JavaScript built-ins like Arrays, Objects, but also Map instances, ArrayBuffer,
@@ -75,7 +129,7 @@ Arrays can be destructured.
 => ("foo--1")
 -------------------
 
-Converselt, all Piglet datastructures implement Symbol.iterator. So you can
+Conversely, all Piglet datastructures implement Symbol.iterator. So you can
 generally use them in JavaScript functions that take some kind of iterable
 collection.
 
@@ -86,31 +140,6 @@ collection.
 (js:Array.from (range 5))
 ;; #js [0, 1, 2, 3, 4]
 -------------------
-
-== Object API
-
-JavaScript Object leads a bit of a double life, it is used as a generic
-key-value container (as seen in JSON), but it also acts as the basis for any
-constructed Objects based on classes or prototypes.
-
-This leads to a bit of a conundrum, for simple value objects it would be
-appealing to extend Piglet's built-ins that also work with Dicts, but this
-behavior would generally not make sense for constructed objects (with a type and
-methods).
-
-For this reason we've decided to be explicit when dealing with JavaScript
-objects, by creating a parallel API that mirrors a lot of the functions that
-work with dicts, but that instead work with objects. These all start with an `o`
-
-- `oget`
-- `oset`
-- `oassoc`
-- `okeys`
-- `ovals`
-
-Note that `js:Object` does implement the `Seqable` protocol, so you can use
-plain Object instances with any sequence functions like `map`, `filter`, or
-`reduce`.
 
 == Working with promises
 

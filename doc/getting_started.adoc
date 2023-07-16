@@ -18,6 +18,7 @@ piglet
 
 # Run expression and exit
 piglet -e '(println (time (reduce + (range 10000))))'
+piglet -e "(run! println (sort (keys (find-module 'piglet:lang))))"
 
 # Dev server for frontend dev
 piglet -i piglet:node/dev-server

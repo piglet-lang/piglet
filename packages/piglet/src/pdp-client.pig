@@ -19,7 +19,7 @@
   (filter (fn [n]
             (.startsWith n prefix))
     (map (fn [v] (.-name v))
-      (ovals (.-vars mod)))))
+      (vals mod))))
 
 (set!
   (.-onmessage conn)

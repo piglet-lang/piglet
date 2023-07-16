@@ -22,6 +22,22 @@
                  (not (piglet-object? o))
                  (= "object" (typeof o)))))
 
+(def special-form?
+  (fn* [o]
+    (or
+      (= o 'fn*)
+      (= o 'def)
+      (= o 'quote)
+      (= o 'if)
+      (= o 'defmacro)
+      (= o 'await)
+      (= o 'new)
+      (= o 'let)
+      (= o 'set!)
+      (= o 'do)
+      (= o 'module)
+      (= o 'throw))))
+
 (def syntax-quote*
   (fn* syntax-quote* [form gensyms]
     (if (list? form)
@@ -57,27 +73,31 @@
             form)
 
           (if (symbol? form)
-            (if (= "#" (last (name form)))
-              (let [sym-name (.replace (name form) "#" "")
-                    gsym (oget gensyms sym-name (gensym sym-name))]
-                (oset gensyms sym-name gsym)
-                (list 'quote gsym))
+            (if (special-form? form)
+              (list 'quote form)
+              (if (= "#" (last (name form)))
+                (let [sym-name (.replace (name form) "#" "")
+                      gsym (get gensyms sym-name (gensym sym-name))]
+                  (assoc! gensyms sym-name gsym)
+                  (list 'quote gsym))
 
-              (if (= "." (last (name form)))
-                (let [vname (.slice (name form) 0 -1)
-                      var (resolve (symbol vname))]
-                  (if var
-                    (list 'quote (symbol (str (.-fqn var) ".")))
-                    (list 'quote form)))
-                (let [var (resolve form)]
-                  (if var
-                    (list 'quote (.-fqn var))
-                    (list 'quote form)))))
+                (if (= "." (last (name form)))
+                  (let [vname (.slice (name form) 0 -1)
+                        var (resolve (symbol vname))]
+                    (if var
+                      (list 'quote (symbol (str (.-fqn var) ".")))
+                      (list 'quote form)))
+                  (let [var (resolve form)]
+                    (if var
+                      (list 'quote (.-fqn var))
+                      (if (= "." (first (name form)))
+                        (list 'quote form)
+                        (list 'quote (qsym (str *current-module* ":" form)))))))))
 
             (if (object? form)
               (reduce
                 (fn* [acc kv]
-                  (oset acc (first kv) (syntax-quote* (second kv) gensyms)))
+                  (assoc! acc (first kv) (syntax-quote* (second kv) gensyms)))
                 #js {}
                 (js:Object.entries form))
 
@@ -165,7 +185,7 @@
         inner-fn `(conj! ~result ~@body)]
     `(let [~result #js []]
        (doseq ~binds ~inner-fn)
-       ~result)))
+       (apply list ~result))))
 
 (defn -for-async [binds body]
   (let [lrs (partition 2 binds)
@@ -243,8 +263,19 @@
     (apply update coll (first path) f args)
     (apply update-in coll (butlast path) update (last path) f args)))
 
+(defn update! [coll k f & args]
+  (assoc! coll k (apply f (get coll k) args)))
+
+(defn update-in! [coll path f & args]
+  (if (= 1 (count path))
+    (apply update! coll (first path) f args)
+    (apply update-in! coll (butlast path) update (last path) f args)))
+
 (defn assoc-in [coll path v]
   (update-in coll (butlast path) assoc (last path) v))
+
+(defn assoc-in! [coll path v]
+  (update-in! coll (butlast path) assoc! (last path) v))
 
 ;; Protocols
 
@@ -408,23 +439,7 @@
     (=== false o)))
 
 (defn object [& kvs]
-  (let [o #js {}]
-    (doseq [[k v] (partition 2 kvs)]
-      (oset o (if (or
-                    (instance? js:Symbol k)
-                    (string? k))
-                k
-                (name k))
-        v))))
-
-(defn oassoc [o & kvs]
-  (let [o (js:Object.assign #js {} o)]
-    (doseq [[k v] (partition 2 kvs)]
-      (oset o k v)
-      o)))
-
-(defn okeys [o] (js:Object.keys o))
-(defn ovals [o] (js:Object.values o))
+  (apply assoc! #js {} kvs))
 
 (defn type-name [o]
   (when (.-constructor o)
@@ -487,7 +502,7 @@
 ;;       (dict? o)
 ;;       (let [obj #js {}]
 ;;         (doseq [[k v] o]
-;;           (oset obj (if (or
+;;           (assoc! obj (if (or
 ;;                           (instance? js:Symbol k)
 ;;                           (string? k))
 ;;                       k
@@ -547,9 +562,9 @@
             (assoc (realize-dict)
               k v))
           Lookup
-          (-get [_ k] (-with-cache cache [:key k] (->pig (oget o k))))
+          (-get [_ k] (-with-cache cache [:key k] (->pig (get o k))))
           (-get [_ k v] (if (js:Object.hasOwn o (name k))
-                          (-with-cache cache [:key k] (->pig (oget o k)))
+                          (-with-cache cache [:key k] (->pig (get o k)))
                           v))
           Conjable
           (-conj [this [k v]] (assoc this k v))
@@ -635,10 +650,10 @@
     (filter (fn [n]
               (.includes n s))
       (map (fn [v] (.-name v))
-        (ovals
-          (.-vars (if (instance? Module mod)
-                    mod
-                    (find-module mod))))))))
+        (vals
+          (if (instance? Module mod)
+            mod
+            (find-module mod)))))))
 
 (defn run! [f coll]
   (reduce (fn [_ o]

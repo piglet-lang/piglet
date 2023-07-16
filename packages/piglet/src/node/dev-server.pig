@@ -115,13 +115,23 @@
         {:status 500
          :body (str "Error loading file: " err)}))))
 
-(defn import-map-response [etag path]
-  ;; (println "GET" (str "/npm/" path) '-> (get @import-map path))
-  (file-response etag (get @import-map path)))
-
 (def four-oh-four
   {:status 404
    :body ""})
+
+(defn import-map-response [etag path]
+  (if-let [file (get @import-map path)]
+    ;; (println "GET" (str "/npm/" path) '-> (get @import-map path)))
+    (file-response etag (get @import-map path))
+    ;; Handle wildcards
+    (if-let [loc (some (fn [[pkg loc]]
+                         (when (and (= "/" (last pkg))
+                                 (.startsWith path pkg))
+                           (path:resolve (str loc "/")
+                             (.replace path pkg ""))))
+                   @import-map)]
+      (file-response etag loc)
+      four-oh-four)))
 
 (defn ^:async slurp-package-pig [pkg-pig-loc]
   (-> pkg-pig-loc
@@ -161,11 +171,11 @@
      :body (print-str (munge-and-store-pkg-pig pkg-pig pkg-loc))}))
 
 (defn pig->html [h]
-  (str "<!DOCTYPE html>\n")
-  (.-outerHTML
-    (dom:dom
-      (.-window.document (jsdom:JSDOM. ""))
-      h)))
+  (str "<!DOCTYPE html>\n"
+    (.-outerHTML
+      (dom:dom
+        (.-window.document (jsdom:JSDOM. ""))
+        h))))
 
 (defn index-html []
   [:html
@@ -177,8 +187,8 @@
                                           (map (fn [k]
                                                  [k (str "/npm/" k)])
                                             (keys @import-map)))}))]
-    [:script {:type "application/javascript"
-              :src "https://unpkg.com/source-map@0.7.3/dist/source-map.js"}]
+    #_[:script {:type "application/javascript"
+                :src "https://unpkg.com/source-map@0.7.3/dist/source-map.js"}]
     [:script {:type "module" :src "/piglet/lib/piglet/browser/main.mjs?verbosity=0"}]
     [:script {:type "piglet"}
      (print-str
@@ -216,18 +226,29 @@
                 (file-response (get-in req [:headers "if-none-match"]) file)))
             (handle-missing req)))))))
 
-;; TODO: Handle wildcards
+(defn str/butlast [s]
+  (.substring s 0 (dec (.-length s))))
+
 ;; TODO: scope imports to piglet package
 (defn expand-exports [npm-pkg-name npm-pkg-loc exports]
   (cond
     (string? exports)
-    [[npm-pkg-name (path:resolve (str npm-pkg-loc "/") exports)]]
+    (if (= "*" (last npm-pkg-name) (last exports))
+      [[(str/butlast npm-pkg-name)
+        (path:resolve (str npm-pkg-loc "/") (str/butlast exports))]]
+      [[npm-pkg-name (path:resolve (str npm-pkg-loc "/") exports)]])
+
+    (:browser exports)
+    (expand-exports npm-pkg-name npm-pkg-loc (:browser exports))
+
+    (:development exports)
+    (expand-exports npm-pkg-name npm-pkg-loc (:development exports))
 
     (:import exports)
-    [[npm-pkg-name (path:resolve (str npm-pkg-loc "/") (:import exports))]]
+    (expand-exports npm-pkg-name npm-pkg-loc (:import exports))
 
     (:default exports)
-    [[npm-pkg-name (path:resolve (str npm-pkg-loc "/") (:default exports))]]
+    (expand-exports npm-pkg-name npm-pkg-loc (:default exports))
 
     :else
     (apply concat
@@ -242,26 +263,32 @@
 
 (defn ^:async register-package [loc]
   (let [pkg-pig (await (slurp-package-pig (str loc "/package.pig")))
-        munged (munge-and-store-pkg-pig pkg-pig loc)]
-    (doseq [dir (fs:readdirSync (str loc "/node_modules"))]
-      (when (not (= "." (first dir)))
-        (let [npm-pkg-loc  (str loc "/node_modules/" dir)
-              package_json (js:JSON.parse (fs:readFileSync (str npm-pkg-loc "/package.json")))]
-          (swap! import-map into
-            (expand-exports dir npm-pkg-loc (or (:exports package_json) (:main package_json)))))))
+        munged (munge-and-store-pkg-pig pkg-pig loc)
+        node-mod-path (str loc "/node_modules")]
+    (when (fs:existsSync node-mod-path)
+      (doseq [dir (fs:readdirSync node-mod-path)]
+        (when (not (= "." (first dir)))
+          (let [npm-pkg-loc  (str node-mod-path "/" dir)
+                package_json (js:JSON.parse (fs:readFileSync (str npm-pkg-loc "/package.json")))]
+            (swap! import-map into
+              (expand-exports dir npm-pkg-loc
+                (or (:exports package_json) (:main package_json))))))))
     (await
       (js:Promise.all
         (map (fn ^:async handle-dep [[alias dep-spec]]
-               (println pkg-pig loc (:pkg:location dep-spec))
                (await (register-package (path:resolve loc (:pkg:location dep-spec)))))
           (:pkg:deps pkg-pig))))))
 
 (def port 1234)
 
 (defn ^:async main []
-  (let [pkg-pig (await (slurp-package-pig (str (process:cwd) "/package.pig")))]
-    (when-let [main (:pkg:main pkg-pig)]
-      (reset! main-module main)))
+  (let [pkg-pig-loc (str (process:cwd) "/package.pig")]
+    (when (not (fs:existsSync pkg-pig-loc))
+      (println "WARN: package.pig not found, creating stub")
+      (spit "package.pig" ";; stub package.pig created by dev-server\n{:pkg:path [\"src\"]\n :pkg:main main}"))
+    (let [pkg-pig (await (slurp-package-pig pkg-pig-loc))]
+      (when-let [main (:pkg:main pkg-pig)]
+        (reset! main-module main))))
   (await (register-package (process:cwd)))
 
   (let [server (http:create-server
