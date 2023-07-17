@@ -2,6 +2,14 @@
 
 ## Added
 
+## Fixed
+
+## Changed
+
+# 0.0.24 (2023-07-17 / d83ceb)
+
+## Added
+
 - Provide more bang versions (`assoc!`, `dissoc!`, `update-in!`) that mutate
 - Implement hashable for Function, RegExp, Boolean, BigInt, Array, Symbol, ...
 - Support Ctrl-D in the REPL
