@@ -1,5 +1,7 @@
 (module pdp-client
-  (:import [cbor :from "./cbor.mjs"]))
+  (:import
+    [cbor :from "./cbor.mjs"]
+    [str :from piglet:string]))
 
 ;; Walking skeleton for a Piglet Dev Protocol client
 ;;
@@ -73,7 +75,7 @@
           (cond
             ;; TODO (.includes prefix "://")
             (.includes prefix ":")
-            (let [[alias suffix] (split ":" prefix)]
+            (let [[alias suffix] (str:split ":" prefix)]
               (if-let [mod (find-module (symbol alias))]
                 (reply {:candidates (map (fn [c] (str alias ":" c))
                                       (completion-candidates mod suffix))})

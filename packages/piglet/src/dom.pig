@@ -1,4 +1,6 @@
-(module dom)
+(module dom
+  (:import
+    [str :from piglet:string]))
 
 (defn extend-interfaces! [window]
   (extend-type (.-Node window)
@@ -40,7 +42,7 @@
       (.setProperty (.-style el) (name prop) val))
 
     (and (= :class k) (vector? v))
-    (.setAttribute el "classList" (join " " v))
+    (.setAttribute el "classList" (str:join " " v))
 
     :else
     (.setAttribute el (name k) v))

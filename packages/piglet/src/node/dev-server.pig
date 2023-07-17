@@ -1,6 +1,7 @@
 (module node/dev-server
   (:import
     piglet:dom
+    [str :from piglet:string]
     [http :from node/http-server]
     [fs :from "node:fs"]
     [fsp :from "node:fs/promises"]
@@ -84,7 +85,7 @@
       resource)))
 
 (defn media-type [filename]
-  (let [[type _ charset] (or (get ext->mime (last (split "." filename)))
+  (let [[type _ charset] (or (get ext->mime (last (str:split "." filename)))
                            [])]
 
     (cond
@@ -210,14 +211,14 @@
 (defn handler [req]
   (if-let [file (find-resource (:path req))]
     (file-response (get-in req [:headers "if-none-match"]) file)
-    (let [parts (rest (split "/" (:path req)))
+    (let [parts (rest (str:split "/" (:path req)))
           [pkg-path] parts
           ;; FIXME: [... & more] not yet working inside let
           more (rest parts)
           pkg-loc (get @package-locations pkg-path)]
       (if (= "npm" pkg-path)
-        (import-map-response (get-in req [:headers "if-none-match"]) (join "/" more))
-        (let [file (and pkg-loc (str pkg-loc "/" (join "/" more)))]
+        (import-map-response (get-in req [:headers "if-none-match"]) (str:join "/" more))
+        (let [file (and pkg-loc (str pkg-loc "/" (str:join "/" more)))]
           (if (fs:existsSync file)
             (if (= ["package.pig"] more)
               (package-pig-response pkg-path pkg-loc file)
@@ -237,6 +238,9 @@
       [[(str/butlast npm-pkg-name)
         (path:resolve (str npm-pkg-loc "/") (str/butlast exports))]]
       [[npm-pkg-name (path:resolve (str npm-pkg-loc "/") exports)]])
+
+    (array? exports)
+    (mapcat (fn [e] (expand-exports npm-pkg-name npm-pkg-loc e)) exports)
 
     (:browser exports)
     (expand-exports npm-pkg-name npm-pkg-loc (:browser exports))
@@ -268,11 +272,13 @@
     (when (fs:existsSync node-mod-path)
       (doseq [dir (fs:readdirSync node-mod-path)]
         (when (not (= "." (first dir)))
-          (let [npm-pkg-loc  (str node-mod-path "/" dir)
-                package_json (js:JSON.parse (fs:readFileSync (str npm-pkg-loc "/package.json")))]
-            (swap! import-map into
-              (expand-exports dir npm-pkg-loc
-                (or (:exports package_json) (:main package_json))))))))
+          (let [npm-pkg-loc   (str node-mod-path "/" dir)
+                pkg-json-path (str npm-pkg-loc "/package.json")]
+            (when (fs:existsSync pkg-json-path)
+              (let [package_json  (js:JSON.parse (fs:readFileSync pkg-json-path))]
+                (swap! import-map into
+                  (expand-exports dir npm-pkg-loc
+                    (or (:exports package_json) (:main package_json))))))))))
     (await
       (js:Promise.all
         (map (fn ^:async handle-dep [[alias dep-spec]]

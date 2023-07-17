@@ -22,3 +22,32 @@
 (defn replace [s match replace]
   (when s
     (.replaceAll s match replace)))
+
+;; separator first, for partial application
+(defn join [sep strings]
+  (.join (js:Array.from strings
+           ;; Prevent the idx argument being passed to str
+           (fn [s] (str s))) sep))
+
+(defn split [sep string]
+  (when string
+    (.split string sep)))
+
+(def split-kebap (partial split "-"))
+(def split-snake (partial split "_"))
+(def split-camel (comp
+                   (partial map downcase)
+                   (partial split /(?=[A-Z])/)))
+
+(def join-kebap (partial join "-"))
+(def join-snake (partial join "_"))
+(def join-camel (comp
+                  (partial join "")
+                  (partial map capitalize)))
+
+(def kebap->snake (comp join-snake split-kebap))
+(def kebap->camel (comp join-camel split-kebap))
+(def snake->kebap (comp join-kebap split-snake))
+(def snake->camel (comp join-camel split-snake))
+(def camel->kebap (comp join-kebap split-camel))
+(def camel->snake (comp join-snake split-camel))

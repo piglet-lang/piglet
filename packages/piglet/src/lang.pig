@@ -391,21 +391,15 @@
       x pairs)))
 
 (defn re-seq [re s]
-  (.match s (if (instance? js:RegExp re)
-              re
-              (js:RegExp. re "g"))))
+  (seq
+    (.matchAll s (if (instance? js:RegExp re)
+                 (if (.-global re)
+                   re
+                   (js:RegExp. (.-source re) (str (.-modifiers re) "g")) )
+                 (js:RegExp. re "g")))))
 
 (defn re-find [re s]
   (first (re-seq re s)))
-
-;; separator first, for partial application
-(defn join [sep strings]
-  (.join (js:Array.from strings
-           ;; Prevent the idx argument being passed to str
-           (fn [s] (str s))) sep))
-
-(defn split [sep string]
-  (.split string sep))
 
 (defn load-package [pkg-loc]
   (.then (.load_package *compiler* pkg-loc)
