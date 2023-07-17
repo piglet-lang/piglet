@@ -2,11 +2,35 @@
 
 ## Added
 
+- Provide more bang versions (`assoc!`, `dissoc!`, `update-in!`) that mutate
+- Implement hashable for Function, RegExp, Boolean, BigInt, Array, Symbol, ...
+- Support Ctrl-D in the REPL
+- dev-server: handle wildcards in "exports" in node modules package.json
+- dev-server: add doctype to index.html
+- dev-server: create a stub package.pig if missing
+- API: set?, assoc!, dissoc!, special-form?, update!, update-in!, assoc-in!
+
 ## Fixed
+
+- Syntax-quote: improve handling of symbols
+- JS interop docs update
+- Fix regression: empty lets are allowed
+- Change in policy: emitting undefined is allowed
+- Fix multi-arg (> 2) binary operators
+- Analyze forms inside set literals (allow computed values)
+- Make sure `for` returns a sequence/list (not a vector/array)
+- dev-server: don't die if node_modules is missing
 
 ## Changed
 
+- Drop the `oset`/`oget`/`okeys`/`oassoc`/... functions
+- Instead make regular `get`, `assoc` etc work with JS arrays/objects
+- Mak `type` also lookup the constructor on functions (for Keyword etc)
+- DOM API: rename query to query-one (vs query-all)
+    
 # 0.0.23 (2023-07-14 / 6bf6d0)
+
+## Changed
 
 - `bin/piglet` tweaks
 
