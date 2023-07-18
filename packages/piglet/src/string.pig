@@ -23,6 +23,18 @@
   (when s
     (.replaceAll s match replace)))
 
+(defn starts-with? [s prefix]
+  (when s
+    (.startsWith s prefix)))
+
+(defn ends-with? [s prefix]
+  (when s
+    (.endsWith s prefix)))
+
+(defn includes? [s substring]
+  (when s
+    (.includes s substring)))
+
 ;; separator first, for partial application
 (defn join [sep strings]
   (.join (js:Array.from strings
