@@ -2,6 +2,14 @@
 
 ## Added
 
+## Fixed
+
+## Changed
+
+# 0.0.25 (2023-07-18 / 9203b9)
+
+## Added
+
 - string module: upcase, downcase, subs, capitalize, join, split, {kebap,camel,snake}->{kebap,camel,snake}
 - regex syntax: /foo/imgs
 
