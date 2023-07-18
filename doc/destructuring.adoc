@@ -287,7 +287,7 @@ to have arbitrary object types opt-in to being ``destructible''.
 (def cool-pig
   (reify
     Lookup
-    (get [this k]
+    (-get [this k]
       (when (= k :groink)
         "wwwwassup you swinezzz?"))))
 
@@ -305,7 +305,7 @@ will be bound to `nil`.
 [source,piglet]
 ----
 (let [{sound :sound} (js:Map. [[:sound "oink"]])
-      {pig-name 2] ["peanut" "poppy" "teacup"]]
+      {pig-name 2} ["peanut" "poppy" "teacup"]]
   (str pig-name " goes " sound))
 => "teacup goes oink"
 ----
