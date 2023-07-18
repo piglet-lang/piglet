@@ -79,9 +79,12 @@
     (u:is (= 1 @(resolve 'y)))))
 
 
-;; (u:testing
-;;   "Sequential destructuring - variable sinkhole"
-;;   (u:is (= 3 (let [[_ _ c] (range 10)] c))))
+(u:testing
+  "Sequential destructuring - variable sinkhole"
+  ;; TODO: fix for let binding
+  ;; (u:is (= 3 (let [[_ _ c] (range 10)] c)))
+  (def [_ _ c] (range 10))
+  (u:is (= 2 @(resolve 'c))))
 
 ;; FIXME
 #_
@@ -105,7 +108,7 @@
         (swap! res conj [x xs]))
       (u:is (= [[0 [0]] [1 [1]] [2 [2]]] @res)))
     (let [res (reference [])]
-      (doseq [[x xs] (range 3)]
+      (doseq [[x & xs] (range 3)]
         (swap! res conj [x xs]))
       (u:is (= [[0 nil] [1 nil] [2 nil]] @res)))
     "def"
@@ -184,10 +187,15 @@
     (u:is (= [1 10 11 2 3]
             (let [[x [a b] & [m n]] [1 [10 11 12] 2 3 4]]
               [x a b m n])))
+    "def"
+    (def [x [y1 y2]] [0 [1 2]])
+    (u:is (= 0 @(resolve 'x)))
+    (u:is (= 1 @(resolve 'y1)))
+    (u:is (= 2 @(resolve 'y2)))
     ;; TODO: should throw syntax error
     ;; (u:is (= [1 2 [3 4]]
     ;;         (let [[x :as [row & row-rest]] [1 2 3 4]]
-    ;;           [x row row-rest]))))
+    ;;           [x row row-rest])))
     ))
 
 (u:testing
