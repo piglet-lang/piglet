@@ -2,9 +2,17 @@
 
 ## Added
 
+- string module: upcase, downcase, subs, capitalize, join, split, {kebap,camel,snake}->{kebap,camel,snake}
+- regex syntax: /foo/imgs
+
 ## Fixed
 
+- dev-server: deal with arrays in exports
+- dev-server: deal with missing package.json
+
 ## Changed
+
+- move join/split to string module
 
 # 0.0.24 (2023-07-17 / d83ceb)
 
