@@ -15,13 +15,6 @@
 
 (def list? (fn* [o] (instance? List o)))
 
-(def object? (fn* [o]
-               (and
-                 (not (nil? o))
-                 (not (array? o))
-                 (not (piglet-object? o))
-                 (= "object" (typeof o)))))
-
 (def special-form?
   (fn* [o]
     (or
@@ -393,10 +386,10 @@
 (defn re-seq [re s]
   (seq
     (.matchAll s (if (instance? js:RegExp re)
-                 (if (.-global re)
-                   re
-                   (js:RegExp. (.-source re) (str (.-modifiers re) "g")) )
-                 (js:RegExp. re "g")))))
+                   (if (.-global re)
+                     re
+                     (js:RegExp. (.-source re) (str (.-modifiers re) "g")) )
+                   (js:RegExp. re "g")))))
 
 (defn re-find [re s]
   (first (re-seq re s)))

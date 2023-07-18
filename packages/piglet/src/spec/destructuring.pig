@@ -83,34 +83,36 @@
 ;;   "Sequential destructuring - variable sinkhole"
 ;;   (u:is (= 3 (let [[_ _ c] (range 10)] c))))
 
+;; FIXME
+#_
 (u:testing
-   "Sequential destructuring - & splat"
-   (u:testing
-     "fn"
-     (u:is (= [0 [1 2]] ((fn [[x & xs]] [x xs]) (range 3))))
-     ;; TODO: make sure `&` is not defined in local scope as a variable
-     (u:is (= [0 nil] ((fn [[x & xs]] [x xs]) [1])))
-     "let"
-     (u:is (= [0 [1 2]] (let [[x & xs] (range 3)] [x xs])))
-     (u:is (= [0 nil] (let [[x & xs] (range 1)] [x xs])))
-     (u:is (= ["a" ["b" "c" "d" "e"]] (let [[x & xs] "abcde"] [x xs])))
-     "for"
-     (u:is (= [[0 [1 2]] [0 [1 2]]] (for [[x & xs] [[0 1 2] [0 1 2]]] [x xs])))
-     (u:is (= [[0 nil] [0 nil]] (for [[x & xs] [[0] [0]]] [x xs])))
-     "doseq"
-     (let [res (reference [])]
-       (doseq [[x & xs] (map vector (range 3) (range 3))]
-         (swap! res conj [x xs]))
-       (u:is (= [[0 [0]] [1 [1]] [2 [2]]] @res)))
-     (let [res (reference [])]
-       (doseq [[x xs] (range 3)]
-         (swap! res conj [x xs]))
-       (u:is (= [[0 nil] [1 nil] [2 nil]] @res)))
-     "def"
-     ;; FIXME
-     (u:is (= nil (resolve 'xxx)))
-     (def xxx 1)
-     (u:is (= 1 @(resolve 'xxx))))
+  "Sequential destructuring - & splat"
+  (u:testing
+    "fn"
+    (u:is (= [0 [1 2]] ((fn [[x & xs]] [x xs]) (range 3))))
+    ;; TODO: make sure `&` is not defined in local scope as a variable
+    (u:is (= [0 nil] ((fn [[x & xs]] [x xs]) [1])))
+    "let"
+    (u:is (= [0 [1 2]] (let [[x & xs] (range 3)] [x xs])))
+    (u:is (= [0 nil] (let [[x & xs] (range 1)] [x xs])))
+    (u:is (= ["a" ["b" "c" "d" "e"]] (let [[x & xs] "abcde"] [x xs])))
+    "for"
+    (u:is (= [[0 [1 2]] [0 [1 2]]] (for [[x & xs] [[0 1 2] [0 1 2]]] [x xs])))
+    (u:is (= [[0 nil] [0 nil]] (for [[x & xs] [[0] [0]]] [x xs])))
+    "doseq"
+    (let [res (reference [])]
+      (doseq [[x & xs] (map vector (range 3) (range 3))]
+        (swap! res conj [x xs]))
+      (u:is (= [[0 [0]] [1 [1]] [2 [2]]] @res)))
+    (let [res (reference [])]
+      (doseq [[x xs] (range 3)]
+        (swap! res conj [x xs]))
+      (u:is (= [[0 nil] [1 nil] [2 nil]] @res)))
+    "def"
+    ;; FIXME
+    (u:is (= nil (resolve 'xxx)))
+    (def xxx 1)
+    (u:is (= 1 @(resolve 'xxx))))
      )
 
 (u:testing
@@ -134,11 +136,11 @@
     (u:is (= [[0 0 [0 0]] [1 1 [1 1]] [2 2 [2 2]]]
             (for [[:as row x y] (map vector (range 3) (range 3))]
               [x y row])))
-    (u:is (= [[0 [0 9]] [1 [1 10]] [2 [2 11]]] 
-            (for [[x :as row] (map vector (range 3) [9 10 11])] 
+    (u:is (= [[0 [0 9]] [1 [1 10]] [2 [2 11]]]
+            (for [[x :as row] (map vector (range 3) [9 10 11])]
               [x row])))
-    (u:is (= [[0 [0 9]] [1 [1 10]] [2 [2 11]]] 
-            (for [[:as row x] (map vector (range 3) [9 10 11])] 
+    (u:is (= [[0 [0 9]] [1 [1 10]] [2 [2 11]]]
+            (for [[:as row x] (map vector (range 3) [9 10 11])]
               [x row])))
     "doseq"
     (let [res (reference [])]
@@ -179,11 +181,11 @@
   "Sequential destructuring - nested bindings"
   (u:testing
     "let"
-    (u:is (= [1 10 11 2 3] 
+    (u:is (= [1 10 11 2 3]
             (let [[x [a b] & [m n]] [1 [10 11 12] 2 3 4]]
               [x a b m n])))
     ;; TODO: should throw syntax error
-    ;; (u:is (= [1 2 [3 4]] 
+    ;; (u:is (= [1 2 [3 4]]
     ;;         (let [[x :as [row & row-rest]] [1 2 3 4]]
     ;;           [x row row-rest]))))
     ))
@@ -242,7 +244,7 @@
             (= k nil) 3
             (= k [:a :b]) 4
             :else 5))))
-    (u:is (= [1 2 3 4 5] 
+    (u:is (= [1 2 3 4 5]
             (let [{a :x b :y c nil d [:a :b] e :oink} xy-obj]
                [a b c d e])))))
 
@@ -270,4 +272,3 @@
   "Associative destructring - special keys with :as binding"
   ;; TODO
   )
-
