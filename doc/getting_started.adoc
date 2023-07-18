@@ -107,17 +107,6 @@ Piglet itself is written to run in the browser from source without any
 additional tooling or compilation, you just need something to serve up the files
 over HTTP. 
 
-==== Using the bookmarklet
-
-Drag this link to your bookmark toolbar:
-
-link:javascript:const%20piglet%20%3D%20document.createElement%28%27script%27%29%3B%20piglet.src%3D%27https%3A%2F%2Fcdn.jsdelivr.net%2Fnpm%2Fpiglet-lang%40latest%2Flib%2Fpiglet%2Fbrowser%2Fmain.mjs%27%3B%20piglet.type%3D%27module%27%3B%20const%20importmap%20%3D%20document.createElement%28%27script%27%29%3B%20importmap.type%3D%27importmap%27%3B%20importmap.innerHTML%3D%27%7B%22imports%22%3A%20%7B%22astring%22%3A%20%22https%3A%2F%2Fcdn.jsdelivr.net%2Fnpm%2Fastring%40latest%2Fdist%2Fastring.mjs%22%7D%7D%27%3B%20const%20code%20%3D%20document.createElement%28%27script%27%29%3B%20code.type%3D%27piglet%27%3B%20code.innerHTML%3D%22%28require%20%27piglet%3Apdp-client%29%22%3B%20document.head.append%28importmap%29%3B%20document.head.append%28code%29%3B%20document.head.append%28piglet%29%3B[PDP Bookmarklet]
-
-Then make sure your PDP server is running in your editor (see below), and then
-click on the bookmarklet to inject Piglet into the page, and connect to your
-editor. Tip: the `piglet:dom` module has some handy helpers for doing DOM
-querying and manipulation.
-
 ==== With `piglet:node/dev-server` 
 
 In principle you don't need any tooling to run Piglet, but when doing in-browser
@@ -286,6 +275,29 @@ The BrowserCompiler is able to generate source maps, which are inlined into the 
 ----
 <script type="application/javascript" src="https://unpkg.com/source-map@0.7.3/dist/source-map.js"></script>
 ----
+
+==== Using the bookmarklet
+
+We have a bookmarklet (a little bit of JavaScript that you can add to your
+browser as a bookmark) which can inject Piglet and a PDP client into any page,
+so that you can then interact with it (e.g. inspect the DOM) from your
+interactive editor. Open this page, it contains the bookmarklet link which you
+can drag to your browser bookmarks toolbar.
+
+link:https://unpkg.com/piglet-lang@latest/doc/bookmarklet.html[Bookmarklet]
+
+Then make sure your PDP server is running in your editor (see below), and then
+click on the bookmarklet to inject Piglet into the page, and connect to your
+editor. Tip: the `piglet:dom` module has some handy helpers for doing DOM
+querying and manipulation.
+
+Note that this won't work on all pages, depending on their CORS and CSP
+policies. If you want to use it to extract data out of HTML, and the site won't
+let you do it, then try saving the html as a file, and opening that file in your
+browser.
+
+(We might turn this into a browser extension later on, which should allow us to
+bypass some of these limitations.)
 
 === Setting up Emacs
 
