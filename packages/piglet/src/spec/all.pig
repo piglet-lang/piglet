@@ -39,7 +39,9 @@
     (u:is (= %r/
             This\ regex #
             /
-            (js:RegExp. "a/b")))))
+            (js:RegExp. "a/b")))
+    "stringify"
+    (u:is (= "%r/x/g" (str %r/x/g)))))
 
 (u:testing "QName"
   (u:testing
@@ -110,3 +112,11 @@
 (u:testing "Dynamic bindings"
   (u:is (= 3 (binding [#'*verbosity* 3] *verbosity*)))
   )
+
+;; Regressions
+
+(u:testing
+  "Map works on iterator (no double consumption)"
+  (u:is (= [["x"] ["x"] ["x"]]
+          (map identity
+            (.matchAll "xxx" %r/x/g)))))

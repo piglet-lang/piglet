@@ -77,6 +77,7 @@
         tag-name (re-find "[^#\\.]+" tag-str)
         id (re-find "[#][^#\\.]+" tag-str) ;; currently not supported in the reader for keywords, works for strings
         kls (re-seq "[\\.][^#\\.]+" tag-str)]
+
     [(.-base tag)
      tag-name
      (when id (.substring id 1))

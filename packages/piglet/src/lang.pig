@@ -384,7 +384,11 @@
       x pairs)))
 
 (defn re-seq [re s]
-  (seq
+  (map
+    (fn [x]
+      (if (= 1 (count x))
+        (first x)
+        x))
     (.matchAll s (if (instance? js:RegExp re)
                    (if (.-global re)
                      re
