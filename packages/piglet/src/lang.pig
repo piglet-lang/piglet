@@ -713,3 +713,12 @@
 (defmacro defmethod [name val & fn-tail]
   `(swap! (:methods ~name)
      assoc ~val (fn ~@fn-tail)))
+
+(defmacro binding [bindings & body]
+  `(do
+     ~@(for [[var val] (partition 2 bindings)]
+         `(.push_binding ~var ~val))
+     (let [res# (do ~@body)]
+       ~@(for [[var _] (partition 2 bindings)]
+           `(.pop_binding ~var))
+       res#)))

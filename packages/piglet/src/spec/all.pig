@@ -34,7 +34,12 @@
     (u:is (= %r"^a.*z$"m (js:RegExp. "^a.*z$" "m")))
     "escaping"
     (u:is (= %r"a\"b" (js:RegExp. "a\"b")))
-    (u:is (= %r/a\/b/ (js:RegExp. "a/b")))))
+    (u:is (= %r/a\/b/ (js:RegExp. "a/b")))
+    "freespacing (x)"
+    (u:is (= %r/
+            This\ regex #
+            /
+            (js:RegExp. "a/b")))))
 
 (u:testing "QName"
   (u:testing
@@ -100,6 +105,8 @@
     (u:is (not (set? nil)))
     (u:is (not (set? (js:Set.))))
     "Counted"
-    (u:is (= 2 (count #{1 2})))
-    )
+    (u:is (= 2 (count #{1 2})))))
+
+(u:testing "Dynamic bindings"
+  (u:is (= 3 (binding [#'*verbosity* 3] *verbosity*)))
   )
