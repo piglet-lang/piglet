@@ -2,6 +2,14 @@
 
 ## Added
 
+## Fixed
+
+## Changed
+
+# 0.1.26 (2023-07-20 / 606fbc)
+
+## Added
+
 - Associative destructuring (keys/syms/props/strs)
 - Syntax for regex: `%r/pattern/modifiers` (choose your own delimiters)
 - Free-spacing mode for regex with the `x` modifier: `%r"... whitespace-and-comments..."x`
