@@ -2,9 +2,28 @@
 
 ## Added
 
+- Associative destructuring (keys/syms/props/strs)
+- Syntax for regex: `%r/pattern/modifiers` (choose your own delimiters)
+- Free-spacing mode for regex with the `x` modifier: `%r"... whitespace-and-comments..."x`
+- %q(...) (strings) / %w[...] (words)
+- `binding` macro
+- `(var ...)` / `#'` special form
+- string API: conversions to/from dromedary case
+- stirng API: starts-with? ends-with? includes?
+- PDP Bookmarklet (see getting started docs)
+
 ## Fixed
 
+- Fixed map over iterators
+- re-find / re-seq: return the string match rather than an array if there are no capturing group
+- Fix walk over sets
+
 ## Changed
+
+- Hash codes are now cached in a weakmap, rather than on the object using a Symbol (because we can't set a property on frozen objects)
+- Give frozen js objects value-based hashes, other objects get identity (incrementing) hashes
+- `*verbosity*` is now a var rather than a compiler setting
+- When using one or more `-v`/`--verbose` flag, only up the verbosity after the piglet core has loaded
 
 # 0.0.25 (2023-07-18 / 9203b9)
 
