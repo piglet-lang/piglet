@@ -123,8 +123,17 @@
         fntail (if ?name (cons ?name fntail) fntail)]
     (cons 'fn* fntail)))
 
-(defmacro defn [name argv & body]
-  (list 'def name (apply list 'fn name argv body)))
+(def vary-meta (fn vary-meta [obj f & args]
+                 (with-meta obj (apply f (meta obj) args))))
+
+(defmacro defn [name doc-string? argv & body]
+  (let [[doc-string? argv body] (if (string? doc-string?)
+                                  [doc-string? argv body]
+                                  [nil doc-string? (cons argv body)])]
+    `(def ~(if doc-string?
+             (vary-meta name assoc :doc doc-string?)
+             name)
+       (fn ~name ~argv ~@body))))
 
 (defmacro cond [& args]
   (let [pairs (reverse (partition 2 args))]
