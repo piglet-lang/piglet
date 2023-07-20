@@ -133,7 +133,8 @@
     `(def ~(if doc-string?
              (vary-meta name assoc :doc doc-string?)
              name)
-       (fn ~name ~argv ~@body))))
+       ;; can't use ~@body here because concat is not yet defined
+       (fn ~name ~argv ~(cons 'do body)))))
 
 (defmacro cond [& args]
   (let [pairs (reverse (partition 2 args))]
