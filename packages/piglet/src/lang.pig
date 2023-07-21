@@ -146,11 +146,11 @@
 (defmacro cond [& args]
   (let [pairs (reverse (partition 2 args))]
     (reduce (fn [acc [test then]]
-              (list 'if test then acc)) nil pairs)))
+              `(if ~test ~then ~acc)) nil pairs)))
 
 (defmacro lazy-seq [& body]
   ;; can't use ~@body here because concat is not yet defined
-  (list 'make-lazy-seq (list 'fn* [] (cons 'do body))))
+  `(make-lazy-seq (fn* [] ~(cons 'do body))))
 
 (defn concat
   "Return a lazy seq by concatenating the items of two or
@@ -240,8 +240,8 @@
     (-for-sync binds body)))
 
 (defn macroexpand
-  "Return the expanded form of a macro form. The form
-   has to be a list (quoted) so that it is not evaluated. "
+  "Returns the expanded form of a macro form. The form
+   has to be a list (quoted) so that it is not evaluated."
   ^{:examples
     '[(macroexpand '(when true 10)) => '(if true (do 10))
       (macroexpand '(if-let [x 3] (inc x) 0)) => '(let [x 3] (if x (inc x) 0))]}
