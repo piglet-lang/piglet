@@ -123,16 +123,19 @@
         fntail (if ?name (cons ?name fntail) fntail)]
     (cons 'fn* fntail)))
 
-(def vary-meta (fn vary-meta [obj f & args]
+(def vary-meta (fn* vary-meta [obj f & args]
                  (with-meta obj (apply f (meta obj) args))))
 
 (defmacro defn [name doc-string? argv & body]
   (let [[doc-string? argv body] (if (string? doc-string?)
                                   [doc-string? argv body]
                                   [nil doc-string? (cons argv body)])]
-    `(def ~(if doc-string?
-             (vary-meta name assoc :doc doc-string?)
-             name)
+    `(def ~(vary-meta
+             (if doc-string?
+               (vary-meta name assoc :doc doc-string?)
+               name)
+             into
+             (dissoc (meta argv) :start :end :col :line))
        ;; can't use ~@body here because concat is not yet defined
        (fn ~name ~argv ~(cons 'do body)))))
 
@@ -160,12 +163,15 @@
 (defn inc
   "Return the increment (by 1) of the supplied number."
   [x] (+ x 1))
+
 (defn dec
   "Return the decrement (by 1) of the supplied number."
   [x] (- x 1))
+
 (defn identity
   "Return the argument supplied as is."
   [x] x)
+
 (defn into! [target source]
   (reduce conj! target source))
 
@@ -226,10 +232,10 @@
 
 (defn macroexpand
   "Return the expanded form of a macro form. The form
-   has to be a list (quoted) so that it is not evaluated.
-
-   Eg: (macroexpand '(when true 10))
-   => (if true (do 10))"
+   has to be a list (quoted) so that it is not evaluated. "
+  ^{:examples
+    '[(macroexpand '(when true 10)) => '(if true (do 10))
+      (macroexpand '(if-let [x 3] (inc x) 0)) => '(let [x 3] (if x (inc x) 0))]}
   [form]
   (apply (resolve (first form)) (rest form)))
 
@@ -464,6 +470,16 @@
 (defn into-array [o]
   (js:Array.from o))
 
+(defmacro doto [o & forms]
+  (let [sym (gensym "o")]
+    (concat
+      (list 'let [sym o])
+      (for [f forms]
+        (if (list? f)
+          (cons (first f) (cons sym (rest f)))
+          (list f sym)))
+      [sym])))
+
 ;; Lazy version with Proxy
 (defn ->js [o]
   (cond
@@ -495,7 +511,7 @@
                                          #js {:enumerable true
                                               :configurable true
                                               :writable false
-                                              :value (->js (get o (keyword prop)))}))
+                                              :value (->js (get o (keyword prop)))}) )
            :ownKeys (fn [_]
                       (js:Array.from (map name (keys o))))})
 
@@ -638,16 +654,6 @@
     vals))
 
 (def ffirst (comp first first))
-
-(defmacro doto [o & forms]
-  (let [sym (gensym "o")]
-    (concat
-      (list 'let [sym o])
-      (for [f forms]
-        (if (list? f)
-          (cons (first f) (cons sym (rest f)))
-          (list f sym)))
-      [sym])))
 
 (defn boolean [b]
   (not (not b)))

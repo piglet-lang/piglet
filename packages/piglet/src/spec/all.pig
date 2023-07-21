@@ -38,8 +38,8 @@
     "freespacing (x)"
     (u:is (= %r/
             This\ regex #
-            /
-            (js:RegExp. "a/b")))
+            /x
+            (js:RegExp. "This regex")))
     "stringify"
     (u:is (= "%r/x/g" (str %r/x/g)))))
 

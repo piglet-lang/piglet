@@ -179,6 +179,10 @@
         h))))
 
 (defn index-html []
+  (println {:imports (into {}
+                       (map (fn [k]
+                              [k (str "/npm/" k)])
+                         (keys @import-map)))})
   [:html
    [:head
     [:meta {:charset "utf-8"}]
@@ -188,8 +192,8 @@
                                           (map (fn [k]
                                                  [k (str "/npm/" k)])
                                             (keys @import-map)))}))]
-    #_[:script {:type "application/javascript"
-                :src "https://unpkg.com/source-map@0.7.3/dist/source-map.js"}]
+    [:script {:type "application/javascript"
+              :src "https://unpkg.com/source-map@0.7.3/dist/source-map.js"}]
     [:script {:type "module" :src "/piglet/lib/piglet/browser/main.mjs?verbosity=0"}]
     [:script {:type "piglet"}
      (print-str
@@ -242,14 +246,14 @@
     (array? exports)
     (mapcat (fn [e] (expand-exports npm-pkg-name npm-pkg-loc e)) exports)
 
-    (:browser exports)
-    (expand-exports npm-pkg-name npm-pkg-loc (:browser exports))
-
     (:development exports)
     (expand-exports npm-pkg-name npm-pkg-loc (:development exports))
 
     (:import exports)
     (expand-exports npm-pkg-name npm-pkg-loc (:import exports))
+
+    (:browser exports)
+    (expand-exports npm-pkg-name npm-pkg-loc (:browser exports))
 
     (:default exports)
     (expand-exports npm-pkg-name npm-pkg-loc (:default exports))
@@ -277,8 +281,11 @@
             (when (fs:existsSync pkg-json-path)
               (let [package_json  (js:JSON.parse (fs:readFileSync pkg-json-path))]
                 (swap! import-map into
-                  (expand-exports dir npm-pkg-loc
-                    (or (:exports package_json) (:main package_json))))))))))
+                  (reverse (expand-exports dir npm-pkg-loc
+                             (or
+                               (:exports package_json)
+                               (:main package_json)
+                               "index.js"))))))))))
     (await
       (js:Promise.all
         (map (fn ^:async handle-dep [[alias dep-spec]]
