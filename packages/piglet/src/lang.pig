@@ -123,8 +123,18 @@
         fntail (if ?name (cons ?name fntail) fntail)]
     (cons 'fn* fntail)))
 
-(defmacro defn [name argv & body]
-  (list 'def name (apply list 'fn name argv body)))
+(def vary-meta (fn vary-meta [obj f & args]
+                 (with-meta obj (apply f (meta obj) args))))
+
+(defmacro defn [name doc-string? argv & body]
+  (let [[doc-string? argv body] (if (string? doc-string?)
+                                  [doc-string? argv body]
+                                  [nil doc-string? (cons argv body)])]
+    `(def ~(if doc-string?
+             (vary-meta name assoc :doc doc-string?)
+             name)
+       ;; can't use ~@body here because concat is not yet defined
+       (fn ~name ~argv ~(cons 'do body)))))
 
 (defmacro cond [& args]
   (let [pairs (reverse (partition 2 args))]
@@ -135,7 +145,10 @@
   ;; can't use ~@body here because concat is not yet defined
   (list 'make-lazy-seq (list 'fn* [] (cons 'do body))))
 
-(defn concat [s1 s2 & more]
+(defn concat
+  "Return a lazy seq by concatenating the items of two or
+   more sequences."
+  [s1 s2 & more]
   (if (seq more)
     (concat s1 (apply concat s2 more))
     (lazy-seq
@@ -144,9 +157,15 @@
           (cons (first s1) (concat (rest s1) s2))
           (seq s2))))))
 
-(defn inc [x] (+ x 1))
-(defn dec [x] (- x 1))
-(defn identity [x] x)
+(defn inc
+  "Return the increment (by 1) of the supplied number."
+  [x] (+ x 1))
+(defn dec
+  "Return the decrement (by 1) of the supplied number."
+  [x] (- x 1))
+(defn identity
+  "Return the argument supplied as is."
+  [x] x)
 (defn into! [target source]
   (reduce conj! target source))
 
@@ -205,7 +224,13 @@
     (-for-async binds body)
     (-for-sync binds body)))
 
-(defn macroexpand [form]
+(defn macroexpand
+  "Return the expanded form of a macro form. The form
+   has to be a list (quoted) so that it is not evaluated.
+
+   Eg: (macroexpand '(when true 10))
+   => (if true (do 10))"
+  [form]
   (apply (resolve (first form)) (rest form)))
 
 (defn in-mod [name]
