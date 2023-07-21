@@ -56,6 +56,7 @@
 (def join-camel (comp
                   (partial join "")
                   (partial map capitalize)))
+
 (defn join-dromedary [parts]
   (apply str
     (first parts)
