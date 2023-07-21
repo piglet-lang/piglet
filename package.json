@@ -35,16 +35,6 @@
     },
     "exports": {
         ".": "./lib/piglet/lang.mjs",
-        "./Analyzer": "./lib/piglet/lang/Analyzer.mjs",
-        "./CodeGen": "./lib/piglet/lang/CodeGen.mjs",
-        "./Cons": "./lib/piglet/lang/Cons.mjs",
-        "./IteratorSeq": "./lib/piglet/lang/IteratorSeq.mjs",
-        "./List": "./lib/piglet/lang/List.mjs",
-        "./Module": "./lib/piglet/lang/Module.mjs",
-        "./node": "./lib/piglet/lang/node.mjs",
-        "./SeqIterator": "./lib/piglet/lang/SeqIterator.mjs",
-        "./StringReader": "./lib/piglet/lang/StringReader.mjs",
-        "./Sym": "./lib/piglet/lang/Sym.mjs",
-        "./Var": "./lib/piglet/lang/Var.mjs"
+        "./*": "./lib/piglet/lang/*"
     }
 }
