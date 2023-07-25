@@ -179,10 +179,6 @@
         h))))
 
 (defn index-html []
-  (println {:imports (into {}
-                       (map (fn [k]
-                              [k (str "/npm/" k)])
-                         (keys @import-map)))})
   [:html
    [:head
     [:meta {:charset "utf-8"}]

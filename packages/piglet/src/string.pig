@@ -45,13 +45,13 @@
   (when string
     (.split string sep)))
 
-(def split-kebap (partial split "-"))
+(def split-kebab (partial split "-"))
 (def split-snake (partial split "_"))
 (def split-camel (comp
                    (partial map downcase)
                    (partial split %r/(?=[A-Z])/)))
 
-(def join-kebap (partial join "-"))
+(def join-kebab (partial join "-"))
 (def join-snake (partial join "_"))
 (def join-camel (comp
                   (partial join "")
@@ -62,26 +62,26 @@
     (first parts)
     (map capitalize (rest parts))))
 
-(def kebap->snake (comp join-snake split-kebap))
-(def kebap->camel (comp join-camel split-kebap))
-(def kebap->dromedary (comp join-dromedary split-kebap))
+(def kebab->snake (comp join-snake split-kebab))
+(def kebab->camel (comp join-camel split-kebab))
+(def kebab->dromedary (comp join-dromedary split-kebab))
 
-(def snake->kebap (comp join-kebap split-snake))
+(def snake->kebab (comp join-kebab split-snake))
 (def snake->camel (comp join-camel split-snake))
 (def snake->dromedary (comp join-dromedary split-snake))
 
-(def camel->kebap (comp join-kebap split-camel))
+(def camel->kebab (comp join-kebab split-camel))
 (def camel->snake (comp join-snake split-camel))
 (defn camel->dromedary [s]
   (str (downcase (first s)) (subs s 1)))
 
 (def dromedary->snake camel->snake)
-(def dromedary->kebap camel->kebap)
+(def dromedary->kebab camel->kebab)
 (defn dromedary->camel [s]
   (str (upcase (first s)) (subs s 1)))
 
 (comment
-  (snake->kebap
+  (snake->kebab
     (camel->snake
       (dromedary->camel
-        (kebap->dromedary "xxx-yyy-zzz")))))
+        (kebab->dromedary "xxx-yyy-zzz")))))
