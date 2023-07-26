@@ -757,3 +757,8 @@
        ~@(for [[var _] (partition 2 bindings)]
            `(.pop_binding ~var))
        res#)))
+
+(defmacro declare [& syms]
+  `(do
+     ~@(for [sym syms]
+         `(def ~sym nil))))
