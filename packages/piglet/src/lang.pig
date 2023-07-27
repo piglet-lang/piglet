@@ -762,3 +762,15 @@
   `(do
      ~@(for [sym syms]
          `(def ~sym nil))))
+
+(defn distinct [coll]
+  (let [seen? (reference #{})]
+    (seq
+      (reduce (fn [acc el]
+                (if (@seen? el)
+                  acc
+                  (do
+                    (swap! seen? conj el)
+                    (conj acc el))))
+        []
+        coll))))
