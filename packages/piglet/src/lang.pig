@@ -66,7 +66,11 @@
             form)
 
           (if (symbol? form)
-            (if (special-form? form)
+            (if (or
+                  (= "&" (name form))
+                  (and (nil? (pkg-name form))
+                    (= "js" (mod-name form)))
+                  (special-form? form))
               (list 'quote form)
               (if (= "#" (last (name form)))
                 (let [sym-name (.replace (name form) "#" "")
