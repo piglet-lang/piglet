@@ -519,7 +519,7 @@
            :ownKeys (fn [_]
                       (js:Array.from (map name (keys o))))})
 
-    (vector? o)
+    (sequential? o)
     (into-array (map ->js o))
 
     :else
