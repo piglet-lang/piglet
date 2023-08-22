@@ -9,13 +9,9 @@
 ;; "eval", "code" ...}, evaluates the code, and replies with {"op" "eval",
 ;; "result" result-str}
 
-(def WebSocket (if (not= "undefined" (typeof js:WebSocket))
-                 js:WebSocket
-                 @(.resolve (await (js-import "ws")) "default")))
-
-(def conn (WebSocket. "ws://127.0.0.1:17017"))
-
-(set! (.-binaryType conn) "arraybuffer")
+(def WebSocket (if (undefined? js:WebSocket)
+                 @(.resolve (await (js-import "ws")) "default")
+                 js:WebSocket))
 
 (defn completion-candidates [mod prefix]
   (filter (fn [n]
@@ -23,8 +19,7 @@
     (map (fn [v] (.-name v))
       (vals mod))))
 
-(set!
-  (.-onmessage conn)
+(defn on-message-fn [conn]
   (fn ^:async on-message [msg]
     (let [msg (->pig (cbor:decode (.-data msg)))
           op (:op msg)
@@ -83,5 +78,21 @@
             :else
             (reply {:candidates (concat
                                   (completion-candidates (find-module 'piglet:lang) prefix)
-                                  (completion-candidates *current-module* prefix))})
-            ))))))
+                                  (completion-candidates *current-module* prefix))})))))))
+
+(defn connect! [uri]
+  (let [conn (WebSocket. "ws://127.0.0.1:17017")]
+
+    (set! (.-onerror conn) (fn [{:keys [error]}]
+                           (let [{:keys [code address port]} error]
+                           (when (= "ECONNREFUSED" code)
+                             (println "ERROR: Connection to PDP server at" (str "ws://" address ":" port) "failed. Is the server running?")
+                             (when (not (undefined? js:process))
+                               (js:process.exit -1))))))
+
+    (set! (.-onmessage conn) (on-message-fn conn))
+
+    (set! (.-binaryType conn) "arraybuffer")))
+
+;; TODO: create a main function instead of a top-level call
+(connect! "ws://127.0.0.1:17017")

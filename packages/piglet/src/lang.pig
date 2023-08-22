@@ -103,8 +103,8 @@
 (defmacro syntax-quote [form]
   (syntax-quote* form #js {}))
 
-(def undefined? (fn* undefined? [o]
-                  (= (typeof o) "undefined")))
+(defmacro undefined? [o]
+  `(=== (typeof ~o) "undefined"))
 
 (defmacro fn [?name argv & body]
   (let [[?name argv body] (if (symbol? ?name)
