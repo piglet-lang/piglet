@@ -21,7 +21,10 @@
 
 (defn replace [s match replace]
   (when s
-    (.replaceAll s match replace)))
+    (.replaceAll s (if (some #{"g"} (.-flags match))
+                     match
+                     (js:RegExp. match (str (.-flags match) "g")))
+      replace)))
 
 (defn starts-with? [s prefix]
   (when s

@@ -305,6 +305,9 @@
 (defn assoc-in! [coll path v]
   (update-in! coll (butlast path) assoc! (last path) v))
 
+(defn into-array [o]
+  (js:Array.from o))
+
 ;; Protocols
 
 (defmacro extend-type [klass & protocols]
@@ -318,8 +321,9 @@
     (cons 'do
       (for [p proto-methods]
         (list '.extend (first p) klass
-          (for [fn-tail (rest p)]
-            (cons 'fn fn-tail)))))))
+          (into-array
+            (for [fn-tail (rest p)]
+              (cons 'fn fn-tail))))))))
 
 (defmacro defprotocol [proto-name & methods]
   `(.intern
@@ -471,9 +475,6 @@
   (when (.-constructor o)
     (.-name (.-constructor o))))
 
-(defn into-array [o]
-  (js:Array.from o))
-
 (defmacro doto [o & forms]
   (let [sym (gensym "o")]
     (concat
@@ -569,7 +570,7 @@
       (.-val this))
     TaggedValue
     (-tag [this] "reference")
-    (-tag-value [this] (.val this))))
+    (-tag-value [this] (.-val this))))
 
 (defn constantly [v]
   (fn* [] v))
@@ -778,3 +779,14 @@
                     (conj acc el))))
         []
         coll))))
+
+;; Function versions of all operators, for use in higher order functions
+(defmacro define-operator-functions []
+  `(do
+     ~@(for [op '[+ * / < > >= <= mod power == === instance?
+                  and or bit-shift-left bit-shift-right bit-and bit-or bit-xor]]
+         `(intern '~op
+            (fn [& args#]
+              (reduce (fn [a# b#] (~op a# b#)) args#))))))
+
+(define-operator-functions)
