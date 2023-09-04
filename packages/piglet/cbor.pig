@@ -1,10 +1,12 @@
 (module cbor
   (:import piglet:string))
 
+(def BUFFER_SIZE 512)
+
 (defn buffer->state
-  "Construct the 'state' map we pass around, containing the buffer itself, a
-  dataview over the buffer, and a mutable offset, which increments as we read
-  more data from the buffer."
+  "Construct the 'state' map we pass around, containing the
+  buffer itself, a dataview over the buffer, and a mutable offset, which
+  increments as we read/write more data to/from the buffer."
   [buffer]
   {:buffer   buffer
    :dataview (js:DataView. buffer)
@@ -17,15 +19,14 @@
            o# @offset#]
        (if (<= (.-byteLength dataview#) o#)
          ::eof
-         (let [b# (~(symbol (str "." method)) dataview# o#)]
+         (do
            (swap! offset# + ~size)
-           b#)))))
+           (~(symbol (str "." method)) dataview# o#))))))
 
 (defreader read-byte! getUint8 1)
 (defreader read-ui8! getUint8 1)
 (defreader read-i16! getInt16 2)
 (defreader read-i32! getInt32 4)
-(defreader read-i64! getInt64 8)
 (defreader read-ui16! getUint16 2)
 (defreader read-ui32! getUint32 4)
 (defreader read-float32! getFloat32 4)
@@ -102,7 +103,7 @@
       (= 5 major-type)
       (apply dict
         (for [_ (range (* 2 argument))]
-          (decode-value state)))
+          (read-value! state)))
 
       ;; Tagged value (numeric tag up to 2^64-1, IANA registry)
       (= 6 major-type)
@@ -127,6 +128,138 @@
   (let [state (buffer->state buffer)]
     (read-value! state)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Writing
+
+(defn ensure-buffer-size [state bytes]
+  (let [current-size (.-byteLength (:buffer state))]
+    (if (< current-size (+ @(:offset state) bytes))
+      (let [new-buffer (js:ArrayBuffer. (* current-size 2))]
+        (.set (js:Float64Array. new-buffer) (js:Float64Array. (:buffer state)))
+        (assoc state :buffer new-buffer :dataview (js:DataView. new-buffer)))
+      state)))
+
+(defmacro defwriter [name method size]
+  `(defn ~name [state# value#]
+     (let [state# (ensure-buffer-size state# ~size)
+           offset# (:offset state#)
+           dataview# (:dataview state#)
+           o# @offset#]
+       (swap! offset# + ~size)
+       (~(symbol (str "." method)) dataview# o# value#)
+       state#)))
+
+(defwriter write-byte! setUint8 1)
+(defwriter write-ui8! setUint8 1)
+(defwriter write-i16! setInt16 2)
+(defwriter write-i32! setInt32 4)
+(defwriter write-ui16! setUint16 2)
+(defwriter write-ui32! setUint32 4)
+(defwriter write-float32! setFloat32 4)
+(defwriter write-float64! setFloat64 8)
+(defwriter write-bigint64! setBigUint64 8)
+
+(defprotocol CBOREncodable
+  (-write! [this state]))
+
+(defn not-implemented [message]
+  (throw (js:Error. (str "Not implemented: " message))))
+
+(extend-protocol CBOREncodable
+  js:Number
+  (-write! [this state]
+    (if (js:Number.isInteger this)
+      (cond
+        (< this -0x10000_0000)
+        (do
+          (write-byte! state 0x3B)
+          (write-bigint64! state (- (+ (js:BigInt this) (js:BigInt 1)))))
+
+        (< this -0x1_0000)
+        (do
+          (write-byte! state 0x3A)
+          (write-ui32! state (- (inc this))))
+
+        (< this -0x100)
+        (do
+          (write-byte! state 0x39)
+          (write-ui16! state (- (inc this))))
+
+        (< this -24)
+        (do
+          (write-byte! state 0x38)
+          (write-ui8! state (- (inc this))))
+
+        (< this 0)
+        (write-byte! state (bit-or 0x20 (- (inc this))))
+
+        (< this 24)
+        (write-ui8! state this)
+
+        (< this 0x100)
+        (do
+          (write-ui8! state 0x18)
+          (write-ui8! state this))
+        (< this 0x1_0000)
+        (do
+          (write-ui8! state 0x19)
+          (write-ui16! state this))
+        (< this 0x1_0000_0000)
+        (do
+          (write-ui8! state 0x1A)
+          (write-ui32! state this))
+
+        :else
+        (do
+          (write-ui8! state 0x1B)
+          ;; can't left-shift numbers greater than 32 bits
+          (write-ui32! state (/ this 0x1_0000_0000))
+          (write-ui32! state (bit-and this 0xFFFF_FFFF))))
+
+      (not-implemented "floats")))
+
+  js:BigInt
+  (-write! [this state]
+    (cond
+      (< this (js:BigInt "-18446744073709551616"))
+      (not-implemented "negative bigint of more than 64 bits")
+
+      (< this js:Number.MIN_SAFE_INTEGER)
+      (do
+        (write-byte! state 0x3B)
+        (write-bigint64! state (- (+ this (js:BigInt 1)))))
+
+      (<= this js:Number.MAX_SAFE_INTEGER)
+      (-write! (js:BigInt.asIntN this) state)
+
+      (< this (js:BigInt "18446744073709551616"))
+      (do
+        (write-byte! state 0x1B)
+        (write-bigint64! state this))
+
+      :else
+      (not-implemented "positive bigint of more than 64 bits")))
+
+  js:ArrayBuffer
+  (-write! [this state]
+    (let [bytes (.-byteLength this)
+          state (write-byte! state (bit-or 0x40 bytes))
+          state (ensure-buffer-size state bytes)
+          o @(:offset state)]
+      (swap! (:offset state) + bytes)
+      (.set
+        (js:Uint8Array. (:buffer state) o bytes)
+        (js:Uint8Array. this))
+      (println bytes state)
+      state)))
+
+(defn write-value! [state value]
+  (-write! value state))
+
+(defn encode [value]
+  (let [state (buffer->state (js:ArrayBuffer. BUFFER_SIZE))
+        {:keys [buffer offset]} (write-value! state value)]
+    (.slice buffer 0 @offset)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Testing, to be moved elsewhere
@@ -151,6 +284,8 @@
   (-tag [_] "bigint")
   (-tag-value [this] (.toString this)))
 
+(set! *verbosity* 0)
+
 (do
   (def test-cases
     [;; 0 - positive integers
@@ -160,16 +295,17 @@
      [["18 FF"] 255]
      [["19 0100"] 256]
      [["19 FFFF"] 65535]
-     [["1A 00010000"] 65536]
-     [["1A FFFFFFFF"] 4294967295]
+     [["1A 0001 0000"] 65536]
+     [["1A FFFF FFFF"] 4294967295]
      [["1B 0000 0001 0000 0000"] 4294967296]
      [["1B 001FFFFFFFFFFFFF"] js:Number.MAX_SAFE_INTEGER]
      [["1B 0020000000000000"] #bigint "9007199254740992"]
-     [["1B FFFFFFFFFFFFFFFF"] #bigint "18446744073709551615"]
+     [["1B FFFF FFFF FFFF FFFF"] #bigint "18446744073709551615"]
 
      ;; 1 - negative integers
      [["20"] -1]
      [["37"] -24]
+     [["38 18"] -25]
      [["38 FF"] -256]
      [["39 0100"] -257]
      [["39 FFFF"] -65536]
@@ -228,5 +364,20 @@
       (if (= value decoded)
         acc
         (conj acc [hex value decoded]))))
+  []
+  test-cases)
+
+(reduce
+  (fn [acc [hex value]]
+
+    (let [encoded
+          (map
+            (fn [i] (.padStart (string:upcase (.toString i 16)) 2 "0"))
+            (encode value))
+          _ (println hex)
+          expected (mapcat (fn [hex] (re-seq %r"[0-9A-Z]{2}" hex)) hex)]
+      (if (= encoded expected)
+        acc
+        (reduced [value expected encoded]))))
   []
   test-cases)

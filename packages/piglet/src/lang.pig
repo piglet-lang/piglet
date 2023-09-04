@@ -199,6 +199,11 @@
       inner-fn
       (reverse (map list ls rs)))))
 
+(defmacro dotimes [binding & body]
+  (let [[bind num] binding]
+    `(doseq [~bind (range ~num)]
+       ~@body)))
+
 (defn -for-sync [binds body]
   (let [lrs (partition 2 binds)
         ls (map first lrs)
