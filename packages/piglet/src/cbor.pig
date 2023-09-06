@@ -1,8 +1,29 @@
 (module cbor
   (:import piglet:string))
 
+;; Limitations and choices
+;; =======================
+;;
+;; - We don't yet support reading or writing of Float16
+;; - No tags are implemented yet, that means no dates, keywords/symbols/qnames, sets, ...
+;; - CBOR key-value maps (major type 5) are read/written as Dict, rather than
+;;   js:Object. This is generally what a Piglet consumer would expect, but it
+;;   means we can't write js:Object at the moment. We could also map it to major
+;;   type 5, but then it no longer round trips. We'll have to study the
+;;   available tags some more to see what the most appealing option is to
+;;   represent all of Piglet's (and JS's) types
+
+;; Initial write buffer size, will grow as needed. Too small and we do too many
+;; allocations and buffer copying, too big and we waste memory. Not sure yet
+;; what the sweet spot it. cbor.js uses 256.
 (def BUFFER_SIZE 512)
 
+;; This state structure is used for both reads and writes. We implemented reads
+;; first, in which case the only mutable part is the offset, which is why that
+;; is a reference. For writes we need to be able to grow the buffer, so in the
+;; write case we pass the state map through the process so we can swap out the
+;; buffer and dataview, while also mutating the offset in place. It's a bit
+;; messy.
 (defn buffer->state
   "Construct the 'state' map we pass around, containing the
   buffer itself, a dataview over the buffer, and a mutable offset, which
@@ -119,12 +140,11 @@
 
         (= 25 argument) nil ;; float-16...
         (= 26 argument) (read-float32! state)
-        (= 27 argument) (read-float64! state)
-        )
+        (= 27 argument) (read-float64! state)))))
 
-      )))
-
-(defn decode [buffer]
+(defn decode
+  "Given an ArrayBuffer, read a single CBOR value"
+  [buffer]
   (let [state (buffer->state buffer)]
     (read-value! state)))
 
@@ -135,6 +155,9 @@
   (let [current-size (.-byteLength (:buffer state))]
     (if (< current-size (+ @(:offset state) bytes))
       (let [new-buffer (js:ArrayBuffer. (* current-size 2))]
+        ;; It doesn't seem to matter much which kind of TypedArray is used for
+        ;; the copying, but in some environments Float64Array seemed to be a tad
+        ;; faster than the other ones.
         (.set (js:Float64Array. new-buffer) (js:Float64Array. (:buffer state)))
         (assoc state :buffer new-buffer :dataview (js:DataView. new-buffer)))
       state)))
@@ -164,6 +187,15 @@
 
 (defn not-implemented [message]
   (throw (js:Error. (str "Not implemented: " message))))
+
+(defn write-value! [state value]
+  (cond
+    (=== nil value)
+    (write-byte! state 0xF6)
+    (=== undefined value)
+    (write-byte! state 0xF7)
+    :else
+    (-write! value state)))
 
 (extend-protocol CBOREncodable
   js:Number
@@ -216,9 +248,15 @@
           (write-ui32! state (/ this 0x1_0000_0000))
           (write-ui32! state (bit-and this 0xFFFF_FFFF))))
 
+      ;; floats
       (if (or (js:isNaN this) (=== this (js:Math.fround this)))
+        ;; TODO: we should at least encode NaN/Inf/0.0 as float16 for
+        ;; compactness, like clj-cbor
+        ;; float16: not supported
+        ;; float32
         (let [state (write-byte! state 0xFA)]
           (write-float32! state this))
+        ;; float64
         (let [state (write-byte! state 0xFB)]
           (write-float64! state this)))))
 
@@ -287,20 +325,12 @@
   (-write! [this state]
     (if this
       (write-byte! state 0xF5)
-      (write-byte! state 0xF4)))
+      (write-byte! state 0xF4))))
 
-  )
 
-(defn write-value! [state value]
-  (cond
-    (=== nil value)
-    (write-byte! state 0xF6)
-    (=== undefined value)
-    (write-byte! state 0xF7)
-    :else
-    (-write! value state)))
-
-(defn encode [value]
+(defn encode
+  "Encode a value to CBOR"
+  [value]
   (let [state (buffer->state (js:ArrayBuffer. BUFFER_SIZE))
         {:keys [buffer offset]} (write-value! state value)]
     (.slice buffer 0 @offset)))
