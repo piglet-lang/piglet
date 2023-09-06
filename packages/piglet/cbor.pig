@@ -216,7 +216,11 @@
           (write-ui32! state (/ this 0x1_0000_0000))
           (write-ui32! state (bit-and this 0xFFFF_FFFF))))
 
-      (not-implemented "floats")))
+      (if (or (js:isNaN this) (=== this (js:Math.fround this)))
+        (let [state (write-byte! state 0xFA)]
+          (write-float32! state this))
+        (let [state (write-byte! state 0xFB)]
+          (write-float64! state this)))))
 
   js:BigInt
   (-write! [this state]
@@ -250,11 +254,51 @@
       (.set
         (js:Uint8Array. (:buffer state) o bytes)
         (js:Uint8Array. this))
-      (println bytes state)
-      state)))
+      state))
+
+  js:String
+  (-write! [this state]
+    (let [encoded (.encode (js:TextEncoder.) this)
+          bytes (.-byteLength encoded)
+          state (write-byte! state (bit-or 0x60 bytes))
+          state (ensure-buffer-size state bytes)
+          o @(:offset state)]
+      (swap! (:offset state) + bytes)
+      (.set
+        (js:Uint8Array. (:buffer state) o bytes)
+        encoded)
+      state))
+
+  js:Array
+  (-write! [this state]
+    (let [state (write-byte! state (bit-or 0x80 (.-length this)))]
+      (reduce write-value! state this)))
+
+  Dict
+  (-write! [this state]
+    (let [state (write-byte! state (bit-or 0xA0 (count this)))]
+      (reduce (fn [acc [k v]]
+                (-> acc
+                  (write-value! k)
+                  (write-value! v)))
+        state this)))
+
+  js:Boolean
+  (-write! [this state]
+    (if this
+      (write-byte! state 0xF5)
+      (write-byte! state 0xF4)))
+
+  )
 
 (defn write-value! [state value]
-  (-write! value state))
+  (cond
+    (=== nil value)
+    (write-byte! state 0xF6)
+    (=== undefined value)
+    (write-byte! state 0xF7)
+    :else
+    (-write! value state)))
 
 (defn encode [value]
   (let [state (buffer->state (js:ArrayBuffer. BUFFER_SIZE))
@@ -333,6 +377,7 @@
        "   616263 # abc"] "abc"]
 
      ;; 4 - sequences
+     [["80"] []]
      [["83 01 02 03"] [1 2 3]]
 
      [["85       # array(5)"
@@ -354,10 +399,16 @@
        "      626172 # \"bar\""] {"foo" "bar"}]
 
      ;; 7 - floats and specials
-     [["FB 40934A4584F4C6E7"] 1234.56789]
      [["84 F5 F4 F6 F7"] [true false nil undefined]]
+     [["FA 461C4200"] 10000.5] ; float32
+     [["FB 40934A4584F4C6E7"] 1234.56789] ; float64
      ]))
 
+(defn byte-to-hex [i]
+  (.padStart (string:upcase
+               (.toString i 16)) 2 "0"))
+
+;; decode test, returns empty array if all pass
 (reduce
   (fn [acc [hex value]]
     (let [decoded (decode (apply hex-buffer hex))]
@@ -367,17 +418,28 @@
   []
   test-cases)
 
+;; encode test, returns empty array if all pass
 (reduce
   (fn [acc [hex value]]
-
     (let [encoded
           (map
-            (fn [i] (.padStart (string:upcase (.toString i 16)) 2 "0"))
+            byte-to-hex
             (encode value))
-          _ (println hex)
           expected (mapcat (fn [hex] (re-seq %r"[0-9A-Z]{2}" hex)) hex)]
       (if (= encoded expected)
         acc
         (reduced [value expected encoded]))))
+  []
+  test-cases)
+
+;; round trip
+(reduce
+  (fn [acc [hex value]]
+    (let [bytes (apply hex-buffer hex)
+          decenc (decode (encode value))
+          encdec (encode (decode bytes))]
+      (if (and (= decenc value) (= encdec bytes))
+        acc
+        (reduced [value decenc hex encdec]))))
   []
   test-cases)

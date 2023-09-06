@@ -348,12 +348,50 @@
                                 (if (symbol? o)
                                   (conj acc [o []])
                                   (update-in acc [(dec (count acc)) 1] conj
+                                    ;; FIXME: Protocol#extend uses the name of
+                                    ;; this function to determine which protocol
+                                    ;; method it implements, in others words, we
+                                    ;; have to retain the name here. But that
+                                    ;; means that we define a named function
+                                    ;; which (inside itself) shadows the
+                                    ;; protocol method
+
+                                    ;; (extend-protocol Foo Type (-foo [this] (-foo 123)))
+
+                                    ;; This inner call to -foo will not dispatch
+                                    ;; via the protocol, it will always resolve
+                                    ;; to the implementation for Type, which is
+                                    ;; not what we want.
+
+                                    ;; The easiest way to fix this might be to
+                                    ;; walk over the function form (o), and turn
+                                    ;; any references to the protocol method
+                                    ;; into fully-qualified symbols, although
+                                    ;; that's also not trivial to figure out for
+                                    ;; the general case, unless we enforce that
+                                    ;; the protocol parameter to this macro has
+                                    ;; to be a symbol that resolves to the
+                                    ;; protocol itself, rather than an arbitrary
+                                    ;; value that evaluates to the protocol.
+
+                                    ;; or we eval protocol inside the macro,
+                                    ;; which we should be able to do since the
+                                    ;; runtime should reflect the compiled
+                                    ;; module/var structure, but it still seems
+                                    ;; messy.
+
+                                    ;; Or we rewire how Protocol#extend works,
+                                    ;; taking the method names explicitly,
+                                    ;; rather than unmunging them from the
+                                    ;; function names. Might be the cleaner
+                                    ;; option.
                                     `(fn ~@o))))
-                        []
-                        classes)]
+                                    []
+                                    classes)]
     `(.extend
        ~protocol
        ~@(apply concat class-methods))))
+
 
 (defmacro specify! [object & protocols]
   (let [proto-methods (reduce (fn [acc o]
