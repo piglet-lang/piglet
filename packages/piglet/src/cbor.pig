@@ -103,12 +103,11 @@
 (defn read-value! [state]
   (let [byte (read-byte! state)
         major-type (bit-shift-right byte 5)
-        argument (bit-and byte 2r0001_1111)
-        length (read-multibyte-argument! argument state)]
+        argument (bit-and byte 2r0001_1111)]
     (cond
       ;; positive integers up to 2^64-1
       (= 0 major-type)
-      length
+      (read-multibyte-argument! argument state)
 
       ;; negative integers up to -2^64
       (= 1 major-type)
@@ -124,28 +123,28 @@
 
       ;; generic sequence of bytes
       (= 2 major-type)
-      (read-byte-array! state length)
+      (read-byte-array! state (read-multibyte-argument! argument state))
 
       ;; UTF-8 text string
       (= 3 major-type)
       ;; We can theoretically read up to 53 bits of length, depending on the
       ;; system.
-      (read-utf8! state length)
+      (read-utf8! state (read-multibyte-argument! argument state))
 
       ;; Sequence of arbitrary values -> JS Array
       (= 4 major-type)
-      (js:Array.from (range length)
+      (js:Array.from (range (read-multibyte-argument! argument state))
         (fn [_] (read-value! state)))
 
       ;; Key-value mapping -> Dict
       (= 5 major-type)
       (apply dict
-        (for [_ (range (* 2 length))]
+        (for [_ (range (* 2 (read-multibyte-argument! argument state)))]
           (read-value! state)))
 
       ;; Tagged value (numeric tag up to 2^64-1, IANA registry)
       (= 6 major-type)
-      (read-tagged! length (read-value! state))
+      (read-tagged! (read-multibyte-argument! argument state) (read-value! state))
 
       ;; Special values and floats
       (= 7 major-type)
@@ -360,12 +359,17 @@
 
   js:Array
   (-write! [this state]
-    (let [state (write-byte! state (write-length-arg! 0x80 state (.-length this)))]
+    (let [state (write-length-arg! 0x80 state (.-length this))]
+      (reduce write-value! state this)))
+
+  AbstractSeq
+  (-write! [this state]
+    (let [state (write-length-arg! 0x80 state (count this))]
       (reduce write-value! state this)))
 
   Dict
   (-write! [this state]
-    (let [state (write-byte! state (write-length-arg! 0xA0 state (count this)))]
+    (let [state (write-length-arg! 0xA0 state (count this))]
       (reduce (fn [acc [k v]]
                 (-> acc
                   (write-value! k)

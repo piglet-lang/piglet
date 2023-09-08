@@ -1,7 +1,7 @@
 (module pdp-client
   (:import
-    [cbor :from "./cbor.mjs"]
-    [str :from piglet:string]))
+    piglet:cbor
+    piglet:string))
 
 ;; Walking skeleton for a Piglet Dev Protocol client
 ;;
@@ -21,22 +21,17 @@
 
 (defn on-message-fn [conn]
   (fn ^:async on-message [msg]
-    (let [msg (->pig (cbor:decode (.-data msg)))
-          op (:op msg)
-          code (:code msg)
-          location (:location msg)
-          module (:module msg)
-          package (:package msg)
-          var (:var msg)
-          reply-to (:reply-to msg)
+    (let [msg (cbor:decode (.-data msg))
+          _ (println '<- msg)
+          {:keys [op code location module package var reply-to]} msg
           reply (fn [answer]
                   (let [reply (cond-> {:op op}
                                 reply-to
                                 (assoc :to reply-to)
                                 :->
                                 (into answer))]
-                    ;;(println '<- reply)
-                    (.send conn (cbor:encode (->js reply)))))]
+                    (println '-> reply)
+                    (.send conn (cbor:encode reply))))]
       (when (string? location)
         (.set_value (resolve '*current-location*) location))
       (when (string? module)
@@ -70,7 +65,7 @@
           (cond
             ;; TODO (.includes prefix "://")
             (.includes prefix ":")
-            (let [[alias suffix] (str:split ":" prefix)]
+            (let [[alias suffix] (string:split ":" prefix)]
               (if-let [mod (find-module (symbol alias))]
                 (reply {:candidates (map (fn [c] (str alias ":" c))
                                       (completion-candidates mod suffix))})
@@ -84,8 +79,8 @@
   (let [conn (WebSocket. "ws://127.0.0.1:17017")]
 
     (set! (.-onerror conn) (fn [{:keys [error]}]
-                           (let [{:keys [code address port]} error]
-                           (when (= "ECONNREFUSED" code)
+                             (let [{:keys [code address port]} error]
+                               (when (= "ECONNREFUSED" code)
                              (println "ERROR: Connection to PDP server at" (str "ws://" address ":" port) "failed. Is the server running?")
                              (when (not (undefined? js:process))
                                (js:process.exit -1))))))
