@@ -14,6 +14,18 @@
 ;;   available tags some more to see what the most appealing option is to
 ;;   represent all of Piglet's (and JS's) types
 
+;; Read/write support for CBOR tag numbers is handled through this protocol and
+;; multimethod. Note that this is only for number tags as listed in IANA's
+;; cbor-tags registry. We (plan to) also encode/decode "tagged items" analoguous
+;; to reader tags, with string/IRI tags, which uses CBOR tag 27, "Serialized
+;; language-independent object with type name and constructor arguments."
+
+(defprotocol CBORTagged
+  (-cbor-tag-number [_])
+  (-cbor-value [_]))
+
+(defmulti read-tagged! (fn [tag value] tag))
+
 ;; Initial write buffer size, will grow as needed. Too small and we do too many
 ;; allocations and buffer copying, too big and we waste memory. Not sure yet
 ;; what the sweet spot it. cbor.js uses 256.
@@ -80,21 +92,23 @@
     (swap! offset + length)
     text))
 
-(defmulti read-tagged! (fn [tag state]))
+(defn read-multibyte-argument! [argument state]
+  (cond
+    (< argument 24) argument
+    (= 0x18 argument) (read-ui8! state)
+    (= 0x19 argument) (read-ui16! state)
+    (= 0x1a argument) (read-ui32! state)
+    (= 0x1b argument) (read-ui64! state)))
 
 (defn read-value! [state]
   (let [byte (read-byte! state)
         major-type (bit-shift-right byte 5)
-        argument (bit-and byte 2r0001_1111)]
+        argument (bit-and byte 2r0001_1111)
+        length (read-multibyte-argument! argument state)]
     (cond
       ;; positive integers up to 2^64-1
       (= 0 major-type)
-      (cond
-        (< argument 24) argument
-        (= 24 argument) (read-ui8! state)
-        (= 25 argument) (read-ui16! state)
-        (= 26 argument) (read-ui32! state)
-        (= 27 argument) (read-ui64! state))
+      length
 
       ;; negative integers up to -2^64
       (= 1 major-type)
@@ -110,34 +124,28 @@
 
       ;; generic sequence of bytes
       (= 2 major-type)
-      (read-byte-array! state argument)
+      (read-byte-array! state length)
 
       ;; UTF-8 text string
       (= 3 major-type)
-      (read-utf8! state
-        (cond
-          (< argument 24) argument
-          (= 0x78 byte) (read-ui8! state)
-          (= 0x79 byte) (read-ui16! state)
-          (= 0x7a byte) (read-ui32! state)
-          ;; We can theoretically read up to 53 bits of length, depending on the
-          ;; system.
-          (= 0x7b byte) (read-ui64! state)))
+      ;; We can theoretically read up to 53 bits of length, depending on the
+      ;; system.
+      (read-utf8! state length)
 
       ;; Sequence of arbitrary values -> JS Array
       (= 4 major-type)
-      (js:Array.from (range argument)
+      (js:Array.from (range length)
         (fn [_] (read-value! state)))
 
       ;; Key-value mapping -> Dict
       (= 5 major-type)
       (apply dict
-        (for [_ (range (* 2 argument))]
+        (for [_ (range (* 2 length))]
           (read-value! state)))
 
       ;; Tagged value (numeric tag up to 2^64-1, IANA registry)
       (= 6 major-type)
-      (read-tagged! argument state)
+      (read-tagged! length (read-value! state))
 
       ;; Special values and floats
       (= 7 major-type)
@@ -197,16 +205,7 @@
 (defn not-implemented [message]
   (throw (js:Error. (str "Not implemented: " message))))
 
-(defn write-value! [state value]
-  (cond
-    (=== nil value)
-    (write-byte! state 0xF6)
-    (=== undefined value)
-    (write-byte! state 0xF7)
-    :else
-    (-write! value state)))
-
-(defn write-string-length! [type-marker state bytes]
+(defn write-length-arg! [type-marker state bytes]
   (cond
     (< bytes 24)
     (write-byte! state (bit-or type-marker bytes))
@@ -235,6 +234,19 @@
     (-> state
       (write-byte! (bit-or type-marker 0x1b))
       (write-bigint64! (js:BigInt bytes)))))
+
+(defn write-value! [state value]
+  (cond
+    (=== nil value)
+    (write-byte! state 0xF6)
+    (=== undefined value)
+    (write-byte! state 0xF7)
+    (satisfies? CBORTagged value)
+    (->
+      (write-length-arg! 0xC0 state (-cbor-tag-number value))
+      (write-value! (-cbor-value value)))
+    :else
+    (-write! value state)))
 
 (extend-protocol CBOREncodable
   js:Number
@@ -324,7 +336,7 @@
   js:ArrayBuffer
   (-write! [this state]
     (let [bytes (.-byteLength this)
-          state (write-string-length! 0x40 state bytes)
+          state (write-length-arg! 0x40 state bytes)
           state (ensure-buffer-size state bytes)
           o @(:offset state)]
       (swap! (:offset state) + bytes)
@@ -337,7 +349,7 @@
   (-write! [this state]
     (let [encoded (.encode (js:TextEncoder.) this)
           bytes (.-byteLength encoded)
-          state (write-string-length! 0x60 state bytes)
+          state (write-length-arg! 0x60 state bytes)
           state (ensure-buffer-size state bytes)
           o @(:offset state)]
       (swap! (:offset state) + bytes)
@@ -348,12 +360,12 @@
 
   js:Array
   (-write! [this state]
-    (let [state (write-byte! state (bit-or 0x80 (.-length this)))]
+    (let [state (write-byte! state (write-length-arg! 0x80 state (.-length this)))]
       (reduce write-value! state this)))
 
   Dict
   (-write! [this state]
-    (let [state (write-byte! state (bit-or 0xA0 (count this)))]
+    (let [state (write-byte! state (write-length-arg! 0xA0 state (count this)))]
       (reduce (fn [acc [k v]]
                 (-> acc
                   (write-value! k)
@@ -373,6 +385,20 @@
   (let [state (buffer->state (js:ArrayBuffer. BUFFER_SIZE))
         {:keys [buffer offset]} (write-value! state value)]
     (.slice buffer 0 @offset)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tagged values
+
+(extend-protocol CBORTagged
+  AbstractIdentifier
+  (-cbor-tag-number [_] 39)
+  (-cbor-value [this] (.toString this)))
+
+(defmethod read-tagged! :default [tag value]
+  (not-implemented (str "Reader for CBOR tag " tag) ))
+
+(defmethod read-tagged! 39 [_ value]
+  (parse-identifier value))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Testing, to be moved elsewhere

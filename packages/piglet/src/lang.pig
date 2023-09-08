@@ -833,3 +833,21 @@
               (reduce (fn [a# b#] (~op a# b#)) args#))))))
 
 (define-operator-functions)
+
+(defn parse-identifier
+  "Parse a string to a suitable type of identifier, similar to how the Piglet
+  reader treats identifiers. Will return one of QName, PrefixName, Keyword,
+  QSym, Sym"
+  [s]
+  (if (= ":" (first s))
+    (let [s (.substring s 1)]
+      (if (.includes s ":")
+        (if (.includes s "://")
+          (qname s)
+          (prefix-name s))
+        (keyword s)))
+    (if (.includes s ":")
+      (if (.includes s "://")
+        (qsym s)
+        (symbol s))
+      (symbol s))))
