@@ -6,6 +6,7 @@
 ;;
 ;; - We don't yet support reading or writing of Float16
 ;; - No tags are implemented yet, that means no dates, keywords/symbols/qnames, sets, ...
+;; - No support for indefinite length strings and byte strings (terminated with 0xFF "break")
 ;; - CBOR key-value maps (major type 5) are read/written as Dict, rather than
 ;;   js:Object. This is generally what a Piglet consumer would expect, but it
 ;;   means we can't write js:Object at the moment. We could also map it to major
@@ -113,7 +114,15 @@
 
       ;; UTF-8 text string
       (= 3 major-type)
-      (read-utf8! state argument)
+      (read-utf8! state
+        (cond
+          (< argument 24) argument
+          (= 0x78 byte) (read-ui8! state)
+          (= 0x79 byte) (read-ui16! state)
+          (= 0x7a byte) (read-ui32! state)
+          ;; We can theoretically read up to 53 bits of length, depending on the
+          ;; system.
+          (= 0x7b byte) (read-ui64! state)))
 
       ;; Sequence of arbitrary values -> JS Array
       (= 4 major-type)
@@ -196,6 +205,36 @@
     (write-byte! state 0xF7)
     :else
     (-write! value state)))
+
+(defn write-string-length! [type-marker state bytes]
+  (cond
+    (< bytes 24)
+    (write-byte! state (bit-or type-marker bytes))
+
+    (<= bytes 0xFF)
+    (-> state
+      (write-byte! (bit-or type-marker 0x18))
+      (write-ui8! bytes))
+
+    (<= bytes 0xFFFF)
+    (-> state
+      (write-byte! (bit-or type-marker 0x19))
+      (write-ui16! bytes))
+
+    (<= bytes 0xFFFF_FFFF)
+    (-> state
+      (write-byte! (bit-or type-marker 0x1a))
+      (write-ui32! bytes))
+
+    ;; Encoding strings larger than 2^32 is not supported on all platforms,
+    ;; due to limits on the size of ArrayBuffer. At most it will be
+    ;; MAX_SAFE_INTEGER, or 2^53-1, so writing 64-bit lengths is more
+    ;; theoretical, but included for completeness. (You'd be looking at a
+    ;; single string of more than 4GiB).
+    :else
+    (-> state
+      (write-byte! (bit-or type-marker 0x1b))
+      (write-bigint64! (js:BigInt bytes)))))
 
 (extend-protocol CBOREncodable
   js:Number
@@ -285,7 +324,7 @@
   js:ArrayBuffer
   (-write! [this state]
     (let [bytes (.-byteLength this)
-          state (write-byte! state (bit-or 0x40 bytes))
+          state (write-string-length! 0x40 state bytes)
           state (ensure-buffer-size state bytes)
           o @(:offset state)]
       (swap! (:offset state) + bytes)
@@ -298,7 +337,7 @@
   (-write! [this state]
     (let [encoded (.encode (js:TextEncoder.) this)
           bytes (.-byteLength encoded)
-          state (write-byte! state (bit-or 0x60 bytes))
+          state (write-string-length! 0x60 state bytes)
           state (ensure-buffer-size state bytes)
           o @(:offset state)]
       (swap! (:offset state) + bytes)
@@ -345,7 +384,7 @@
                 (map (fn [h]
                        (js:parseInt h 16))
                   (re-seq %r/[0-9A-Z]{2}/
-                    (string:replace line %r/#.*/)))) args))))
+                    (string:replace line %r/#.*/ "")))) args))))
 
 (set! *data-readers*
   {"bigint" (fn [o] (js:BigInt o))})
@@ -405,6 +444,11 @@
      [["60"] ""]
      [["63        # text(3)"
        "   616263 # abc"] "abc"]
+     [[
+       "78 27 # text(39)"
+       "   286D6F64756C652063626F720A2020283A696D70"
+       "   6F7274207069676C65743A737472696E672929"
+       ]"(module cbor\n  (:import piglet:string))"]
 
      ;; 4 - sequences
      [["80"] []]
@@ -451,11 +495,8 @@
 ;; encode test, returns empty array if all pass
 (reduce
   (fn [acc [hex value]]
-    (let [encoded
-          (map
-            byte-to-hex
-            (encode value))
-          expected (mapcat (fn [hex] (re-seq %r"[0-9A-Z]{2}" hex)) hex)]
+    (let [encoded (map byte-to-hex (encode value))
+          expected (map byte-to-hex (apply hex-buffer hex))]
       (if (= encoded expected)
         acc
         (reduced [value expected encoded]))))
