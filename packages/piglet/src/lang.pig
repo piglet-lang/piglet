@@ -851,3 +851,8 @@
         (qsym s)
         (symbol s))
       (symbol s))))
+
+(defn transpose
+  "Transpose a 2d vector-of-vectors (or seq-of-seqs) matrix"
+  [m]
+  (apply mapv vector m))
