@@ -118,3 +118,10 @@ Imports
 ::module (= :localpkg:module)
 :package:module
 :special-prefix:module
+
+BUGS (to be logged)
+
+- Protocol methods are missing location metadata
+- Calling a protocol method within a protocol method definition calls the
+  concrete implementation, instead of dispatching via the protocol.
+- This destructuring doesn't seem to work in macros: (defmacro foo [[x & xs] & rest] )
