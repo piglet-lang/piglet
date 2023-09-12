@@ -175,7 +175,11 @@
         ;; the copying, but in some environments Float64Array seemed to be a tad
         ;; faster than the other ones.
         (.set (js:Float64Array. new-buffer) (js:Float64Array. (:buffer state)))
-        (assoc state :buffer new-buffer :dataview (js:DataView. new-buffer)))
+        (let [new-state (assoc state :buffer new-buffer :dataview (js:DataView. new-buffer))]
+          ;; Check again, in case doubling the buffer size was not yet enough
+          ;; TODO: immediately calculate the right size, rather than repeatedly
+          ;; allocating bigger buffers. Will be easier once we have loop/recur.
+          (ensure-buffer-size new-state bytes)))
       state)))
 
 (defmacro defwriter [name method size]
