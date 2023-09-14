@@ -1,24 +1,24 @@
 (module lang)
 
-;; Low level bootstrapping, get enough stuff together to go from fn* to fn/defn
+;; Low level bootstrapping, get enough stuff together to go from fn to fn/defn
 
 (def TypedArray (js:Object.getPrototypeOf js:Int8Array))
 
-(def into (fn* [o coll] (reduce conj o coll)))
+(def into (fn [o coll] (reduce conj o coll)))
 
-(def some (fn* [pred coll]
-            (reduce (fn* [_ v]
+(def some (fn [pred coll]
+            (reduce (fn [_ v]
                       (let [res (pred v)]
                         (if res (reduced res) res)))
               false
               coll)))
 
-(def list? (fn* [o] (instance? List o)))
+(def list? (fn [o] (instance? List o)))
 
 (def special-form?
-  (fn* [o]
+  (fn [o]
     (or
-      (= o 'fn*)
+      (= o 'fn)
       (= o 'def)
       (= o 'quote)
       (= o 'if)
@@ -32,32 +32,32 @@
       (= o 'throw))))
 
 (def syntax-quote*
-  (fn* syntax-quote* [form gensyms]
+  (fn syntax-quote* [form gensyms]
     (if (list? form)
       (if (= 'unquote (first form))
         (second form)
-        (if (some (fn* [f] (and (list? f) (= 'unquote-splice (first f)))) form)
-          (cons 'concat (map (fn* [f]
-                             (if (and (list? f) (= 'unquote-splice (first f)))
+        (if (some (fn [f] (and (list? f) (= 'unquote-splice (first f)))) form)
+          (cons 'concat (map (fn [f]
+                               (if (and (list? f) (= 'unquote-splice (first f)))
                                (second f)
                                [(syntax-quote* f gensyms)]))
                           form))
-          (cons 'list (map (fn* [f] (syntax-quote* f gensyms)) form))))
+          (cons 'list (map (fn [f] (syntax-quote* f gensyms)) form))))
 
       (if (vector? form)
-        (if (some (fn* [f] (and (list? f) (= 'unquote-splice (first f)))) form)
+        (if (some (fn [f] (and (list? f) (= 'unquote-splice (first f)))) form)
           (list 'into []
             (cons 'concat
-              (map (fn* [f]
+              (map (fn [f]
                      (if (and (list? f) (= 'unquote-splice (first f)))
                        (second f)
                        [(syntax-quote* f gensyms)]))
                 form)))
           (into []
-            (map (fn* [f] (syntax-quote* f gensyms)) form)))
+            (map (fn [f] (syntax-quote* f gensyms)) form)))
 
         (if (dict? form)
-          (reduce (fn* [acc kv]
+          (reduce (fn [acc kv]
                     (println acc kv)
                     (assoc acc
                       (syntax-quote* (first kv) gensyms)
@@ -93,7 +93,7 @@
 
             (if (object? form)
               (reduce
-                (fn* [acc kv]
+                (fn [acc kv]
                   (assoc! acc (first kv) (syntax-quote* (second kv) gensyms)))
                 #js {}
                 (js:Object.entries form))
@@ -105,9 +105,6 @@
 
 (defmacro undefined? [o]
   `(=== (typeof ~o) "undefined"))
-
-(def vary-meta (fn* vary-meta [obj f & args]
-                 (with-meta obj (apply f (meta obj) args))))
 
 (defmacro defn [name doc-string? argv & body]
   (let [[doc-string? argv body] (if (string? doc-string?)
@@ -129,7 +126,7 @@
 
 (defmacro lazy-seq [& body]
   ;; can't use ~@body here because concat is not yet defined
-  (list 'make-lazy-seq (list 'fn* [] (cons 'do body))))
+  (list 'make-lazy-seq (list 'fn [] (cons 'do body))))
 
 (defn concat
   "Return a lazy seq by concatenating the items of two or
@@ -595,7 +592,7 @@
     (-tag-value [this] (.-val this))))
 
 (defn constantly [v]
-  (fn* [] v))
+  (fn [] v))
 
 (defn reset! [r v]
   (swap! r (constantly v)))
