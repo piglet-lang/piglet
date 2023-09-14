@@ -41,7 +41,7 @@
                              (if (and (list? f) (= 'unquote-splice (first f)))
                                (second f)
                                [(syntax-quote* f gensyms)]))
-                        form))
+                          form))
           (cons 'list (map (fn* [f] (syntax-quote* f gensyms)) form))))
 
       (if (vector? form)
@@ -105,27 +105,6 @@
 
 (defmacro undefined? [o]
   `(=== (typeof ~o) "undefined"))
-
-(defmacro fn [?name argv & body]
-  (let [[?name argv body] (if (symbol? ?name)
-                            [?name argv body]
-                            [nil ?name (if (undefined? argv)
-                                         []
-                                         (cons argv body))])
-        argv-clean (remove (fn* [a] (= a (symbol "&"))) argv)
-        syms (map (fn* [a]
-                    (if (= a (symbol "&"))
-                      a
-                      (gensym "arg"))) argv)
-        syms (with-meta syms (meta argv))
-        syms-clean (remove (fn* [a] (= a (symbol "&"))) syms)
-        fntail (if (seq body)
-                 (list syms
-                   (apply list 'let (reduce into [] (map (fn* [bind arg] [bind arg]) argv-clean syms-clean))
-                     body))
-                 (list syms))
-        fntail (if ?name (cons ?name fntail) fntail)]
-    (cons 'fn* fntail)))
 
 (def vary-meta (fn* vary-meta [obj f & args]
                  (with-meta obj (apply f (meta obj) args))))
@@ -386,8 +365,8 @@
                                     ;; function names. Might be the cleaner
                                     ;; option.
                                     `(fn ~@o))))
-                                    []
-                                    classes)]
+                        []
+                        classes)]
     `(.extend
        ~protocol
        ~@(apply concat class-methods))))
