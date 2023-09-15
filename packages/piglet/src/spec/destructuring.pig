@@ -272,7 +272,7 @@
   )
 
 (u:testing
-  "Associative destructring - special keys with :default binding"
+  "Associative destructring - special keys with :or binding"
   ;; TODO
   )
 
