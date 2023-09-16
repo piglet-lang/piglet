@@ -441,6 +441,17 @@
                     acc-sym))))
       x pairs)))
 
+(defn mapcat [f coll]
+  (reduce (fn [acc c]
+            (into acc (f c)))
+    []
+    coll))
+
+(defmacro as-> [x bind & forms]
+  `(let [~bind ~x
+         ~@(mapcat (fn [form] [bind form]) forms)]
+     ~bind))
+
 (defn re-seq [re s]
   (map
     (fn [x]
@@ -472,12 +483,6 @@
               (conj acc (apply f args)))
       []
       fns)))
-
-(defn mapcat [f coll]
-  (reduce (fn [acc c]
-            (into acc (f c)))
-    []
-    coll))
 
 (defmacro comment [& _]
   nil)
