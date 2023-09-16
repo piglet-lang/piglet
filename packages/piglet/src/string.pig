@@ -38,6 +38,10 @@
   (when s
     (.includes s substring)))
 
+(defn trim [s]
+  (when s
+    (.trim s)))
+
 ;; separator first, for partial application
 (defn join [sep strings]
   (.join (js:Array.from strings
