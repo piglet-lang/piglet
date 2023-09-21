@@ -280,6 +280,8 @@
                   (reverse (expand-exports dir npm-pkg-loc
                              (or
                                (:exports package_json)
+                               (get package_json "dev:module")
+                               (:module package_json)
                                (:main package_json)
                                "index.js"))))))))))
     (await
