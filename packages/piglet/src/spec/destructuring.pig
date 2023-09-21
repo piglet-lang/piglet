@@ -22,7 +22,7 @@
 ;;   "for"
 ;;   (u:is (= ,, (for [])))
 ;;   "doseq"
-;;   (let [res (reference [])]
+;;   (let [res (box [])]
 ;;     (doseq [,,,]
 ;;       (swap! res conj ,,,))
 ;;     (u:is (= ,, @res)))
@@ -41,7 +41,7 @@
     "for"
     (u:is (= [0 1 2] (for [x (range 3)] x)))
     "doseq"
-    (let [res (reference [])]
+    (let [res (box [])]
       (doseq [x (range 3)]
         (swap! res conj x))
       (u:is (= [0 1 2] @res)))
@@ -65,11 +65,11 @@
     (u:is (= [[0 0] [1 1] [2 2]] (for [[x y] (map vector (range 3) (range 3))] [x y])))
     (u:is (= [[0] [1] [2]] (for [[x] (map vector (range 3) [9 10 11])] [x])))
     "doseq"
-    (let [res (reference [])]
+    (let [res (box [])]
       (doseq [[x y] (map vector (range 3) (range 3))]
         (swap! res conj [x y]))
       (u:is (= [[0 0] [1 1] [2 2]] @res)))
-    (let [res (reference [])]
+    (let [res (box [])]
       (doseq [[x y] (map vector (range 3) (range 3) (range 3))]
         (swap! res conj [x y]))
       (u:is (= [[0 0] [1 1] [2 2]] @res)))
@@ -103,11 +103,11 @@
     (u:is (= [[0 [1 2]] [0 [1 2]]] (for [[x & xs] [[0 1 2] [0 1 2]]] [x xs])))
     (u:is (= [[0 nil] [0 nil]] (for [[x & xs] [[0] [0]]] [x xs])))
     "doseq"
-    (let [res (reference [])]
+    (let [res (box [])]
       (doseq [[x & xs] (map vector (range 3) (range 3))]
         (swap! res conj [x xs]))
       (u:is (= [[0 [0]] [1 [1]] [2 [2]]] @res)))
-    (let [res (reference [])]
+    (let [res (box [])]
       (doseq [[x & xs] (range 3)]
         (swap! res conj [x xs]))
       (u:is (= [[0 nil] [1 nil] [2 nil]] @res)))
@@ -146,19 +146,19 @@
             (for [[:as row x] (map vector (range 3) [9 10 11])]
               [x row])))
     "doseq"
-    (let [res (reference [])]
+    (let [res (box [])]
       (doseq [[x y :as row] (map vector (range 3) (range 3))]
         (swap! res conj [x y row]))
       (u:is (= [[0 0 [0 0]] [1 1 [1 1]] [2 2 [2 2]]] @res)))
-    (let [res (reference [])]
+    (let [res (box [])]
       (doseq [[:as row x y] (map vector (range 3) (range 3))]
         (swap! res conj [x y row]))
       (u:is (= [[0 0 [0 0]] [1 1 [1 1]] [2 2 [2 2]]] @res)))
-    (let [res (reference [])]
+    (let [res (box [])]
       (doseq [[x :as row] (map vector (range 3) (range 3) (range 3))]
         (swap! res conj [x row]))
       (u:is (= [[0 [0 0 0]] [1 [1 1 1]] [2 [2 2 2]]] @res)))
-    (let [res (reference [])]
+    (let [res (box [])]
       (doseq [[:as row x] (map vector (range 3) (range 3) (range 3))]
         (swap! res conj [x row]))
       (u:is (= [[0 [0 0 0]] [1 [1 1 1]] [2 [2 2 2]]] @res)))
@@ -210,7 +210,7 @@
     (u:is (= [[1 2] [3 4]] (for [{x :a y :b} [{:a 1 :b 2} {:a 3 :b 4}]]
                              [x y])))
     "doseq"
-    (let [res (reference [])]
+    (let [res (box [])]
       (doseq [[{x :a y :b} [{:a 1 :b 2} {:a 3 :b 4}]]]
         (swap! res conj x))
       (u:is (= [[1 2] [3 4]] @res)))

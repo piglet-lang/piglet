@@ -49,17 +49,17 @@
 (def roots [(path:resolve (process:cwd) "./public")])
 
 (def package-locations
-  (reference
+  (box
     {"self" (process:cwd)
      "piglet" piglet-lang-path}))
 
 (def packages ;; pkg-loc -> pkg-pig
-  (reference {}))
+  (box {}))
 
-(def main-module (reference nil))
+(def main-module (box nil))
 
 (def import-map
-  (reference
+  (box
     {"astring"
      (path:resolve piglet-lang-path "./node_modules/astring/dist/astring.mjs")}))
 

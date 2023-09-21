@@ -584,22 +584,58 @@
        (swap! ~cache assoc ~key val#)
        val#)))
 
-(defn reference [v]
-  (specify! #js {:val v}
+(defprotocol Watchable
+  (add-watch! [this key watch-fn]
+    "Add a watch function to a Watchable container, like a [[box]] or
+    [[reactive:cell]], which will be called whenever the value in the container
+    gets updated. The key argument can be used to remove the watch function with
+    [[remove-watch!]], and is also supplied to the watch function itself. The
+    passed arguments are [key container old-value new-value]. ")
+  (remove-watch!
+    [this key]
+    "Remove a watch function from a Watchable container, like a [[box]] or
+    [[reactive:cell]]. Use the key previously passed to [[add-watch!]]" ))
+
+(defn box
+  "Simple mutable container. Takes the initial value as argument. Can be updated
+  with [[swap!]] and [[reset!]], read with [[deref]] (shorthand: `@`), and can
+  be watched with [[add-watch!]]/[[remove-watch!]]"
+  [v]
+  (specify! #js {:val v :watches {}}
     Swappable
     (-swap! [this f args]
-      (set! (.-val this) (apply f (.-val this) args)))
+      (let [old-val (.-val this)
+            new-val (apply f old-val args)]
+        (set! (.-val this) new-val)
+        (doseq [[k f] (.-watches this)]
+          (f k this old-val new-val))
+        new-val))
+
     Derefable
     (deref [this]
       (.-val this))
+
     TaggedValue
-    (-tag [this] "reference")
-    (-tag-value [this] (.-val this))))
+    (-tag [this] "box")
+    (-tag-value [this] (.-val this))
 
-(defn constantly [v]
-  (fn [] v))
+    Watchable
+    (add-watch! [this key watch-fn]
+      (set! (.-watches this) (assoc (.-watches this) key watch-fn))
+      this)
+    (remove-watch! [this key]
+      (set! (.-watches this) (dissoc (.-watches this) key))
+      this)))
 
-(defn reset! [r v]
+(defn constantly
+  "Creates a function which constantly returns the same value."
+  [v]
+  (fn [& _] v))
+
+(defn reset!
+  "Set the value of a [[Swappable]] reference type (like a [[box]] or
+  [[reactive:cell]])"
+  [r v]
   (swap! r (constantly v)))
 
 (defn ->pig [o opts]
@@ -609,7 +645,7 @@
         (object? o)
         (not (some (fn [t]
                      (instance? t o)) (:exclude opts))))
-      (let [cache (reference {})
+      (let [cache (box {})
             realize-dict (fn [] (-with-cache cache :dict
                                   (into {}
                                     (map (fn [[k v]] [(keyword k) (->pig v)])
@@ -759,7 +795,7 @@
 ;; TODO: support for hierarchies
 (defmacro defmulti [name key-fn]
   `(def ~name (let [key-fn# ~key-fn
-                    methods# (reference {})
+                    methods# (box {})
                     ;; FIXME why is this specify not working
                     dispatch# (specify! (fn ~'dispatch [arg# & args#]
                                           (let [v# (key-fn# arg#)]
@@ -793,7 +829,7 @@
          `(def ~sym nil))))
 
 (defn distinct [coll]
-  (let [seen? (reference #{})]
+  (let [seen? (box #{})]
     (seq
       (reduce (fn [acc el]
                 (if (@seen? el)

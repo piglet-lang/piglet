@@ -33,7 +33,7 @@
 
 ;; This state structure is used for both reads and writes. We implemented reads
 ;; first, in which case the only mutable part is the offset, which is why that
-;; is a reference. For writes we need to be able to grow the buffer, so in the
+;; is a box. For writes we need to be able to grow the buffer, so in the
 ;; write case we pass the state map through the process so we can swap out the
 ;; buffer and dataview, while also mutating the offset in place. It's a bit
 ;; messy.
@@ -44,7 +44,7 @@
   [buffer]
   {:buffer   buffer
    :dataview (js:DataView. buffer)
-   :offset   (reference 0)})
+   :offset   (box 0)})
 
 (defmacro defreader [name method size]
   `(defn ~name [state#]

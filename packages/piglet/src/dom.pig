@@ -143,7 +143,7 @@
 
 (defn listen! [el k evt f]
   (when (not (get el LISTENERS))
-    (assoc! el LISTENERS (reference {})))
+    (assoc! el LISTENERS (box {})))
   (let [listeners (get el LISTENERS)]
     (when-let [l (get-in @listeners [k evt])]
       (.removeEventListener el evt k))
