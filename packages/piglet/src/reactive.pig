@@ -21,14 +21,17 @@
         (doseq [[k f] (.-watches this)]
           (f k this old-val new-val))
         new-val))
+
     Derefable
     (deref [this]
       (when *reactive-context*
         (.push *reactive-context* this))
       (.-val this))
+
     TaggedValue
     (-tag [this] "cell")
     (-tag-value [this] (.-val this))
+
     Watchable
     (add-watch! [this key watch-fn]
       (set! (.-watches this) (assoc (.-watches this) key watch-fn))
@@ -44,7 +47,7 @@
           new-inputs *reactive-context*]
       (set! (.-inputs this) new-inputs)
       (doseq [input (remove (set old-inputs) new-inputs)]
-        (add-watch! input this (fn [k r o n] (update!))))
+        (add-watch! input this (fn [k r o n] (update! o n))))
       (doseq [input (remove (set new-inputs) old-inputs)]
         (remove-watch! input this))
       new-val)))
@@ -64,6 +67,7 @@
         (doseq [[k f] (.-watches this)]
           (f k this old-val new-val))
         new-val))
+
     Derefable
     (deref [this]
       (when (= ::new (.-val this))
@@ -90,13 +94,14 @@
         this
         (fn []
           (reset! this (thunk)))
-        (fn []
-          (-recompute! this))))))
+        (fn [old new]
+          (when (not= old new)
+            (-recompute! this)))))))
 
-(defmacro formula [& body]
+(defmacro formula
+  "Create a formula cell, containing a computed value based on the value of
+  other cells (formula or regular), which will update automatically when any of
+  the dependent cells update. Macro version, see [[formula*]] for a version
+  which takes a zero-arity function (thunk)"
+  [& body]
   `(formula* (fn [] ~@body)))
-
-(defmacro formula! [& body]
-  `(let [f# (formula* (fn [] ~@body))]
-     @f#
-     f#))

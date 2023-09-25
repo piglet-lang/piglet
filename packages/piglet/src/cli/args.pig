@@ -31,7 +31,7 @@
     (when prelude (str prelude "\n"))
     (render-tree commands)
     (when coda (str  coda "\n"))
-    (foo 1 2 3)))
+    ))
 
 
 
@@ -90,22 +90,28 @@
                         $)
                       (reduce (fn [$ c]
                                 (if (dict? c)
-                                  (update $ :data c)
+                                  (merge $ c)
                                   (update $ :subtree (fnil conj []) c)))
                         $ children)
                       (assoc acc cmd $)))
             result
             commands))))))
 
-(normalize-tree (:commands argspec))
+(keys
+  (normalize-tree (:commands argspec)))
 
 (defn handle-next-token [{:keys [argspec current-tree remaining] :as context}]
-  (let [[token & remaining] remaining]
+  (let [[token & remaining] remaining
+        match (get current-tree token)]
+
     ))
 
 (defn parse [argspec argv]
-  {:argspec argspec
-   :current-tree (:commands argspec)
-   :remaining argv})
+  (loop [ctx {:argspec argspec
+              :current-tree (:commands argspec)
+              :remaining argv}]
+    (if (seq (:remaining argv))
+      (handle-next-token ctx)
+      ctx)))
 
 (parse argspec ["files" "-v" "delete" "--output" "outfile" "-f" "more" "--" "output"])

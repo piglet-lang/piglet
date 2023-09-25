@@ -873,3 +873,8 @@
   "Transpose a 2d vector-of-vectors (or seq-of-seqs) matrix"
   [m]
   (apply mapv vector m))
+
+(defn some?
+  "True if o is not nil and not undefined."
+  [o]
+  (and (!== nil o) (!== undefined o)))
