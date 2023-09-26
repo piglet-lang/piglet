@@ -2,6 +2,14 @@
 
 ## Added
 
+## Fixed
+
+## Changed
+
+# 0.1.27 (2023-09-26 / b654c3)
+
+## Added
+
 - docstring support, and first batch of docstrings
 - new modules
   - `reactive` reactive primitives: cell, formula
