@@ -2,7 +2,47 @@
 
 ## Added
 
+- docstring support, and first batch of docstrings
+- new modules
+  - `reactive` reactive primitives: cell, formula
+  - `web/ui` declarative reactive UI layer
+  - `cbor` reimplement CBOR codec in Piglet directly, with support for identifiers (Sym/QSym/Keyword/QName)
+- new `piglet:lang` built-ins
+  - `*data-readers*`
+  - `*print-max-depth*`
+  - `bit-and`
+  - `bit-or`
+  - `bit-shift-left`
+  - `bit-shift-right`
+  - `bit-xor`
+  - `box` (replaces `reference`)
+  - `declare`
+  - `distinct`
+  - `parse-identifier`
+  - `some?`
+  - `transpose`
+  - `vary-meta`
+  - function versions of built-ins/operators (for use in higher order functions) 
+- Special forms
+  - `while` 
+  - `loop` / `recur`
+  - `try` / `catch` / `finally`
+  - `as->`
+  - `string:trim`
+- Implement `Lookup` (index access) and `MutableAssociative` (`conj!`/`assoc!`) for Array/TypedArray/ArrayBuffer
+- Special number syntax: `0x...` (hex) and `<base>r<number>` (radix)
+- Arity checking (emits a warning, we don't have multi-arity functions yet so this is still needed)
+
 ## Fixed
+
+- Using statements within binary expressions
+- Make built-in datastructures more well-behaved in JS land
+  - `toJSON` support
+  - `nodejs.util.inspect.custom` handlers
+- Fix handling of special symbols `&` and `js:...` in syntax quote
+- Fix printing of `ArrayBuffer` and TypedArray
+- Handle multiple keys in `dissoc`
+- Line number tracking improvements
 
 ## Changed
 
