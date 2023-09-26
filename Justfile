@@ -20,5 +20,6 @@ release:
   git add package.json CHANGELOG.md
   git commit -m "Release ${VERSION}"
   git tag "${VERSION}"
+  git push
   git push --tags
   pnpm publish

@@ -167,7 +167,7 @@ release:
     <script type="importmap">
       {"imports": {"astring": "https://cdn.jsdelivr.net/npm/astring@latest/dist/astring.mjs"}}
     </script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/piglet-lang@0.0.19/lib/piglet/browser/main.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/piglet-lang@0.1.27/lib/piglet/browser/main.mjs"></script>
     <script type="piglet">
       (js:console.log "Hello from Piglet 🐷!")
     </script>
