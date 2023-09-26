@@ -55,18 +55,23 @@
 (defn convert-function-component [c]
   (if-let [w (.-pigferno_wrapper_component c)]
     w
-    (fn [props context]
+    (fn ctor [props context]
+      (set! (.-pigferno_wrapper_component c) ctor)
       (let [w (i:Component. props context)]
         (set! (.-render w)
           (fn [props]
             (reactive:track-reactions!
               w
               (fn []
-                (h (apply c (.-pigferno_args props))))
+                (let [props (.-pigferno_args props)
+                      res (apply c props)]
+                  (h (if (fn? res)
+                       (apply res props)
+                       res))))
               (fn [old new]
                 (when (not= old new)
                   (.forceUpdate w))))))
-        (set! (.-pigferno_wrapper_component c) w)
+
         w))))
 
 (defn h
