@@ -2,6 +2,14 @@
 
 ## Added
 
+## Fixed
+
+## Changed
+
+# 0.1.29 (2023-09-30 / ab696b)
+
+## Added
+
 - Add `reactive:cursor`
 
 # 0.1.28 (2023-09-26 / f0e4c9)
