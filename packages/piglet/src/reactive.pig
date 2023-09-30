@@ -57,7 +57,7 @@
 
 (defn cursor [cell path]
   (let [this #js {:watches {}}]
-    (add-watch! cell ::propagate-cursor
+    (add-watch! cell this
       (fn [k r o n]
         (let [old (get-in o path)
               new (get-in n path)]
