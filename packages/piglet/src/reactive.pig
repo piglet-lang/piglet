@@ -40,6 +40,9 @@
       (set! (.-watches this) (dissoc (.-watches this) key))
       this)))
 
+(defprotocol Formula
+  (-recompute! [this]))
+
 (defn track-reactions! [this compute! update!]
   (binding [#'*reactive-context* #js []]
     (let [new-val (compute!)
@@ -52,8 +55,40 @@
         (remove-watch! input this))
       new-val)))
 
-(defprotocol Formula
-  (-recompute! [this]))
+(defn cursor [cell path]
+  (let [this #js {:watches {}}]
+    (add-watch! cell ::propagate-cursor
+      (fn [k r o n]
+        (let [old (get-in o path)
+              new (get-in n path)]
+          (when (not= o n)
+            (doseq [[k f] (.-watches this)]
+              (f k this old new))))))
+
+    (specify! this
+      Swappable
+      (-swap! [this f args]
+        (apply swap! cell update-in path f args)
+        (get-in @cell path))
+
+      Derefable
+      (deref [this]
+        (when *reactive-context*
+          (.push *reactive-context* this))
+        (binding [#'*reactive-context* nil]
+          (get-in (lang:deref cell) path)))
+
+      TaggedValue
+      (-tag [this] "cursor")
+      (-tag-value [this] {:cell cell :path path})
+
+      Watchable
+      (add-watch! [this key watch-fn]
+        (set! (.-watches this) (assoc (.-watches this) key watch-fn))
+        this)
+      (remove-watch! [this key]
+        (set! (.-watches this) (dissoc (.-watches this) key))
+        this))))
 
 (defn formula* [thunk]
   (specify! #js {:val ::new
