@@ -46,7 +46,8 @@
       (.-location (find-package 'piglet)))
     "../.."))
 
-(def roots [(path:resolve (process:cwd) "./public")])
+(def roots [(path:resolve (process:cwd) "./public")
+            (path:resolve (process:cwd) "./")])
 
 (def package-locations
   (box
@@ -209,7 +210,7 @@
     four-oh-four))
 
 (defn handler [req]
-  (if-let [file (find-resource (:path req))]
+  (if-let [file (and (not= "/" (:path req)) (find-resource (:path req)))]
     (file-response (get-in req [:headers "if-none-match"]) file)
     (let [parts (rest (str:split "/" (:path req)))
           [pkg-path] parts
@@ -219,7 +220,8 @@
       (if (= "npm" pkg-path)
         (import-map-response (get-in req [:headers "if-none-match"]) (str:join "/" more))
         (let [file (and pkg-loc (str pkg-loc "/" (str:join "/" more)))]
-          (if (fs:existsSync file)
+          (println (:path req))
+          (if (and (not= "/" (:path req)) (fs:existsSync file))
             (if (= ["package.pig"] more)
               (package-pig-response pkg-path pkg-loc file)
               (do
