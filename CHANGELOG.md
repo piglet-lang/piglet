@@ -2,15 +2,17 @@
 
 ## Added
 
-## Fixed
-
-## Changed
+- Add `reactive:cursor`
 
 # 0.1.28 (2023-09-26 / f0e4c9)
 
 ## Added
 
+- form-2 components in `piglet:web/ui`
+
 ## Fixed
+
+- make sure identifiers with a trailing `?` have a correct `.-name` field
 
 ## Changed
 
