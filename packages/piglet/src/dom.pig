@@ -72,6 +72,8 @@
 (defn append [el & children] (apply (.bind (.-append el) el) children) el)
 (defn prepend [el & children] (apply (.bind (.-prepend el) el) children) el)
 
+(defn remove [el] (.remove el))
+
 (defn split-tag [tag]
   (let [tag-str (or (.-suffix tag) (name tag))
         tag-name (re-find "[^#\\.]+" tag-str)
