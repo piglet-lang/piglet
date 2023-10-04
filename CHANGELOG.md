@@ -6,6 +6,14 @@
 
 ## Changed
 
+# 0.1.30 (2023-10-04 / 00b7a5)
+
+## Added
+
+## Fixed
+
+## Changed
+
 # 0.1.29 (2023-09-30 / ab696b)
 
 ## Added
