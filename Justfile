@@ -1,3 +1,6 @@
+build:
+  ./node_modules/.bin/rollup -c
+
 release:
   #!/bin/sh
   VERSION="$(pnpm version patch --no-git-tag-version -m 'Release %s')"
