@@ -28,10 +28,12 @@
         "@rollup/plugin-node-resolve": "^15.2.2",
         "@rollup/plugin-replace": "^5.0.3",
         "@rollup/plugin-terser": "^0.4.4",
+        "@rollup/pluginutils": "^5.0.5",
         "acorn": "^8.8.2",
         "nodemon": "^2.0.21",
         "readline-history": "^1.2.0",
-        "rollup": "^4.0.2"
+        "rollup": "^4.0.2",
+        "tiny-source-map": "^0.8.0"
     },
     "bin": {
         "piglet": "bin/piglet",

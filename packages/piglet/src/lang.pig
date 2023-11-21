@@ -348,9 +348,11 @@
     (list 'let [osym object]
       (cons 'do
         (for [p proto-methods]
-          (list '.extend_object (first p) osym
-            (into [] (for [fn-tail (rest p)]
-                       (cons 'fn fn-tail))))))
+          (list '.extend_object2 (first p) osym
+            (into #js {}
+              (for [fn-tail (rest p)]
+                [(str (first fn-tail) "/" (count (second fn-tail)))
+                 (cons 'fn (rest fn-tail))])))))
       osym)))
 
 (defmacro reify [& protocols]

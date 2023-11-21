@@ -36,6 +36,9 @@ devDependencies:
   '@rollup/plugin-terser':
     specifier: ^0.4.4
     version: 0.4.4(rollup@4.0.2)
+  '@rollup/pluginutils':
+    specifier: ^5.0.5
+    version: 5.0.5(rollup@4.0.2)
   acorn:
     specifier: ^8.8.2
     version: 8.8.2
@@ -48,6 +51,9 @@ devDependencies:
   rollup:
     specifier: ^4.0.2
     version: 4.0.2
+  tiny-source-map:
+    specifier: ^0.8.0
+    version: 0.8.0
 
 packages:
 
@@ -1189,6 +1195,10 @@ packages:
       acorn: 8.8.2
       commander: 2.20.3
       source-map-support: 0.5.21
+    dev: true
+
+  /tiny-source-map@0.8.0:
+    resolution: {integrity: sha512-0+cR142a5p96U7RUV6w4f4Cl3RCOqCq5snZAt31hMdY3q4+hOezXyu802KzSh0OYjqvoCwDi7jHlQBN9ImGgQQ==}
     dev: true
 
   /to-regex-range@5.0.1:

@@ -25,4 +25,6 @@ release:
   git tag "${VERSION}"
   git push
   git push --tags
+
+  just build
   pnpm publish

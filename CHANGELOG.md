@@ -34,7 +34,13 @@
 
 ## Added
 
+- Start providing a rollup-based build
+
 ## Fixed
+
+- Fix an issue with calling protocol methods from within a protocol
+  implementation, it would call the current implementation, instead of
+  dispatching through the protocol.
 
 ## Changed
 
