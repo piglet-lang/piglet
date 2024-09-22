@@ -40,11 +40,10 @@
         "piglet-lang": "bin/piglet"
     },
     "exports": {
-        "node": "./dist/piglet.node.mjs",
-        "import": "./dist/piglet.browser.mjs",
-        "default": {
-            ".": "./lib/piglet/lang.mjs",
-            "./*": "./lib/piglet/lang/*"
-        }
+        ".": {
+            "node": "./dist/piglet.node.mjs"
+            "module": "./dist/piglet.browser.mjs"
+        },
+        "./*": "./lib/piglet/lang/*"
     }
 }
