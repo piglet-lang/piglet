@@ -6,6 +6,14 @@
 
 ## Changed
 
+# 0.1.34 (2024-09-22 / ced346)
+
+## Added
+
+## Fixed
+
+## Changed
+
 # 0.1.33 (2023-10-04 / 955c5e)
 
 ## Added
