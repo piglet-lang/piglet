@@ -116,7 +116,7 @@ Module, which in turn is part of the Package, which is stored in the
 ModuleRegistry.
 
 Vars have fully qualified names, which is the name of the package, module, and
-var, combined with colons. 
+var, combined with colons.
 
 ```
 piglet:lang=> (fqn #'assoc)

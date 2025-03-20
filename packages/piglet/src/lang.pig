@@ -848,3 +848,8 @@
   "True if o is not nil and not undefined."
   [o]
   (and (!== nil o) (!== undefined o)))
+
+(defmacro defclass
+  "Define a JavaScript class"
+  [class-name & body]
+  `(def ~class-name (class ~class-name ~@body)))

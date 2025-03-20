@@ -27,3 +27,9 @@ quickly get up to speed.
 => "a/b/c"
 ```
 
+- Code is organized in packages, modules, and vars. Vars are like Clojure vars,
+  modules are like namespaces, packages don't have a Clojure equivalent.
+  
+```piglet
+
+```

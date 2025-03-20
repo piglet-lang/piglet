@@ -3,15 +3,7 @@
 == The First Rule of Piglet Club
 
 Hello, stranger! I'm not sure how you got here, but you're here now. You may
-have a lot of questions, like "what am I even looking at"? And unfortunately
-there's only so much I'm at liberty to say.
-
-We are developing Piglet in the open (i.e. you can find it online), but we are
-not ready to be public about it. For the broader context of why we're doing this
-project you'll have to wait for the announcement (which will eventually come).
-Until then we ask you not to post publicly on the open internet about Piglet.
-Feel free to look around, and maybe tell a friend if you're feeling excited, but
-please respect little Piglet's privacy, for now.
+have a lot of questions, like "what am I even looking at"? 
 
 == The Basics
 
