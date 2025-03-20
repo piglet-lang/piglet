@@ -29,7 +29,15 @@
       (= o 'set!)
       (= o 'do)
       (= o 'module)
-      (= o 'throw))))
+      (= o 'throw)
+      (= o 'var)
+      (= o 'while)
+      (= o 'try)
+      (= o 'catch)
+      (= o 'loop)
+      (= o 'break)
+      (= o 'continue)
+      (= o 'class))))
 
 (def syntax-quote*
   (fn syntax-quote* [form gensyms]
