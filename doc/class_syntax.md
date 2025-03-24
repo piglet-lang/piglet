@@ -79,7 +79,7 @@ Step by step:
 ;;    }
 ;; }
 
-(class foo  (^:static my_method [arg]))
+(class foo (^:static my_method [arg]))
 ;;=> class foo {
 ;;    static my_method(arg6) {
 ;;    }
@@ -113,4 +113,108 @@ Step by step:
 ;;     }
 ;; }
 
+(class X ([js:Symbol.iterator] [] ,,,)) ;;=> make a class iterable
 ```
+
+## Computed properties
+
+In JavaScript in both object literals and class expressions you can use an extra
+pair of square brackets to indicate that a given property name is computed on
+the fly.
+
+```javascript
+const foo = class {
+  [`_${2*2}`] = 4;
+
+  ["_xxx"]() {
+    return 9
+  }
+}
+```
+
+We adopted the same syntax, wherever you would have a field or method name in a
+`class` or `defclass`, you can introduce an extra pair of brackets to indicate
+that the name should be computed. It's a little bit like an unquote (`~`),
+you're opting in to evaluation of something that normally is static.
+
+```lisp
+(class foo :fields [a]) ;; base case, not computed
+(class foo :fields [[(str "a")]]) ;; computed
+(class foo :fields [(a 4)]) ;; with default value
+(class foo :fields [([(str "a")] 4)]) ;; with default value, computed
+(class foo
+  (bar [])) ;; method definition
+(class foo
+  ([(str "bar")] [])) ;; computed method definition
+```
+
+## Static
+
+JS has three ways the `static` keyword can be used in a class definition, all
+indicating that something is defined on the class (prototype) level, and not on
+the instance level
+
+Static initializer blocks are a top-level syntactic construct, for these we use
+the `:static` keyword, similar to how we have `:extends` or `:fields`. `:static`
+needs to be followed by a single form. Use `do` if you want to execute multiple
+statements.
+
+```lisp
+(class Foo
+  :static
+  (do
+    (set! this.bar 123))) ;; class level attribute
+```
+
+For fields and methods, you use a `^:static` metadata tag on the field or method
+name.
+
+```lisp
+(class Foo
+  :fields [^:static bar]
+  (^:static baz [] ,,,))
+```
+
+If the field has a default value, then `^:static` still goes on the name of the
+property.
+
+```lisp
+(class Foo
+  :fields [(^:static bar 123)])
+```
+
+Putting it outside the list form also works, but it's easiest to remember that
+`^:static` always goes directly in front of the name.
+
+In case of computed properties/methods, `:^static` goes before the wrapping
+vector.
+
+```lisp
+(class Foo
+  :fields [(^:static ["bar"] 123)])
+```
+
+## Protocols
+
+
+Piglet protocols are based on `js:Symbol` instances, which we call sentinels.
+There's a sentinel for each protocol method, and one for the protocol itself.
+When a protocol's dispatch function is called, it looks for these sentinels to
+find the right method implementation.
+
+```lisp
+(defclass foo 
+  Counted
+  (-count [this] 3))
+```
+
+This code is equivalent to (using computed properties)
+
+```lisp
+(defclass foo 
+  :fields [([(.-sentinel Counted)] true)]
+  ([(.method_sentinel Counted "-count" 1)] [this] 3))
+  
+(count. foo) ;;=> 3
+```
+
