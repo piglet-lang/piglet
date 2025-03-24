@@ -196,7 +196,6 @@ vector.
 
 ## Protocols
 
-
 Piglet protocols are based on `js:Symbol` instances, which we call sentinels.
 There's a sentinel for each protocol method, and one for the protocol itself.
 When a protocol's dispatch function is called, it looks for these sentinels to
@@ -218,3 +217,21 @@ This code is equivalent to (using computed properties)
 (count. foo) ;;=> 3
 ```
 
+Piglet knows that you're extending a protocol when it encounters a symbol inside
+the `class` form. This leads to a potential ambiguity when defining an anonymous
+class.
+
+```lisp
+(let [x (class Counted (-count [this] 5))]
+  (count (x.)))
+```
+
+In this case Piglet will assume you are trying to create a class named
+`Counted`, rather than extending the `Counted` protocol. Because of this, and
+for consitency with the rest of the class syntax, you may prefix protocol
+implementations with `:implements`
+
+```lisp
+(let [x (class :implements Counted (-count [this] 5))]
+  (count (x.)))
+```
