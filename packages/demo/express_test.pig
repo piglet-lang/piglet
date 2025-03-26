@@ -1,8 +1,13 @@
-(module ::express-test
-  (:import [express :from "express"]
-           [hiccup :from ::hiccup]))
+(module express-test
+  (:import
+    hiccup
+    [chalk :from "chalk"]
+    [express :from "express"]))
 
 (def port 3005)
+
+(println express)
+(println express:default)
 
 (def app (express:default))
 
@@ -17,5 +22,5 @@
         (.send res (hiccup:html [:p "Hello, world"]))))
 
 
-(println "Starting Express.js on port" port)
+(println (.blue chalk:default "Starting Express.js on port") (.red chalk:default port))
 (.listen app port)
