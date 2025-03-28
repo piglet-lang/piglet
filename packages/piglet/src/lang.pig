@@ -1,4 +1,3 @@
-(module lang)
 
 ;; Low level bootstrapping, get enough stuff together to go from fn to fn/defn
 
@@ -316,18 +315,28 @@
                      `(fn ~argv ~@body)))
                  #js {} (rest p)))))))
 
+(defmacro doto [o & forms]
+  (let [sym (gensym "o")]
+    (concat
+      (list 'let [sym o])
+      (for [f forms]
+        (if (list? f)
+          (cons (first f) (cons sym (rest f)))
+          (list f sym)))
+      [sym])))
+
 (defmacro defprotocol [proto-name & methods]
-  `(.intern
-     (Protocol.
-       ~(meta proto-name)
-       ~(.-fqn (.-fqn *current-module*))
-       ~(name proto-name)
-       ~(js:Array.from
-          (for [[method-name argv doc] methods]
-            ;; TODO: multiple arities
-            (let [arities #js [#js [(js:Array.from argv name) (or doc nil)]]]
-              #js [(name method-name) arities]))))
-     *current-module*))
+  `(def ~proto-name
+     (doto (Protocol.
+             ~(meta proto-name)
+             ~(.-fqn (.-fqn *current-module*))
+             ~(name proto-name)
+             ~(js:Array.from
+                  (for [[method-name argv doc] methods]
+                    ;; TODO: multiple arities
+                    (let [arities #js [#js [(js:Array.from argv name) (or doc nil)]]]
+                      #js [(name method-name) arities]))))
+       (.intern *current-module*))))
 
 (defmacro extend-protocol [protocol & classes]
   (let [class-methods (reduce (fn [acc o]
@@ -476,16 +485,6 @@
 (defn type-name [o]
   (when (.-constructor o)
     (.-name (.-constructor o))))
-
-(defmacro doto [o & forms]
-  (let [sym (gensym "o")]
-    (concat
-      (list 'let [sym o])
-      (for [f forms]
-        (if (list? f)
-          (cons (first f) (cons sym (rest f)))
-          (list f sym)))
-      [sym])))
 
 ;; Lazy version with Proxy
 (defn ->js [o]
@@ -706,9 +705,6 @@
     (-empty? coll)
     (boolean (seq coll))))
 
-(defn select-keys [m keyseq]
-  (into {} (map (fn [k] [k (get m k)]) keyseq)))
-
 (defn apropos [mod s]
   (if (undefined? s)
     (apropos 'piglet:lang mod)
@@ -861,3 +857,6 @@
   "Define a JavaScript class"
   [class-name & body]
   `(def ~class-name (class ~class-name ~@body)))
+
+(defn compile [mod-name]
+  (.aot_compile *compiler* mod-name))
