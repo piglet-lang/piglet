@@ -6,6 +6,14 @@
 
 ## Changed
 
+# 0.1.36 (2025-03-29 / 330be9)
+
+## Added
+
+## Fixed
+
+## Changed
+
 # 0.1.35 (2025-03-29 / df2e62)
 
 ## Added
