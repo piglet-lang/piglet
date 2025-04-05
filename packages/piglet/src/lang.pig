@@ -365,11 +365,16 @@
     (list 'let [osym object]
       (cons 'do
         (for [p proto-methods]
-          (list '.extend_object2 (first p) osym
-            (into #js {}
+          (if (= 'js:Object (first p))
+            (cons 'do
               (for [fn-tail (rest p)]
-                [(str (first fn-tail) "/" (count (second fn-tail)))
-                 (cons 'fn (rest fn-tail))])))))
+                (list 'set! (list (symbol (str ".-" (first fn-tail))) osym)
+                  (cons 'fn fn-tail))))
+            (list '.extend_object2 (first p) osym
+              (into #js {}
+                (for [fn-tail (rest p)]
+                  [(str (first fn-tail) "/" (count (second fn-tail)))
+                   (cons 'fn (rest fn-tail))]))))))
       osym)))
 
 (defmacro reify [& protocols]
@@ -631,6 +636,11 @@
           DictLike
           (-keys [_] (-with-cache cache :keys (map keyword (js:Object.keys o))))
           (-vals [_] (vals (realize-dict)))
+          HasKey
+          (has-key? [_ k]
+            (in o (if (instance? js:Symbol k)
+                    k
+                    (name k))))
           Associative
           (-assoc [_ k v]
             (assoc (realize-dict)
@@ -659,7 +669,10 @@
                 (when (not= 0 (.-length entries))
                   (map (fn [[k v]] [(keyword k)
                                     (->pig v)])
-                    entries)))))))
+                    entries)))))
+          js:Object
+          (has [k]
+            (in o (name k)))))
 
       (array? o)
       (lazy-seq (map ->pig o))

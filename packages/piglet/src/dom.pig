@@ -1,4 +1,5 @@
 (module dom
+  "Wrapper around the browser DOM API"
   (:import
     [str :from piglet:string]))
 

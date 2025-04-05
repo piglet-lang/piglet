@@ -1,4 +1,5 @@
 (module cbor
+  "Concise Binary Object Representation (CBOR) encoding/decoding."
   (:import piglet:string))
 
 ;; Limitations and choices
@@ -19,7 +20,6 @@
 ;; cbor-tags registry. We (plan to) also encode/decode "tagged items" analoguous
 ;; to reader tags, with string/IRI tags, which uses CBOR tag 27, "Serialized
 ;; language-independent object with type name and constructor arguments."
-
 (defprotocol CBORTagged
   (-cbor-tag-number [_])
   (-cbor-value [_]))
@@ -117,9 +117,9 @@
         (= 25 argument) (- -1 (read-ui16! state))
         (= 26 argument) (- -1 (read-ui32! state))
         (= 27 argument) (let [n (read-ui64! state)]
-                                 (if (<= js:Number.MAX_SAFE_INTEGER n)
-                                   (- (js:BigInt -1) (js:BigInt n))
-                                   (- -1 n))))
+                          (if (<= js:Number.MAX_SAFE_INTEGER n)
+                            (- (js:BigInt -1) (js:BigInt n))
+                            (- -1 n))))
 
       ;; generic sequence of bytes
       (= 2 major-type)
@@ -386,7 +386,6 @@
       (write-byte! state 0xF5)
       (write-byte! state 0xF4))))
 
-
 (defn encode
   "Encode a value to CBOR"
   [value]
@@ -411,140 +410,143 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Testing, to be moved elsewhere
 
-(defn hex-buffer [& args]
-  (.-buffer
-    (js:Uint8Array.
-      (mapcat (fn [line]
-                (map (fn [h]
-                       (js:parseInt h 16))
-                  (re-seq %r/[0-9A-Z]{2}/
-                    (string:replace line %r/#.*/ "")))) args))))
-
 (set! *data-readers*
   {"bigint" (fn [o] (js:BigInt o))})
 
-(defn array-buffer [a]
-  (.-buffer (js:Uint8Array. a)))
+(comment
+  (defn hex-buffer [& args]
+    (.-buffer
+      (js:Uint8Array.
+        (mapcat (fn [line]
+                  (map (fn [h]
+                         (js:parseInt h 16))
+                    (re-seq %r/[0-9A-Z]{2}/
+                      (string:replace line %r/#.*/ "")))) args))))
 
-(extend-type js:BigInt
-  TaggedValue
-  (-tag [_] "bigint")
-  (-tag-value [this] (.toString this)))
 
-(set! *verbosity* 0)
+  (defn array-buffer [a]
+    (.-buffer (js:Uint8Array. a)))
 
-(do
-  (def test-cases
-    [;; 0 - positive integers
-     [["00"] 0]
-     [["17"] 23]
-     [["18 18"] 24]
-     [["18 FF"] 255]
-     [["19 0100"] 256]
-     [["19 FFFF"] 65535]
-     [["1A 0001 0000"] 65536]
-     [["1A FFFF FFFF"] 4294967295]
-     [["1B 0000 0001 0000 0000"] 4294967296]
-     [["1B 001FFFFFFFFFFFFF"] js:Number.MAX_SAFE_INTEGER]
-     [["1B 0020000000000000"] #bigint "9007199254740992"]
-     [["1B FFFF FFFF FFFF FFFF"] #bigint "18446744073709551615"]
+  (extend-type js:BigInt
+    TaggedValue
+    (-tag [_] "bigint")
+    (-tag-value [this] (.toString this)))
 
-     ;; 1 - negative integers
-     [["20"] -1]
-     [["37"] -24]
-     [["38 18"] -25]
-     [["38 FF"] -256]
-     [["39 0100"] -257]
-     [["39 FFFF"] -65536]
-     [["3A 00010000"] -65537]
-     [["3A FFFFFFFF"] -4294967296]
-     [["3B 0000000100000000"] -4294967297]
-     [["3B 001FFFFFFFFFFFFE"] -9007199254740991]
-     [["3B 001FFFFFFFFFFFFF"] #bigint "-9007199254740992"]
-     [["3B 0020000000000000"] #bigint "-9007199254740993"]
-     [["3B FFFFFFFFFFFFFFFF"] #bigint "-18446744073709551616"]
+  (set! *verbosity* 0)
 
-     ;; 2 - byte arrays
-     [["45            # bytes(5)"
-       "  0102030405  # \u0001\u0002\u0003\u0004\u0005"]
-      (array-buffer [1 2 3 4 5])]
+  (do
+    (def test-cases
+      [;; 0 - positive integers
+       [["00"] 0]
+       [["17"] 23]
+       [["18 18"] 24]
+       [["18 FF"] 255]
+       [["19 0100"] 256]
+       [["19 FFFF"] 65535]
+       [["1A 0001 0000"] 65536]
+       [["1A FFFF FFFF"] 4294967295]
+       [["1B 0000 0001 0000 0000"] 4294967296]
+       [["1B 001FFFFFFFFFFFFF"] js:Number.MAX_SAFE_INTEGER]
+       [["1B 0020000000000000"] #bigint "9007199254740992"]
+       [["1B FFFF FFFF FFFF FFFF"] #bigint "18446744073709551615"]
 
-     [["45            # bytes(5)"
-       "  00 02 03 04 FF  # \u0001\u0002\u0003\u0004\u0005"]
-      (array-buffer [0 2 3 4 255])]
-     [["40"] (array-buffer [])]
+       ;; 1 - negative integers
+       [["20"] -1]
+       [["37"] -24]
+       [["38 18"] -25]
+       [["38 FF"] -256]
+       [["39 0100"] -257]
+       [["39 FFFF"] -65536]
+       [["3A 00010000"] -65537]
+       [["3A FFFFFFFF"] -4294967296]
+       [["3B 0000000100000000"] -4294967297]
+       [["3B 001FFFFFFFFFFFFE"] -9007199254740991]
+       [["3B 001FFFFFFFFFFFFF"] #bigint "-9007199254740992"]
+       [["3B 0020000000000000"] #bigint "-9007199254740993"]
+       [["3B FFFFFFFFFFFFFFFF"] #bigint "-18446744073709551616"]
 
-     ;; 3 - UTF-8 strings
-     [["60"] ""]
-     [["63        # text(3)"
-       "   616263 # abc"] "abc"]
-     [[
-       "78 27 # text(39)"
-       "   286D6F64756C652063626F720A2020283A696D70"
-       "   6F7274207069676C65743A737472696E672929"
-       ]"(module cbor\n  (:import piglet:string))"]
+       ;; 2 - byte arrays
+       [["45            # bytes(5)"
+         "  0102030405  # \u0001\u0002\u0003\u0004\u0005"]
+        (array-buffer [1 2 3 4 5])]
 
-     ;; 4 - sequences
-     [["80"] []]
-     [["83 01 02 03"] [1 2 3]]
+       [["45            # bytes(5)"
+         "  00 02 03 04 FF  # \u0001\u0002\u0003\u0004\u0005"]
+        (array-buffer [0 2 3 4 255])]
+       [["40"] (array-buffer [])]
 
-     [["85       # array(5)"
-       "   01    # unsigned(1)"
-       "   20    # negative(0)"
-       "   41    # bytes(1)"
-       "      01 # \"\u0001\""
-       "   61    # text(1)"
-       "      78 # \"x\""
-       "   81    # array(1)"
-       "      02 # unsigned(2)"]
-      [1 -1 (array-buffer [1]) "x" [2]]]
+       ;; 3 - UTF-8 strings
+       [["60"] ""]
+       [["63        # text(3)"
+         "   616263 # abc"] "abc"]
+       [[
+         "78 27 # text(39)"
+         "   286D6F64756C652063626F720A2020283A696D70"
+         "   6F7274207069676C65743A737472696E672929"
+         ]"(module cbor\n  (:import piglet:string))"]
 
-     ;; 5 - maps/dicts
-     [["A1           # map(1)"
-       "   63        # text(3)"
-       "      666F6F # \"foo\""
-       "   63        # text(3)"
-       "      626172 # \"bar\""] {"foo" "bar"}]
+       ;; 4 - sequences
+       [["80"] []]
+       [["83 01 02 03"] [1 2 3]]
 
-     ;; 7 - floats and specials
-     [["84 F5 F4 F6 F7"] [true false nil undefined]]
-     [["FA 461C4200"] 10000.5] ; float32
-     [["FB 40934A4584F4C6E7"] 1234.56789] ; float64
-     ]))
+       [["85       # array(5)"
+         "   01    # unsigned(1)"
+         "   20    # negative(0)"
+         "   41    # bytes(1)"
+         "      01 # \"\u0001\""
+         "   61    # text(1)"
+         "      78 # \"x\""
+         "   81    # array(1)"
+         "      02 # unsigned(2)"]
+        [1 -1 (array-buffer [1]) "x" [2]]]
 
-(defn byte-to-hex [i]
-  (.padStart (string:upcase
-               (.toString i 16)) 2 "0"))
+       ;; 5 - maps/dicts
+       [["A1           # map(1)"
+         "   63        # text(3)"
+         "      666F6F # \"foo\""
+         "   63        # text(3)"
+         "      626172 # \"bar\""] {"foo" "bar"}]
 
-;; decode test, returns empty array if all pass
-(reduce
-  (fn [acc [hex value]]
-    (let [decoded (decode (apply hex-buffer hex))]
-      (if (= value decoded)
-        acc
-        (conj acc [hex value decoded]))))
-  []
-  test-cases)
+       ;; 7 - floats and specials
+       [["84 F5 F4 F6 F7"] [true false nil undefined]]
+       [["FA 461C4200"] 10000.5] ; float32
+       [["FB 40934A4584F4C6E7"] 1234.56789] ; float64
+       ]))
 
-;; encode test, returns empty array if all pass
-(reduce
-  (fn [acc [hex value]]
-    (let [encoded (map byte-to-hex (encode value))
-          expected (map byte-to-hex (apply hex-buffer hex))]
-      (if (= encoded expected)
-        acc
-        (reduced [value expected encoded]))))
-  []
-  test-cases)
+  (defn byte-to-hex [i]
+    (.padStart (string:upcase
+                 (.toString i 16)) 2 "0"))
 
-;; round trip
-(reduce
-  (fn [acc [hex value]]
-    (let [bytes (apply hex-buffer hex)
-          decenc (decode (encode value))
-          encdec (encode (decode bytes))]
-      (if (and (= decenc value) (= encdec bytes))
-        acc
-        (reduced [value decenc hex encdec]))))
-  []
-  test-cases)
+  ;; decode test, returns empty array if all pass
+  (reduce
+    (fn [acc [hex value]]
+      (let [decoded (decode (apply hex-buffer hex))]
+        (if (= value decoded)
+          acc
+          (conj acc [hex value decoded]))))
+    []
+    test-cases)
+
+  ;; encode test, returns empty array if all pass
+  (reduce
+    (fn [acc [hex value]]
+      (let [encoded (map byte-to-hex (encode value))
+            expected (map byte-to-hex (apply hex-buffer hex))]
+        (if (= encoded expected)
+          acc
+          (reduced [value expected encoded]))))
+    []
+    test-cases)
+
+  ;; round trip
+  (reduce
+    (fn [acc [hex value]]
+      (let [bytes (apply hex-buffer hex)
+            decenc (decode (encode value))
+            encdec (encode (decode bytes))]
+        (if (and (= decenc value) (= encdec bytes))
+          acc
+          (reduced [value decenc hex encdec]))))
+    []
+    test-cases)
+  )
