@@ -47,9 +47,8 @@
       (u:is (= [0 1 2] @res)))
     "def"
     (u:is (= nil (resolve 'xxx)))
-    (def xxx 1)
-    (u:is (= 1 @(resolve 'xxx))))
-  )
+    (eval '(def xxx 1)) ;; Analyzing a `def` form creates a placeholder var, so we use eval
+    (u:is (= 1 @(resolve 'xxx)))))
 
 (u:testing
   "Sequential destructuring"
@@ -77,7 +76,6 @@
     (def [x y] [0 1])
     (u:is (= 0 @(resolve 'x)))
     (u:is (= 1 @(resolve 'y)))))
-
 
 (u:testing
   "Sequential destructuring - variable sinkhole"
