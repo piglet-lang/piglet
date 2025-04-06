@@ -104,7 +104,6 @@
                   (assoc! acc (first kv) (syntax-quote* (second kv) gensyms)))
                 #js {}
                 (js:Object.entries form))
-
               (list 'quote form))))))))
 
 (defmacro syntax-quote [form]
@@ -113,18 +112,19 @@
 (defmacro undefined? [o]
   `(=== (typeof ~o) "undefined"))
 
-(defmacro defn [name doc-string? argv & body]
-  (let [[doc-string? argv body] (if (string? doc-string?)
-                                  [doc-string? argv body]
-                                  [nil doc-string? (cons argv body)])]
-    `(def ~(vary-meta
-             (if doc-string?
-               (vary-meta name assoc :doc doc-string?)
-               name)
-             into
-             (dissoc (meta argv) :start :end :col :line))
-       ;; can't use ~@body here because concat is not yet defined
-       (fn ~name ~argv ~(cons 'do body)))))
+(defmacro defn [name doc-string? & rest]
+  (let [[doc-string? rest] (if (string? doc-string?)
+                             [doc-string? rest]
+                             [nil (cons doc-string? rest)])
+        argv (if (vector? (first rest)) (first rest))]
+    (cons 'def
+      (cons (vary-meta
+              (if doc-string?
+                (vary-meta name assoc :doc doc-string?)
+                name)
+              into
+              (dissoc (meta argv) :start :end :col :line))
+        (list (list* 'fn (cons name rest)))))))
 
 (defmacro cond [& args]
   (let [pairs (reverse (partition 2 args))]

@@ -8,10 +8,12 @@
   (when s
     (.toLowerCase (str s))))
 
-(defn subs [s start end]
-  (when s
-    (if (undefined? end)
-      (.slice (str s) start)
+(defn subs
+  ([s start]
+    (when s
+      (.slice (str s) start)))
+  ([s start end]
+    (when s
       (.slice (str s) start end))))
 
 (defn capitalize [s]
