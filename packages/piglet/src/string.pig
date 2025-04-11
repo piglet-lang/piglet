@@ -45,10 +45,13 @@
     (.trim s)))
 
 ;; separator first, for partial application
-(defn join [sep strings]
-  (.join (js:Array.from strings
-           ;; Prevent the idx argument being passed to str
-           (fn [s] (str s))) sep))
+(defn join
+  ([strings]
+    (apply str strings))
+  ([sep strings]
+    (.join (js:Array.from strings
+             ;; Prevent the idx argument being passed to str
+             (fn [s] (str s))) sep)))
 
 (defn split [sep string]
   (when string
@@ -88,6 +91,36 @@
 (def dromedary->kebab camel->kebab)
 (defn dromedary->camel [s]
   (str (upcase (first s)) (subs s 1)))
+
+(def pad-start
+  (if (fn? (.-padStart "")) ;; possibly polyfill
+    (fn
+      ([s pad]
+        (.padStart s pad))
+      ([s pad ch]
+        (.padStart s pad ch)))
+    (fn
+      ([s pad]
+        (pad-start s pad " "))
+      ([s pad ch]
+        (str
+          (apply str (repeat (- pad (count s)) ch))
+          s)))))
+
+(def pad-end
+  (if (fn? (.-padEnd "")) ;; possibly polyfill
+    (fn
+      ([s pad]
+        (.padEnd s pad))
+      ([s pad ch]
+        (.padEnd s pad ch)))
+    (fn
+      ([s pad]
+        (pad-end s pad " "))
+      ([s pad ch]
+        (str
+          s
+          (apply str (repeat (- pad (count s)) ch)))))))
 
 (comment
   (snake->kebab

@@ -5,29 +5,42 @@
   (apply mapv vector m))
 
 (defn print-table
-  [rows {:keys [pad] :or {pad 2}}]
-  (when (seq rows)
-    (let [col-widths (map
-                       (fn [o] (apply max (map (comp count str) o)))
-                       (transpose rows))]
-      (doseq [row rows]
-        (println
-          (str:join ""
-            (map (fn [o w] (+ (str:join (repeat 2 " ")))(.padRight (str o) w)) row col-widths))))
-      )))
-(str:join " " (repeat 2 " "))
-(get (:or '{:keys [pad] :or {pad 2}}) 'pad)
+  ([rows]
+    (print-table rows {}))
+  ([rows {:keys [pad] :or {pad 2}}]
+    (when (seq rows)
+      (let [col-widths (map
+                         (fn [o] (apply max (map (comp count str) o)))
+                         (transpose rows))]
+        (doseq [row rows]
+          (println
+            (str:join ""
+              (map (fn [o w]
+                     (str (str:join (repeat 2 " ")) (str:pad-start (str o) w)))
+                row
+                col-widths))))))))
 
-(print-table [["hello" "world"]
-              [1 2]]
-)
 
-(set! *verbosity* 3)
+(defn coerce-to-pairs [o]
+  (if (vector? o)
+    (partition 2 o)
+    o))
 
-(meta (fn [& _] 2))
+(defn short? [f]
+  (re-find %r/^-[^-]$/ f))
 
-(analyze )
+(defn long? [f]
+  (re-find %r/^--.*/ f))
 
-fstr (string:join "   " (map (fn [o] (str  "%" (if (= 0 o) "" (- o))  "s")) col-widths))
-(doseq [row rows]
-        (println (apply format (str (format (str "%" pad "s") "") fstr) row)))
+(print-help )
+
+(re-find %r"\r?\n" "\r\n")
+
+(defn print-help [cmd-name doc command-pairs argnames flagpairs]
+  (let [desc
+        ]
+    ))
+
+(fn [a]
+  (str (first (str:split %r"\r?\n" (:doc a "")))
+    ))
