@@ -122,6 +122,12 @@
           s
           (apply str (repeat (- pad (count s)) ch)))))))
 
+(defn blank? [s]
+  (or
+    (nil? s)
+    (= "" s)
+    (boolean (re-find #"^\W+$" s))))
+
 (comment
   (snake->kebab
     (camel->snake

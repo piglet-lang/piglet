@@ -64,7 +64,7 @@
         (let [prefix (:prefix msg)]
           (cond
             ;; TODO (.includes prefix "://")
-            (.includes prefix ":")
+            (and (string? prefix) (string:includes? prefix ":"))
             (let [[alias suffix] (string:split ":" prefix)]
               (if-let [mod (find-module (symbol alias))]
                 (reply {:candidates (map (fn [c] (str alias ":" c))

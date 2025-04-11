@@ -1,9 +1,19 @@
+(module lang)
 
 ;; Low level bootstrapping, get enough stuff together to go from fn to fn/defn
 
 (def TypedArray (js:Object.getPrototypeOf js:Int8Array))
 
-(def into (fn [o coll] (reduce conj o coll)))
+(def transduce (fn
+                 ([xform f coll]
+                   (transduce xform f (f) coll))
+                 ([xform f init coll]
+                   (let [rf (xform f)]
+                     (rf (reduce rf init coll))))))
+
+(def into (fn
+            ([o coll] (reduce conj o coll))
+            ([o xform coll] (transduce xform conj o coll))))
 
 (def some (fn [pred coll]
             (reduce (fn [_ v]
@@ -243,6 +253,9 @@
 (defmacro when [cond & body]
   `(if ~cond (do ~@body)))
 
+(defmacro when-not [cond & body]
+  `(when (not ~cond) ~@body))
+
 (defmacro if-let [binding if-true if-false]
   `(let ~binding
      (if ~(first binding)
@@ -433,11 +446,18 @@
                     acc-sym))))
       x pairs)))
 
-(defn mapcat [f coll]
-  (reduce (fn [acc c]
-            (into acc (f c)))
-    []
-    coll))
+(defn mapcat
+  ([f]
+    (fn [rf]
+      (fn
+        ([] (rf))
+        ([res] (rf res))
+        ([res in] (reduce rf res in)))))
+  ([f coll]
+    (reduce (fn [acc c]
+              (into acc (f c)))
+      []
+      coll)))
 
 (defmacro as-> [x bind & forms]
   `(let [~bind ~x
@@ -685,10 +705,20 @@
     (cons (first coll)
       (lazy-seq (take (dec n) (rest coll))))))
 
+(defn take-while [pred coll]
+  (if (pred (first coll))
+    (cons (first coll) (take-while pred (rest coll)))
+    nil))
+
 (defn drop [n coll]
   (if (<= n 0)
     coll
     (drop (dec n) (rest coll))))
+
+(defn drop-while [pred coll]
+  (if (pred (first coll))
+    (drop-while pred (rest coll))
+    coll))
 
 ;; FIXME: replace once we have real vectors
 (defn vector [& args]
@@ -697,6 +727,9 @@
 ;; FIXME: replace once we have real vectors
 (defn mapv [f & colls]
   (js:Array.from (apply map f colls)))
+
+(defn vec [coll]
+  (into [] coll))
 
 (defn min [& vals]
   (reduce (fn [a b]
@@ -739,6 +772,15 @@
 
 (defn identifier? [i]
   (instance? AbstractIdentifier i))
+
+(defn var? [o]
+  (instance? Var o))
+
+(defn true? [o]
+  (=== true o))
+
+(defn false? [o]
+  (=== false o))
 
 (defn get-in [o path fallback]
   (if (= 1 (count path))
@@ -856,6 +898,12 @@
         (symbol s))
       (symbol s))))
 
+(defn parse-long [l]
+  (js:parseInt l 10))
+
+(defn parse-double [l]
+  (js:parseFloat l 10))
+
 (defn transpose
   "Transpose a 2d vector-of-vectors (or seq-of-seqs) matrix"
   [m]
@@ -873,3 +921,12 @@
 
 (defn compile [mod-name]
   (.aot_compile *compiler* mod-name))
+
+(defn zipmap [ks vs]
+  (into {} (map vector ks vs)))
+
+(defn update-keys [d f]
+  (with-meta (into {} (map (juxt (comp f first) second) d)) (meta d)))
+
+(defn update-vals [d f]
+  (with-meta (into {} (map (juxt first (comp f second)) d)) (meta d)))
