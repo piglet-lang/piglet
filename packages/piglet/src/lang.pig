@@ -930,3 +930,12 @@
 
 (defn update-vals [d f]
   (with-meta (into {} (map (juxt first (comp f second)) d)) (meta d)))
+
+(defn as-iterable [o]
+  (cond
+    (nil? o)
+    []
+    (in o js:Symbol.iterator)
+    o
+    :else
+    (seq o)))

@@ -1,7 +1,8 @@
 (module spec/all
   (:import
     [u :from spec/util]
-    [_ :from spec/destructuring])
+    [_ :from spec/destructuring]
+    [_ :from spec/binding-forms])
   (:context {"my-prefix" "https://arnebrasseur.net/vocab/"}))
 
 ;; Primitives
