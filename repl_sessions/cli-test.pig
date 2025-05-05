@@ -1,6 +1,5 @@
 (module cli-test
-  (:import [cli :from cli/port]))
-
+  (:import [cli :from piglet:cli/port]))
 
 (defn list-cmd
   "List things"
@@ -17,4 +16,8 @@
   {:name "cli-test"
    :commands commands
    :flags flags}
-  js:process.argv)
+  ["--help"])
+
+(defn x
+  ([])
+  ([a] (loop [a a])))

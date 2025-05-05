@@ -18,17 +18,15 @@
              ", got" (print-str ~(nth form 2)))))))
 
 (defmacro testing [& body]
-  (seq
-    (conj
-      (reduce
-        (fn [acc form]
-          (conj acc
-            (if (string? form)
-              `(do
-                 (set! indent (- indent 2))
-                 (msg ~form)
-                 (set! indent (+ indent 2)))
-              form)))
-        `[do (set! indent (+ indent 2))]
-        body)
-      `(set! indent (- indent 2)))))
+  (cons 'do
+    (reduce
+      (fn [acc form]
+        (conj acc
+          (if (string? form)
+            `(msg ~form)
+            `(do
+               (set! indent (+ indent 2))
+               ~form
+               (set! indent (- indent 2))))))
+      `[]
+      body)))

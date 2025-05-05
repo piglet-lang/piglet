@@ -42,6 +42,7 @@
     (u:is (= [0 1 2] (for [x (range 3)] x)))
     "doseq"
     (let [res (box [])]
+      (prn res )
       (doseq [x (range 3)]
         (swap! res conj x))
       (u:is (= [0 1 2] @res)))

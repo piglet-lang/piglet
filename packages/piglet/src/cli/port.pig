@@ -384,10 +384,12 @@
 
 (defn dispatch
   ([{:keys [flags init] :as cmdspec} cli-args]
+    (println cmdspec cli-args)
     (let [init                     (if (or (fn? init) (var? init)) (init) init)
           init                     (assoc init ::sources (into {} (map (fn [k] [k "Initial context"])) (keys init)))
           [cmdspec pos-args flags] (split-flags cmdspec cli-args init)
           flagpairs                (get cmdspec :flagpairs)]
+      (println  cmdspec pos-args flags)
       (dispatch cmdspec pos-args flags)))
   ;; Note: this three-arg version of dispatch* is considered private, it's used
   ;; for internal recursion on subcommands.
@@ -397,10 +399,12 @@
      :or          {program-name "cli"}}
     pos-args
     opts]
+    (println "->" cmdspec pos-args opts)
 
     (let [opts (prepend-middleware* opts (if (fn? middleware)
                                            [middleware]
                                            middleware))]
+      (println opts)
       (cond
         command
         (let [middleware (into [(bind-opts-mw)
@@ -485,7 +489,3 @@
 
 
 ;;;;
-
-
-
-(defn split-flags [] (loop [cmdspec 1] (let [cmdspec nil] (recur (inc cmdspec)))))

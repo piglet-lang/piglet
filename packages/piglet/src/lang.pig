@@ -366,7 +366,6 @@
        ~protocol
        ~@(apply concat class-methods))))
 
-
 (defmacro specify! [object & protocols]
   (let [proto-methods (reduce (fn [acc o]
                                 (if (symbol? o)
@@ -477,243 +476,243 @@
                    (js:RegExp. re "g")))))
 
 (defn re-find [re s]
-    (first (re-seq re s)))
+  (first (re-seq re s)))
 
-  (defn load-package [pkg-loc]
-    (.then (.load_package *compiler* pkg-loc)
-      (fn [pkg]
-        (set! *current-package* pkg)
-        pkg)))
+(defn load-package [pkg-loc]
+  (.then (.load_package *compiler* pkg-loc)
+    (fn [pkg]
+      (set! *current-package* pkg)
+      pkg)))
 
-  (defn number? [v]
-    (not (js:isNaN v)))
+(defn number? [v]
+  (not (js:isNaN v)))
 
-  (defn juxt
-    [& fns]
-    (fn [& args]
-      (reduce (fn [acc f]
-                (conj acc (apply f args)))
-        []
-        fns)))
+(defn juxt
+  [& fns]
+  (fn [& args]
+    (reduce (fn [acc f]
+              (conj acc (apply f args)))
+      []
+      fns)))
 
-  (defmacro comment [& _]
-    nil)
+(defmacro comment [& _]
+  nil)
 
-  (defn boolean? [o]
-    (or
-      (=== true o)
-      (=== false o)))
+(defn boolean? [o]
+  (or
+    (=== true o)
+    (=== false o)))
 
-  (defn object [& kvs]
-    (apply assoc! #js {} kvs))
+(defn object [& kvs]
+  (apply assoc! #js {} kvs))
 
-  (defn type-name [o]
-    (when (.-constructor o)
-      (.-name (.-constructor o))))
+(defn type-name [o]
+  (when (.-constructor o)
+    (.-name (.-constructor o))))
 
-  ;; Lazy version with Proxy
-  (defn ->js [o]
-    (cond
-      (dict? o)
-      (js:Proxy. #js {}
-        #js {:apply (fn [_ this args]
-                      (apply o args))
-             :has (fn [_ prop]
-                    (or
-                      (has-key? o prop)
-                      (and (string? prop)
-                        (has-key? o (keyword prop)))))
-             :get (fn [_ prop _]
-                    (cond
-                      (has-key? o prop)
-                      (->js (get o prop))
-                      (and (string? prop)
-                        (has-key? o (keyword prop)))
-                      (->js (get o (keyword prop)))))
-             :getOwnPropertyDescriptor (fn [_ prop]
-                                         (cond
-                                           (has-key? o prop)
-                                           #js {:enumerable true
-                                                :configurable true
-                                                :writable false
-                                                :value (->js (get o prop))}
-                                           (and (string? prop)
-                                             (has-key? o (keyword prop)))
-                                           #js {:enumerable true
-                                                :configurable true
-                                                :writable false
-                                                :value (->js (get o (keyword prop)))}) )
-             :ownKeys (fn [_]
-                        (js:Array.from (map name (keys o))))})
+;; Lazy version with Proxy
+(defn ->js [o]
+  (cond
+    (dict? o)
+    (js:Proxy. #js {}
+      #js {:apply (fn [_ this args]
+                    (apply o args))
+           :has (fn [_ prop]
+                  (or
+                    (has-key? o prop)
+                    (and (string? prop)
+                      (has-key? o (keyword prop)))))
+           :get (fn [_ prop _]
+                  (cond
+                    (has-key? o prop)
+                    (->js (get o prop))
+                    (and (string? prop)
+                      (has-key? o (keyword prop)))
+                    (->js (get o (keyword prop)))))
+           :getOwnPropertyDescriptor (fn [_ prop]
+                                       (cond
+                                         (has-key? o prop)
+                                         #js {:enumerable true
+                                              :configurable true
+                                              :writable false
+                                              :value (->js (get o prop))}
+                                         (and (string? prop)
+                                           (has-key? o (keyword prop)))
+                                         #js {:enumerable true
+                                              :configurable true
+                                              :writable false
+                                              :value (->js (get o (keyword prop)))}) )
+           :ownKeys (fn [_]
+                      (js:Array.from (map name (keys o))))})
 
-      (sequential? o)
-      (into-array (map ->js o))
+    (sequential? o)
+    (into-array (map ->js o))
 
-      :else
-      o))
+    :else
+    o))
 
-  ;; Eager version
-  ;; #_(defn ->js [o]
-  ;;     (cond
-  ;;       (or
-  ;;         (nil? o)
-  ;;         (number? o)
-  ;;         (string? o)
-  ;;         (boolean? o))
-  ;;       o
+;; Eager version
+;; #_(defn ->js [o]
+;;     (cond
+;;       (or
+;;         (nil? o)
+;;         (number? o)
+;;         (string? o)
+;;         (boolean? o))
+;;       o
 
-  ;;       (dict? o)
-  ;;       (let [obj #js {}]
-  ;;         (doseq [[k v] o]
-  ;;           (assoc! obj (if (or
-  ;;                           (instance? js:Symbol k)
-  ;;                           (string? k))
-  ;;                       k
-  ;;                       (name k))
-  ;;             (->js v)))
-  ;;         obj)
+;;       (dict? o)
+;;       (let [obj #js {}]
+;;         (doseq [[k v] o]
+;;           (assoc! obj (if (or
+;;                           (instance? js:Symbol k)
+;;                           (string? k))
+;;                       k
+;;                       (name k))
+;;             (->js v)))
+;;         obj)
 
-  ;;       (sequential? o)
-  ;;       (js:Array.from o ->js)
+;;       (sequential? o)
+;;       (js:Array.from o ->js)
 
-  ;;       :else
-  ;;       (str o)))
+;;       :else
+;;       (str o)))
 
-  (defmacro -with-cache [cache key body]
-    `(if-let [val# (get @~cache ~key)]
-       val#
-       (let [val# ~body]
-         (swap! ~cache assoc ~key val#)
-         val#)))
+(defmacro -with-cache [cache key body]
+  `(if-let [val# (get @~cache ~key)]
+     val#
+     (let [val# ~body]
+       (swap! ~cache assoc ~key val#)
+       val#)))
 
-  (defprotocol Watchable
-    (add-watch! [this key watch-fn]
-      "Add a watch function to a Watchable container, like a [[box]] or
+(defprotocol Watchable
+  (add-watch! [this key watch-fn]
+    "Add a watch function to a Watchable container, like a [[box]] or
     [[reactive:cell]], which will be called whenever the value in the container
     gets updated. The key argument can be used to remove the watch function with
     [[remove-watch!]], and is also supplied to the watch function itself. The
     passed arguments are [key container old-value new-value]. ")
-    (remove-watch!
-      [this key]
-      "Remove a watch function from a Watchable container, like a [[box]] or
+  (remove-watch!
+    [this key]
+    "Remove a watch function from a Watchable container, like a [[box]] or
     [[reactive:cell]]. Use the key previously passed to [[add-watch!]]" ))
 
-  (defn box
-    "Simple mutable container. Takes the initial value as argument. Can be updated
+(defn box
+  "Simple mutable container. Takes the initial value as argument. Can be updated
   with [[swap!]] and [[reset!]], read with [[deref]] (shorthand: `@`), and can
   be watched with [[add-watch!]]/[[remove-watch!]]"
-    [v]
-    (specify! #js {:val v :watches {}}
-      Swappable
-      (-swap! [this f args]
-        (let [old-val (.-val this)
-              new-val (apply f old-val args)]
-          (set! (.-val this) new-val)
-          (doseq [[k f] (.-watches this)]
-            (f k this old-val new-val))
-          new-val))
+  [v]
+  (specify! #js {:val v :watches {}}
+    Swappable
+    (-swap! [this f args]
+      (let [old-val (.-val this)
+            new-val (apply f old-val args)]
+        (set! (.-val this) new-val)
+        (doseq [[k f] (.-watches this)]
+          (f k this old-val new-val))
+        new-val))
 
-      Derefable
-      (deref [this]
-        (.-val this))
+    Derefable
+    (deref [this]
+      (.-val this))
 
-      TaggedValue
-      (-tag [this] "box")
-      (-tag-value [this] (.-val this))
+    TaggedValue
+    (-tag [this] "box")
+    (-tag-value [this] (.-val this))
 
-      Watchable
-      (add-watch! [this key watch-fn]
-        (set! (.-watches this) (assoc (.-watches this) key watch-fn))
-        this)
-      (remove-watch! [this key]
-        (set! (.-watches this) (dissoc (.-watches this) key))
-        this)))
+    Watchable
+    (add-watch! [this key watch-fn]
+      (set! (.-watches this) (assoc (.-watches this) key watch-fn))
+      this)
+    (remove-watch! [this key]
+      (set! (.-watches this) (dissoc (.-watches this) key))
+      this)))
 
-  (defn constantly
-    "Creates a function which constantly returns the same value."
-    [v]
-    (fn [& _] v))
+(defn constantly
+  "Creates a function which constantly returns the same value."
+  [v]
+  (fn [& _] v))
 
-  (defn reset!
-    "Set the value of a [[Swappable]] reference type (like a [[box]] or
+(defn reset!
+  "Set the value of a [[Swappable]] reference type (like a [[box]] or
   [[reactive:cell]])"
-    [r v]
-    (swap! r (constantly v)))
+  [r v]
+  (swap! r (constantly v)))
 
-  (defn ->pig [o opts]
-    (let [opts (or opts {:exclude [js:Date TypedArray]})]
-      (cond
-        (and
-          (object? o)
-          (not (some (fn [t]
-                       (instance? t o)) (:exclude opts))))
-        (let [cache (box {})
-              realize-dict (fn [] (-with-cache cache :dict
-                                    (into {}
-                                      (map (fn [[k v]] [(keyword k) (->pig v)])
-                                        (js:Object.entries o)))))]
-          (reify
-            DictLike
-            (-keys [_] (-with-cache cache :keys (map keyword (js:Object.keys o))))
-            (-vals [_] (vals (realize-dict)))
-            HasKey
-            (has-key? [_ k]
-              (in o (if (instance? js:Symbol k)
-                      k
-                      (name k))))
-            Associative
-            (-assoc [_ k v]
-              (assoc (realize-dict)
-                k v))
-            Lookup
-            (-get [_ k] (-with-cache cache [:key k] (->pig (get o k))))
-            (-get [_ k v] (if (js:Object.hasOwn o (name k))
-                            (-with-cache cache [:key k] (->pig (get o k)))
-                            v))
-            Conjable
-            (-conj [this [k v]] (assoc this k v))
-            Counted
-            (-count [_] (.-length (js:Object.keys o)))
-            ;; FIXME: a call like `(-repr ...)` here would call this specific
-            ;; implementation function, instead of the protocol method, thus causing
-            ;; infinite recursion.
-            ;; FIXME: we have a built-in, non-overridable package alias for piglet, we
-            ;; should probably also add a default but overridable module alias to
-            ;; `lang`
-            Repr
-            (-repr [this] (piglet:lang:-repr (realize-dict)))
-            Seqable
-            (-seq [_]
-              (-with-cache cache :seq
-                (let [entries (js:Object.entries o)]
-                  (when (not= 0 (.-length entries))
-                    (map (fn [[k v]] [(keyword k)
-                                      (->pig v)])
-                      entries)))))
-            js:Object
-            (has [k]
-              (in o (name k)))))
+(defn ->pig [o opts]
+  (let [opts (or opts {:exclude [js:Date TypedArray]})]
+    (cond
+      (and
+        (object? o)
+        (not (some (fn [t]
+                     (instance? t o)) (:exclude opts))))
+      (let [cache (box {})
+            realize-dict (fn [] (-with-cache cache :dict
+                                  (into {}
+                                    (map (fn [[k v]] [(keyword k) (->pig v)])
+                                      (js:Object.entries o)))))]
+        (reify
+          DictLike
+          (-keys [_] (-with-cache cache :keys (map keyword (js:Object.keys o))))
+          (-vals [_] (vals (realize-dict)))
+          HasKey
+          (has-key? [_ k]
+            (in o (if (instance? js:Symbol k)
+                    k
+                    (name k))))
+          Associative
+          (-assoc [_ k v]
+            (assoc (realize-dict)
+              k v))
+          Lookup
+          (-get [_ k] (-with-cache cache [:key k] (->pig (get o k))))
+          (-get [_ k v] (if (js:Object.hasOwn o (name k))
+                          (-with-cache cache [:key k] (->pig (get o k)))
+                          v))
+          Conjable
+          (-conj [this [k v]] (assoc this k v))
+          Counted
+          (-count [_] (.-length (js:Object.keys o)))
+          ;; FIXME: a call like `(-repr ...)` here would call this specific
+          ;; implementation function, instead of the protocol method, thus causing
+          ;; infinite recursion.
+          ;; FIXME: we have a built-in, non-overridable package alias for piglet, we
+          ;; should probably also add a default but overridable module alias to
+          ;; `lang`
+          Repr
+          (-repr [this] (piglet:lang:-repr (realize-dict)))
+          Seqable
+          (-seq [_]
+            (-with-cache cache :seq
+              (let [entries (js:Object.entries o)]
+                (when (not= 0 (.-length entries))
+                  (map (fn [[k v]] [(keyword k)
+                                    (->pig v)])
+                    entries)))))
+          js:Object
+          (has [k]
+            (in o (name k)))))
 
-        (array? o)
-        (lazy-seq (map ->pig o))
+      (array? o)
+      (lazy-seq (map ->pig o))
 
-        :else
-        o)))
+      :else
+      o)))
 
-  (defn take [n coll]
-    (when (and (seq coll) (< 0 n))
-      (cons (first coll)
-        (lazy-seq (take (dec n) (rest coll))))))
+(defn take [n coll]
+  (when (and (seq coll) (< 0 n))
+    (cons (first coll)
+      (lazy-seq (take (dec n) (rest coll))))))
 
-  (defn take-while [pred coll]
-    (if (pred (first coll))
-      (cons (first coll) (take-while pred (rest coll)))
-      nil))
+(defn take-while [pred coll]
+  (if (pred (first coll))
+    (cons (first coll) (take-while pred (rest coll)))
+    nil))
 
-  (defn drop [n coll]
-    (if (<= n 0)
-      coll
-      (drop (dec n) (rest coll))))
+(defn drop [n coll]
+  (if (<= n 0)
+    coll
+    (drop (dec n) (rest coll))))
 
 (defn drop-while [pred coll]
   (if (pred (first coll))
