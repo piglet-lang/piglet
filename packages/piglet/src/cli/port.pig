@@ -277,7 +277,6 @@
   (into {"-h" {:key :help :value true}
          "--help" {:key :help :value true}}
     (map (juxt (fn [o]
-                 (prn "->" o (type-name o))
                  (:flag o)) identity)
       (mapcat build-flagmap-entries
         flagpairs))))
@@ -310,11 +309,11 @@
   (let [flagpairs (prepare-flagpairs extra-flags)
         flagmap   (parse-flagstrs flagpairs)]
     (-> cmdspec
-        (update :flagpairs (fn [fp]
-                             (into (vec fp)
-                                   ;; This prevents duplicates. Yes, this is not pretty. I'm very sorry.
-                               (remove #((into #{} (map first) fp) (first %)))
-                               flagpairs)))
+      (update :flagpairs (fn [fp]
+                           (into (vec fp)
+                             ;; This prevents duplicates. Yes, this is not pretty. I'm very sorry.
+                             (remove #((into #{} (map first) fp) (first %)))
+                             flagpairs)))
       (update :flagmap merge flagmap))))
 
 (defn split-flags
@@ -344,8 +343,9 @@
           (recur (dissoc cmdspec :flags) cli-args args (conj seen-prefixes args) opts))
 
         :else
-        (recur (dissoc cmdspec :flags)
-               cli-args
+        (recur
+          (dissoc cmdspec :flags)
+          cli-args
           (conj args (str:replace arg #"^\\(.)" (fn [[_ o]] o))) ; remove initial backslash, allows args to be escaped
           (conj seen-prefixes args)
           opts)))))
@@ -384,12 +384,10 @@
 
 (defn dispatch
   ([{:keys [flags init] :as cmdspec} cli-args]
-    (println cmdspec cli-args)
     (let [init                     (if (or (fn? init) (var? init)) (init) init)
           init                     (assoc init ::sources (into {} (map (fn [k] [k "Initial context"])) (keys init)))
           [cmdspec pos-args flags] (split-flags cmdspec cli-args init)
           flagpairs                (get cmdspec :flagpairs)]
-      (println  cmdspec pos-args flags)
       (dispatch cmdspec pos-args flags)))
   ;; Note: this three-arg version of dispatch* is considered private, it's used
   ;; for internal recursion on subcommands.
@@ -399,12 +397,9 @@
      :or          {program-name "cli"}}
     pos-args
     opts]
-    (println "->" cmdspec pos-args opts)
-
     (let [opts (prepend-middleware* opts (if (fn? middleware)
                                            [middleware]
                                            middleware))]
-      (println opts)
       (cond
         command
         (let [middleware (into [(bind-opts-mw)
@@ -485,7 +480,6 @@
 
             :else
             (parse-error! "Expected either :command or :commands key in" cmdspec)))))))
-
 
 
 ;;;;

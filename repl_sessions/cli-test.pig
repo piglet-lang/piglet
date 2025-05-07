@@ -1,5 +1,7 @@
 (module cli-test
-  (:import [cli :from piglet:cli/port]))
+  (:import
+    [cli :from piglet:cli/port]
+    [str :from piglet:string]))
 
 (defn list-cmd
   "List things"
@@ -16,8 +18,23 @@
   {:name "cli-test"
    :commands commands
    :flags flags}
-  ["--help"])
+  (drop 3 js:process.argv)
+  #_ ["list"])
 
-(defn x
-  ([])
-  ([a] (loop [a a])))
+;; (defn x
+;;   ([])
+;;   ([a] (loop [a a])))
+
+;; (fn []
+;;   (fn []
+;;     (recur)))
+
+
+;; (fn []
+;;   (let [reply
+;;         (fn [answer]
+;;           (let [x 1]
+;;             (println 1)
+;;             (println 1)
+;;             ))]
+;;     ))

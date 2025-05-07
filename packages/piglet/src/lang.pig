@@ -814,7 +814,7 @@
   (cons (f) (lazy-seq (repeatedly f))))
 
 (defn merge [m & ms]
-  (reduce into m ms))
+  (reduce into (or m {}) ms))
 
 (defn keep [f & colls]
   (filter identity
@@ -845,10 +845,10 @@
 (defmacro binding [bindings & body]
   `(do
      ~@(for [[var val] (partition 2 bindings)]
-         `(.push_binding ~var ~val))
+         `(.push_binding (var ~var) ~val))
      (let [res# (do ~@body)]
        ~@(for [[var _] (partition 2 bindings)]
-           `(.pop_binding ~var))
+           `(.pop_binding (var ~var)))
        res#)))
 
 (defmacro declare [& syms]

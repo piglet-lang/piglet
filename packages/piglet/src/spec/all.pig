@@ -111,7 +111,7 @@
     (u:is (= 2 (count #{1 2})))))
 
 (u:testing "Dynamic bindings"
-  (u:is (= 3 (binding [#'*verbosity* 3] *verbosity*))))
+  (u:is (= 3 (binding [*verbosity* 3] *verbosity*))))
 
 (defn recursive-function [n]
   (if (< 5 n) n (recur (inc n))))
