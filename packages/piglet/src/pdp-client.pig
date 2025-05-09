@@ -88,6 +88,3 @@
     (set! (.-onmessage conn) (on-message-fn conn))
 
     (set! (.-binaryType conn) "arraybuffer")))
-
-;; TODO: create a main function instead of a top-level call
-(connect! "ws://127.0.0.1:17017")

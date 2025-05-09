@@ -548,5 +548,4 @@
           acc
           (reduced [value decenc hex encdec]))))
     []
-    test-cases)
-  )
+    test-cases))

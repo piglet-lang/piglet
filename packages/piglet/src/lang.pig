@@ -56,8 +56,8 @@
         (if (some (fn [f] (and (list? f) (= 'unquote-splice (first f)))) form)
           (cons 'concat (map (fn [f]
                                (if (and (list? f) (= 'unquote-splice (first f)))
-                               (second f)
-                               [(syntax-quote* f gensyms)]))
+                                 (second f)
+                                 [(syntax-quote* f gensyms)]))
                           form))
           (cons 'list (map (fn [f] (syntax-quote* f gensyms)) form))))
 
@@ -122,19 +122,18 @@
 (defmacro undefined? [o]
   `(=== (typeof ~o) "undefined"))
 
-(defmacro defn [name doc-string? & rest]
-  (let [[doc-string? rest] (if (string? doc-string?)
-                             [doc-string? rest]
-                             [nil (cons doc-string? rest)])
-        argv (if (vector? (first rest)) (first rest))]
+(defmacro defn [name doc-string? & more]
+  (let [[doc-string? more] (if (string? doc-string?)
+                             [doc-string? more]
+                             [nil (cons doc-string? more)])
+        [props more] (if (dict? (first more)) [(first more) (rest more)] [nil more])
+        argv (if (vector? (first more)) (first more))
+        name (if doc-string? (vary-meta name assoc :doc doc-string?) name)
+        name (vary-meta name into (dissoc (meta argv) :start :end :col :line))
+        name (if props (vary-meta name into props) name)]
     (cons 'def
-      (cons (vary-meta
-              (if doc-string?
-                (vary-meta name assoc :doc doc-string?)
-                name)
-              into
-              (dissoc (meta argv) :start :end :col :line))
-        (list (list* 'fn (cons name rest)))))))
+      (cons name
+        (list (list* 'fn (cons name more)))))))
 
 (defmacro cond [& args]
   (let [pairs (reverse (partition 2 args))]
@@ -244,7 +243,7 @@
 (defn in-mod [name]
   (.set_value
     (resolve 'piglet:lang:*current-module*)
-    (ensure-module name)))
+    (find-module name)))
 
 (defn reload [mod]
   (set! (.-required (ensure-module mod)) false)
@@ -639,65 +638,68 @@
   [r v]
   (swap! r (constantly v)))
 
-(defn ->pig [o opts]
-  (let [opts (or opts {:exclude [js:Date TypedArray]})]
-    (cond
-      (and
-        (object? o)
-        (not (some (fn [t]
-                     (instance? t o)) (:exclude opts))))
-      (let [cache (box {})
-            realize-dict (fn [] (-with-cache cache :dict
-                                  (into {}
-                                    (map (fn [[k v]] [(keyword k) (->pig v)])
-                                      (js:Object.entries o)))))]
-        (reify
-          DictLike
-          (-keys [_] (-with-cache cache :keys (map keyword (js:Object.keys o))))
-          (-vals [_] (vals (realize-dict)))
-          HasKey
-          (has-key? [_ k]
-            (in o (if (instance? js:Symbol k)
-                    k
-                    (name k))))
-          Associative
-          (-assoc [_ k v]
-            (assoc (realize-dict)
-              k v))
-          Lookup
-          (-get [_ k] (-with-cache cache [:key k] (->pig (get o k))))
-          (-get [_ k v] (if (js:Object.hasOwn o (name k))
-                          (-with-cache cache [:key k] (->pig (get o k)))
-                          v))
-          Conjable
-          (-conj [this [k v]] (assoc this k v))
-          Counted
-          (-count [_] (.-length (js:Object.keys o)))
-          ;; FIXME: a call like `(-repr ...)` here would call this specific
-          ;; implementation function, instead of the protocol method, thus causing
-          ;; infinite recursion.
-          ;; FIXME: we have a built-in, non-overridable package alias for piglet, we
-          ;; should probably also add a default but overridable module alias to
-          ;; `lang`
-          Repr
-          (-repr [this] (piglet:lang:-repr (realize-dict)))
-          Seqable
-          (-seq [_]
-            (-with-cache cache :seq
-              (let [entries (js:Object.entries o)]
-                (when (not= 0 (.-length entries))
-                  (map (fn [[k v]] [(keyword k)
-                                    (->pig v)])
-                    entries)))))
-          js:Object
-          (has [k]
-            (in o (name k)))))
+(defn ->pig
+  ([o]
+    (->pig o nil))
+  ([o opts]
+    (let [opts (or opts {:exclude [js:Date TypedArray]})]
+      (cond
+        (and
+          (object? o)
+          (not (some (fn [t]
+                       (instance? t o)) (:exclude opts))))
+        (let [cache (box {})
+              realize-dict (fn [] (-with-cache cache :dict
+                                    (into {}
+                                      (map (fn [[k v]] [(keyword k) (->pig v)])
+                                        (js:Object.entries o)))))]
+          (reify
+            DictLike
+            (-keys [_] (-with-cache cache :keys (map keyword (js:Object.keys o))))
+            (-vals [_] (vals (realize-dict)))
+            HasKey
+            (has-key? [_ k]
+              (in o (if (instance? js:Symbol k)
+                      k
+                      (name k))))
+            Associative
+            (-assoc [_ k v]
+              (assoc (realize-dict)
+                k v))
+            Lookup
+            (-get [_ k] (-with-cache cache [:key k] (->pig (get o k))))
+            (-get [_ k v] (if (js:Object.hasOwn o (name k))
+                            (-with-cache cache [:key k] (->pig (get o k)))
+                            v))
+            Conjable
+            (-conj [this [k v]] (assoc this k v))
+            Counted
+            (-count [_] (.-length (js:Object.keys o)))
+            ;; FIXME: a call like `(-repr ...)` here would call this specific
+            ;; implementation function, instead of the protocol method, thus causing
+            ;; infinite recursion.
+            ;; FIXME: we have a built-in, non-overridable package alias for piglet, we
+            ;; should probably also add a default but overridable module alias to
+            ;; `lang`
+            Repr
+            (-repr [this] (piglet:lang:-repr (realize-dict)))
+            Seqable
+            (-seq [_]
+              (-with-cache cache :seq
+                (let [entries (js:Object.entries o)]
+                  (when (not= 0 (.-length entries))
+                    (map (fn [[k v]] [(keyword k)
+                                      (->pig v)])
+                      entries)))))
+            js:Object
+            (has [k]
+              (in o (name k)))))
 
-      (array? o)
-      (lazy-seq (map ->pig o))
+        (array? o)
+        (lazy-seq (map ->pig o))
 
-      :else
-      o)))
+        :else
+        o))))
 
 (defn take [n coll]
   (when (and (seq coll) (< 0 n))
@@ -781,12 +783,13 @@
 (defn false? [o]
   (=== false o))
 
-(defn get-in [o path fallback]
-  (if (= 1 (count path))
-    (get o (first path) (if (undefined? fallback)
-                          nil
-                          fallback))
-    (get-in (get o (first path)) (rest path) fallback)))
+(defn get-in
+  ([o path]
+    (get-in o path nil))
+  ([o path fallback]
+    (if (= 1 (count path))
+      (get o (first path) fallback)
+      (get-in (get o (first path)) (rest path) fallback))))
 
 (defmacro defonce [sym form]
   `(when (not (resolve '~sym))

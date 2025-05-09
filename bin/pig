@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Using a bash-ism here because to do this in POSIX in the face of symlinks is
+# _very_ tedious, see https://stackoverflow.com/a/29835459
+PIGLET_HOME="$(dirname "$(realpath $0)")/.."
+exec node "${PIGLET_HOME}/lib/piglet/node/pig_cli.mjs" "$@"

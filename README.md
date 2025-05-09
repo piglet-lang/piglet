@@ -1,5 +1,7 @@
 # Piglet
 
+_A LISP for the JavaScript Age._
+
 Piglet is a ES6-native LISP. In true LISP tradition it is in the first place
 envisaged as a live environment, meaning the Reader, Compiler, and any other
 language-level utilities are available at runtime.

@@ -294,7 +294,7 @@
 
 (def port 1234)
 
-(defn ^:async main []
+(defn ^:async main [opts]
   (let [pkg-pig-loc (str (process:cwd) "/package.pig")]
     (when (not (fs:existsSync pkg-pig-loc))
       (println "WARN: package.pig not found, creating stub")
@@ -310,5 +310,3 @@
 
     (println "Starting http server on port" port)
     (http:start! server)))
-
-(await (main))

@@ -37,6 +37,7 @@
         "tiny-source-map": "^0.8.0"
     },
     "bin": {
+        "pig": "bin/pig",
         "piglet": "bin/piglet",
         "piglet-lang": "bin/piglet"
     },

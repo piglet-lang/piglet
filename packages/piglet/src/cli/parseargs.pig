@@ -1,9 +1,18 @@
-(module cli/port
-  (:import [str :from string]))
+(module cli/parseargs
+  "CLI argument handling with subcommand support and nice help text.
 
-(def *opts* nil)
+  Port from Clojure's lambdaisland/cli, with improvements."
+  (:import
+    [str :from string]
+    [term :from cli/terminal]))
 
-(defn transpose [m]
+(def *opts*
+  "Gets bound during command dispatch, so arbitrary code can access the final options map"
+  nil)
+
+(defn transpose
+  "Generic matrix transposition"
+  [m]
   (apply mapv vector m))
 
 (defn print-table
@@ -16,7 +25,7 @@
           (println
             (str:join ""
               (map (fn [o w]
-                     (str (str:join (repeat 2 " ")) (str:pad-start (str o) w)))
+                     (str (str:join (repeat 2 " ")) (str:pad-end (str o) w)))
                 row
                 col-widths))))))))
 
@@ -36,11 +45,11 @@
                 (when-let [d (:default %)] (str " (default " (print-str d) ")")))
         doc-lines (when-not (str:blank? doc)
                     (str:split #"\n" doc))]
-    (println "NAME")
+    (println (term:fg :green "NAME"))
     (println " " cmd-name (if doc-lines (str " ——  " (first doc-lines)) ""))
     (println)
 
-    (println "SYNOPSIS")
+    (println (term:fg :green "SYNOPSIS"))
     (println (str "  " cmd-name
                (when (seq argnames)
                  (str:join (for [n argnames]
@@ -53,12 +62,12 @@
                    "]"))
                " [<args>...]"))
     (when-let [doc (rest doc-lines)]
-      (println "\nDESCRIPTION")
+      (println (term:fg :green "\nDESCRIPTION"))
       (println " " (str:join "\n  " (map str:trim (drop-while #(str:blank? %) doc)))))
     (when (seq flagpairs)
       (let [has-short? (some short? (mapcat (comp :flags second) flagpairs))
             has-long?  (some long? (mapcat (comp :flags second) flagpairs))]
-        (println "\nFLAGS")
+        (println (term:fg :green "\nFLAGS"))
         (print-table
           (apply
             concat
@@ -67,12 +76,12 @@
                     long (some long? flags)]
                 (into [[(str (cond
                                short
-                               (str short ", ")
+                               (str (term:fg :cyan short) ", ")
                                has-short?
                                "    "
                                :else
                                "")
-                          long
+                          (term:fg :cyan long)
                           argdoc)
                         (desc flagopts)
                         (if required "(required)" "")]]
@@ -80,12 +89,12 @@
                          ["" l ""]))
                   (rest (str:split #"\n" (or doc ""))))))))))
     (when (seq command-pairs)
-      (println "\nSUBCOMMANDS")
+      (println (term:fg :green "\nSUBCOMMANDS"))
       (print-table
         (for [[cmd cmdopts] command-pairs]
-          [(str cmd (if (:commands cmdopts)
-                      (str " <" (str:join "|" (map first (:commands cmdopts))) ">")
-                      (:argdoc cmdopts)))
+          [(str (term:fg :cyan cmd) (if (:commands cmdopts)
+                                      (str " <" (str:join "|" (map first (:commands cmdopts))) ">")
+                                      (:argdoc cmdopts)))
            (desc cmdopts)])))))
 
 (defn parse-error! [& msg]
@@ -383,6 +392,7 @@
         (cmd opts)))))
 
 (defn dispatch
+  "Main entry point"
   ([{:keys [flags init] :as cmdspec} cli-args]
     (let [init                     (if (or (fn? init) (var? init)) (init) init)
           init                     (assoc init ::sources (into {} (map (fn [k] [k "Initial context"])) (keys init)))

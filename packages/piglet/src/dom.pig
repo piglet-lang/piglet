@@ -10,10 +10,11 @@
       (.appendChild parent child)
       parent)))
 
-(defn create-el [doc xmlns tag]
-  (if tag
-    (.createElementNS doc xmlns (name tag))
-    (.createElement doc (name xmlns))))
+(defn create-el
+  ([doc tag]
+    (.createElement doc (name tag)))
+  ([doc xmlns tag]
+    (.createElementNS doc xmlns (name tag))))
 
 (defn fragment [doc els]
   (let [fragment (.createDocumentFragment doc)]
