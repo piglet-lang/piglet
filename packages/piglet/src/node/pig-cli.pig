@@ -30,8 +30,11 @@
     (println (term:fg :cyan "Connecting to PDP on") (term:fg :yellow url))
     ((resolve 'piglet:pdp-client:connect!) url)))
 
-(defn ^:async web
-  "Start dev-server for web-based projects"
+(defn web
+  {:doc "Start dev-server for web-based projects"
+   :async true
+   :flags ["--port, -p=<port>" {:doc "Port to start http server on"
+                                :default 1234}]}
   [opts]
   (await (require 'node/dev-server))
   ((resolve 'piglet:node/dev-server:main) opts))

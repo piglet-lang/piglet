@@ -76,8 +76,7 @@
                                   (completion-candidates *current-module* prefix))})))))))
 
 (defn connect! [uri]
-  (let [conn (WebSocket. "ws://127.0.0.1:17017")]
-
+  (let [conn (WebSocket. uri)]
     (set! (.-onerror conn) (fn [{:keys [error]}]
                              (let [{:keys [code address port]} error]
                                (when (= "ECONNREFUSED" code)

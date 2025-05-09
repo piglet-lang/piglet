@@ -1,7 +1,8 @@
 (module node/dev-server
   (:import
     piglet:dom
-    [str :from piglet:string]
+    [term :from cli/terminal]
+    [str :from string]
     [http :from node/http-server]
     [fs :from "node:fs"]
     [fsp :from "node:fs/promises"]
@@ -28,14 +29,9 @@
 ;; (require 'https://piglet-lang.org/packages/piglet:pdp-client)
 ;; </script>
 ;;
-;; References to other piglet packages in pacakge.pig should use relative paths
+;; References to other piglet packages in package.pig should use relative paths
 ;; (as you would do on Node.js). The dev-server will rewrite these to a URL path
 ;; prefix, so that the browser is able to load files within these packages.
-;;
-
-;; This is a bare-bones starting point with everything hard coded. We don't have
-;; a good mechanism for argument handling yet, so we'll need that and some way
-;; to call a "main" function from the CLI.
 ;;
 ;; Next steps: allow configuring port, web roots, etc from CLI args. Generate
 ;; index.html dynamically if it's absent.
@@ -179,7 +175,7 @@
         (.-window.document (jsdom:JSDOM. ""))
         h))))
 
-(defn index-html []
+(defn index-html [req]
   [:html
    [:head
     [:meta {:charset "utf-8"}]
@@ -191,14 +187,16 @@
                                             (keys @import-map)))}))]
     [:script {:type "application/javascript"
               :src "https://unpkg.com/source-map@0.7.3/dist/source-map.js"}]
-    [:script {:type "module" :src "/piglet/lib/piglet/browser/main.mjs?verbosity=0"}]
+    [:script {:type "module" :src (str "/piglet/lib/piglet/browser/main.mjs?verbosity="
+                                    (get-in req [:query-params "verbosity"] 0))}]
     [:script {:type "piglet"}
      (print-str
-       '(load-package "/self"))
+       (list 'let '[pkg (await (load-package "/self"))]
+         (when-let [main @main-module]
+           (list 'await (list 'require (list 'qsym (list 'str '(.-name pkg) ":" (str main))))))))
      (print-str
-       '(require 'https://piglet-lang.org/packages/piglet:pdp-client))
-     (when-let [main @main-module]
-       (print-str (list 'require (list 'quote main))))]]
+       '(await (require 'https://piglet-lang.org/packages/piglet:pdp-client)))
+     (print-str '(piglet:pdp-client:connect! "ws://127.0.0.1:17017"))]]
    [:body [:div#app]]])
 
 (defn handle-missing [req]
@@ -206,7 +204,7 @@
         (= "/" (:path req))
         (= "/index.html" (:path req)))
     {:status 200
-     :body (pig->html (index-html))}
+     :body (pig->html (index-html req))}
     four-oh-four))
 
 (defn handler [req]
@@ -220,7 +218,6 @@
       (if (= "npm" pkg-path)
         (import-map-response (get-in req [:headers "if-none-match"]) (str:join "/" more))
         (let [file (and pkg-loc (str pkg-loc "/" (str:join "/" more)))]
-          (println (:path req))
           (if (and (not= "/" (:path req)) (fs:existsSync file))
             (if (= ["package.pig"] more)
               (package-pig-response pkg-path pkg-loc file)
@@ -292,21 +289,37 @@
                (await (register-package (path:resolve loc (:pkg:location dep-spec)))))
           (:pkg:deps pkg-pig))))))
 
-(def port 1234)
+(defn wrap-log-req [handler]
+  (fn ^:async [{:keys [method path] :as req}]
+    (let [{:keys [status] :as res} (await (handler req))]
+      (println
+        (term:fg (cond
+                   (= "GET" method) :cyan
+                   (= "POST" method) :green
+                   (= "PUT" method) :blue
+                   (= "DELETE" method) :red
+                   :else :yellow)
+          method)
+        (term:fg :yellow path)
+        (str "[" (term:fg :green status) "]")
+        )
+      res)))
 
-(defn ^:async main [opts]
+(defn ^:async main [{:keys [port]}]
   (let [pkg-pig-loc (str (process:cwd) "/package.pig")]
     (when (not (fs:existsSync pkg-pig-loc))
       (println "WARN: package.pig not found, creating stub")
-      (spit "package.pig" ";; stub package.pig created by dev-server\n{:pkg:path [\"src\"]\n :pkg:main main}"))
+      (spit "package.pig" ";; stub package.pig created by dev-server\n{:pkg:paths [\"src\"]\n :pkg:main main}"))
     (let [pkg-pig (await (slurp-package-pig pkg-pig-loc))]
       (when-let [main (:pkg:main pkg-pig)]
         (reset! main-module main))))
   (await (register-package (process:cwd)))
 
   (let [server (http:create-server
-                 (fn [req] (handler req))
+                 (wrap-log-req handler)
                  {:port port})]
 
-    (println "Starting http server on port" port)
+    (println
+      (term:fg :cyan "Starting http server on")
+      (term:fg :green (str "http://127.0.0.1:" port)))
     (http:start! server)))

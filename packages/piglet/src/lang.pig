@@ -792,8 +792,8 @@
       (get-in (get o (first path)) (rest path) fallback))))
 
 (defmacro defonce [sym form]
-  `(when (not (resolve '~sym))
-     (def ~sym ~form)))
+  (when (not (resolve sym))
+    `(def ~sym ~form)))
 
 (defn rand-int [n]
   (js:Math.floor (* n (js:Math.random))))

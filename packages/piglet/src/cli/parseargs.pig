@@ -45,11 +45,11 @@
                 (when-let [d (:default %)] (str " (default " (print-str d) ")")))
         doc-lines (when-not (str:blank? doc)
                     (str:split #"\n" doc))]
-    (println (term:fg :green "NAME"))
+    (println (term:fg :green "COMMAND"))
     (println " " cmd-name (if doc-lines (str " ——  " (first doc-lines)) ""))
     (println)
 
-    (println (term:fg :green "SYNOPSIS"))
+    (println (term:fg :green "USAGE"))
     (println (str "  " cmd-name
                (when (seq argnames)
                  (str:join (for [n argnames]
