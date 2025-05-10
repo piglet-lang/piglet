@@ -9,14 +9,17 @@
     [NodeREPL :from "../../../../lib/piglet/node/NodeREPL.mjs"]))
 
 (defn repl
-  "Start a Piglet REPL"
+  {:doc "Start a Piglet REPL"
+   :async true}
   [opts]
   (when (:verbose opts)
     (set! *verbosity* (:verbose opts)))
   ;; Wait a tick so this module has finished loading, so we don't briefly show
   ;; a prompt with a current-module of node/pig-cli
   (js:setTimeout
-    (fn []
+    (fn ^:async []
+      (await (load-package "."))
+      (set! *current-module* (ensure-module (fqn *current-package*) "user"))
       (.start_readline (NodeREPL. *compiler* #js {})))
     0))
 
@@ -31,6 +34,7 @@
            "--[no]-ssl" {:doc "Use SSL (wss protocol instead of ws)"}]}
   [opts]
   (await (require 'pdp-client))
+  (await (load-package "."))
   (let [url (str (if (:ssl opts) "wss" "ws") "://" (:host opts) ":" (:port opts))]
     (println (term:fg :cyan "Connecting to PDP on") (term:fg :yellow url))
     ((resolve 'piglet:pdp-client:connect!) url)))
@@ -44,10 +48,18 @@
   (await (require 'node/dev-server))
   ((resolve 'piglet:node/dev-server:main) opts))
 
+(defn aot
+  {:doc "AOT compile the given module and its dependencies"
+   :async true}
+  [{:keys [module] :as opts}]
+  (await (load-package "."))
+  (await (compile (read-string module))))
+
 (def commands
   ["repl" #'repl
    "pdp" #'pdp
-   "web" #'web])
+   "web" #'web
+   "aot <module>" #'aot])
 
 (def flags
   ["--verbose, -v" "Increase verbosity"])

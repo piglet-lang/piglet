@@ -226,7 +226,7 @@
            (let [v (to-cmdspec v)
                  [[cmd] doc argnames] (parse-arg-names k)]
              [cmd (assoc v :argdoc doc :argnames argnames)]))
-         m)))
+      m)))
 
 (defn cmd->flags [cmdspec args]
   (if (seq args)
