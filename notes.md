@@ -125,3 +125,15 @@ BUGS (to be logged)
 - Calling a protocol method within a protocol method definition calls the
   concrete implementation, instead of dispatching via the protocol.
 - This destructuring doesn't seem to work in macros: (defmacro foo [[x & xs] & rest] )
+
+
+-----
+
+JS Imports
+
+- relative ./ ../
+  - directly relative to the location of the .pig file
+- resolved
+  - "package-name" -> node resolution rules
+  - "package-name:file/in/package.js" -> FS resolution from `node_modules/package_name`
+  - piglet-package-alias:foo/bar.js -> loads JS file from piglet package alias
