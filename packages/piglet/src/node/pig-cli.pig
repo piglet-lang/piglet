@@ -13,7 +13,12 @@
   [opts]
   (when (:verbose opts)
     (set! *verbosity* (:verbose opts)))
-  (.start (NodeREPL. *compiler* #js {})))
+  ;; Wait a tick so this module has finished loading, so we don't briefly show
+  ;; a prompt with a current-module of node/pig-cli
+  (js:setTimeout
+    (fn []
+      (.start_readline (NodeREPL. *compiler* #js {})))
+    0))
 
 (defn
   pdp
