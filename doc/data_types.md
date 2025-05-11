@@ -1,4 +1,4 @@
-# Piglet Data Types
+# Piglet Data Types (WIP)
 
 Reference documentation for JS types and how they are used in Piglet, as well as
 the data types that Piglet itself brings to the table.

@@ -73,7 +73,8 @@
             :else
             (reply {:candidates (concat
                                   (completion-candidates (find-module 'piglet:lang) prefix)
-                                  (completion-candidates *current-module* prefix))})))))))
+                                  (when (not= (find-module 'piglet:lang) *current-module*)
+                                    (completion-candidates *current-module* prefix)))})))))))
 
 (defn connect! [uri]
   (let [conn (WebSocket. uri)]

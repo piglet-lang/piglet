@@ -1,5 +1,8 @@
 == Getting Started
 
+This document predates the `pig` command line tool. Instead read `quickstart.md`
+first.
+
 All of this is subject to change, but if you want to try to run the
 project right now, then this should help you get going.
 

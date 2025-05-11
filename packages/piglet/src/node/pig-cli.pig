@@ -6,7 +6,12 @@
   (:import
     [parseargs :from cli/parseargs]
     [term :from cli/terminal]
+    [fs :from "node:fs"]
     [NodeREPL :from "../../../../lib/piglet/node/NodeREPL.mjs"]))
+
+(defn ^:async maybe-load-current-package []
+  (when (fs:existsSync "package.pig")
+    (await (load-package "."))))
 
 (defn repl
   {:doc "Start a Piglet REPL"
@@ -18,7 +23,7 @@
   ;; a prompt with a current-module of node/pig-cli
   (js:setTimeout
     (fn ^:async []
-      (await (load-package "."))
+      (await (maybe-load-current-package))
       (set! *current-module* (ensure-module (fqn *current-package*) "user"))
       (.start_readline (NodeREPL. *compiler* #js {})))
     0))
@@ -34,7 +39,7 @@
            "--[no]-ssl" {:doc "Use SSL (wss protocol instead of ws)"}]}
   [opts]
   (await (require 'pdp-client))
-  (await (load-package "."))
+  (await (maybe-load-current-package))
   (let [url (str (if (:ssl opts) "wss" "ws") "://" (:host opts) ":" (:port opts))]
     (println (term:fg :cyan "Connecting to PDP on") (term:fg :yellow url))
     ((resolve 'piglet:pdp-client:connect!) url)))
@@ -52,11 +57,19 @@
   {:doc "AOT compile the given module and its dependencies"
    :async true}
   [{:keys [module] :as opts}]
-  (await (load-package "."))
+  (await (maybe-load-current-package))
   (await (compile (read-string module))))
+
+(defn run
+  ^:async
+   [{:keys [module] :as opts}]
+  (await (maybe-load-current-package))
+  (await (require (read-string module)))
+  )
 
 (def commands
   ["repl" #'repl
+   "run <module>" #'run
    "pdp" #'pdp
    "web" #'web
    "aot <module>" #'aot])
