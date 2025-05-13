@@ -866,9 +866,9 @@
        res#)))
 
 (defmacro declare [& syms]
-  `(do
-     ~@(for [sym syms]
-         `(def ~sym nil))))
+  (doseq [s syms]
+    (intern s nil))
+  nil)
 
 (defn distinct [coll]
   (let [seen? (box #{})]
