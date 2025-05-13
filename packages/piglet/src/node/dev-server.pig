@@ -219,7 +219,9 @@
     four-oh-four))
 
 (defn handler [req]
-  (if-let [file (and (not= "/" (:path req)) (find-resource (:path req)))]
+  (if-let [file (and
+                  #_(not= "/" (:path req))
+                  (find-resource (:path req)))]
     (file-response (get-in req [:headers "if-none-match"]) file)
     (let [parts (rest (str:split "/" (:path req)))
           [pkg-path] parts
@@ -312,8 +314,7 @@
                    :else :yellow)
           method)
         (term:fg :yellow path)
-        (str "[" (term:fg :green status) "]")
-        )
+        (str "[" (term:fg :green status) "]"))
       res)))
 
 (defn ^:async main [{:keys [port]}]
