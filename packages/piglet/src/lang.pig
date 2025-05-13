@@ -952,3 +952,11 @@
     o
     :else
     (seq o)))
+
+(defmacro some-> [o & [form :as forms]]
+  (if (seq forms)
+    `(some-> (let [o# ~o]
+               (when (some? o#)
+                 (~(if (list? form) (first form) form) o# ~@(when (list? form) (rest form)))))
+       ~@(rest forms))
+    o))
