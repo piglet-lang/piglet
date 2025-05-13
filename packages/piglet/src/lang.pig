@@ -803,6 +803,9 @@
   (when (not (resolve sym))
     `(def ~sym ~form)))
 
+(defn rand []
+  (js:Math.random))
+
 (defn rand-int [n]
   (js:Math.floor (* n (js:Math.random))))
 
