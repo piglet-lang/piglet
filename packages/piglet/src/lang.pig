@@ -794,9 +794,10 @@
   ([o path]
     (get-in o path nil))
   ([o path fallback]
-    (if (= 1 (count path))
-      (get o (first path) fallback)
-      (get-in (get o (first path)) (rest path) fallback))))
+    (let [fallback (reduced fallback)]
+      (reduce (fn [acc el]
+                (get acc el fallback))
+        o path))))
 
 (defmacro defonce [sym form]
   (when (not (resolve sym))
