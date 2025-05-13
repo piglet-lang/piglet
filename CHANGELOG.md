@@ -6,6 +6,14 @@
 
 ## Changed
 
+# 0.1.40 (2025-05-13 / 2d35f7)
+
+## Added
+
+## Fixed
+
+## Changed
+
 # 0.1.39 (2025-05-10 / d50df4)
 
 ## Added
