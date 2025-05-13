@@ -58,7 +58,10 @@
    :async true}
   [{:keys [module] :as opts}]
   (await (maybe-load-current-package))
-  (await (compile (read-string module))))
+  (await (compile (read-string module)))
+  (await (compile 'piglet:lang))
+  (println "Copying runtime")
+  (await (fs:cpSync (js:URL. "lib/piglet/lang" piglet-base-url) "target/piglet-lang.org/packages/lang" #js {:recursive true})))
 
 (defn run
   ^:async

@@ -117,10 +117,14 @@
   {:status 404
    :body ""})
 
-(defn import-map-response [etag path]
+(defn redirect [dest]
+  {:status 302
+   :headers {"Location" dest}})
+
+(defn npm-response [etag path]
   (if-let [file (get @import-map path)]
     ;; (println "GET" (str "/npm/" path) '-> (get @import-map path)))
-    (file-response etag (get @import-map path))
+    (redirect (str:replace file #".*/node_modules/" "/npm/"))
     ;; Handle wildcards
     (if-let [loc (some (fn [[pkg loc]]
                          (when (and (= "/" (last pkg))
@@ -129,7 +133,14 @@
                              (.replace path pkg ""))))
                    @import-map)]
       (file-response etag loc)
-      four-oh-four)))
+      (or
+        (reduce (fn [acc [loc _]]
+                  (let [path (path:resolve (str loc "/node_modules/") path)]
+                    (when (fs:existsSync path)
+                      (reduced (file-response etag path)))))
+          nil
+          @packages)
+        four-oh-four))))
 
 (defn ^:async slurp-package-pig [pkg-pig-loc]
   (-> pkg-pig-loc
@@ -216,7 +227,7 @@
           more (rest parts)
           pkg-loc (get @package-locations pkg-path)]
       (if (= "npm" pkg-path)
-        (import-map-response (get-in req [:headers "if-none-match"]) (str:join "/" more))
+        (npm-response (get-in req [:headers "if-none-match"]) (str:join "/" more))
         (let [file (and pkg-loc (str pkg-loc "/" (str:join "/" more)))]
           (if (and (not= "/" (:path req)) (fs:existsSync file))
             (if (= ["package.pig"] more)
@@ -274,7 +285,7 @@
           (let [npm-pkg-loc   (str node-mod-path "/" dir)
                 pkg-json-path (str npm-pkg-loc "/package.json")]
             (when (fs:existsSync pkg-json-path)
-              (let [package_json  (js:JSON.parse (fs:readFileSync pkg-json-path))]
+              (let [package_json (js:JSON.parse (fs:readFileSync pkg-json-path))]
                 (swap! import-map into
                   (reverse (expand-exports dir npm-pkg-loc
                              (or
@@ -314,7 +325,6 @@
       (when-let [main (:pkg:main pkg-pig)]
         (reset! main-module main))))
   (await (register-package (process:cwd)))
-
   (let [server (http:create-server
                  (wrap-log-req handler)
                  {:port port})]

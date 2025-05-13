@@ -69,7 +69,7 @@ many built-in JavaScript types, providing very smooth interop.
 
 ## Docs
 
-There is some more scattered information under [[doc]]. It's a bit of a
+There is some more scattered information under [doc](doc/). It's a bit of a
 hodgepodge mess at the moment.
 
 ## What's not there yet
@@ -94,6 +94,9 @@ eventually still get to.
 We have not yet determined the right license to release Piglet under, so while
 the source is freely available, Piglet is not currently Free Software or Open
 Source software.
+
+If your company or organization is interested in funding Piglet development, get
+in touch!
 
 If you have interest in using Piglet for a commercial project please reach out
 to [Gaiwan](https://gaiwan.co).

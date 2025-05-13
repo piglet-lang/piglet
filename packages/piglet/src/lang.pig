@@ -300,7 +300,14 @@
     (apply update-in! coll (butlast path) update (last path) f args)))
 
 (defn assoc-in [coll path v]
-  (update-in coll (butlast path) assoc (last path) v))
+  (let [cnt (count path)]
+    (cond
+      (= 0 cnt)
+      coll
+      (= 1 cnt)
+      (assoc coll (first path) v)
+      :else
+      (update-in coll (butlast path) assoc (last path) v))))
 
 (defn assoc-in! [coll path v]
   (update-in! coll (butlast path) assoc! (last path) v))

@@ -31,11 +31,17 @@
 (defn el-by-id [doc id]
   (.getElementById doc id))
 
-(defn query-one [el qry]
-  (.querySelector el qry))
+(defn query-one
+  ([qry]
+    (query-one js:document qry))
+  ([el qry]
+    (.querySelector el qry)))
 
-(defn query-all [el qry]
-  (.querySelectorAll el qry))
+(defn query-all
+  ([qry]
+    (query-all js:document qry))
+  ([el qry]
+    (.querySelectorAll el qry)))
 
 (defn set-attr [el k v]
   (cond
