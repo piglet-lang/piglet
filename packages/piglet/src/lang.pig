@@ -755,9 +755,12 @@
   (not (not b)))
 
 (defn empty? [coll]
-  (if (satisfies? Empty coll)
+  (cond
+    (js:Array.isArray coll)
+    (= 0 (.-length coll))
+    (satisfies? Empty coll)
     (-empty? coll)
-    (boolean (seq coll))))
+    (not (seq coll))))
 
 (defn apropos [mod s]
   (if (undefined? s)
