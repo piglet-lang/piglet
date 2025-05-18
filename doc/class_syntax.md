@@ -240,5 +240,63 @@ implementations with `:implements`
 
 There are also two macros, `make-type` and `deftype`, which mimic the above
 syntax, but do so by generating prototype-based code. Rather than emitting
-`class ...` the result looks like this:
+`class ...`. This is often preferred, as it plays better with a REPL. JS class
+forms can not be redefined.
 
+The result looks like this:
+
+```lisp
+(deftype A
+  (constructor []
+    (set! (.-foo this) 123)
+    nil)
+  (get_foo [] (.-foo this))
+  Counted
+  (-count [_] 3))
+```
+
+```javascript
+intern(qsym("https://arnebrasseur.net/pigrot:tilegrids:A"), (function () {
+    const ctor31 = function A() {
+      this.foo = 123;
+      return null;
+    };
+    const proto11 = {};
+    ctor31.prototype = proto11;
+    proto11["get_foo"] = function get_foo() {
+      return this.foo;
+    };
+    const object91 = proto11;
+    $piglet$["https://piglet-lang.org/packages/piglet"].lang.Counted.value.extend_object2(object91, {
+      "-count/1": function (_37) {
+        return 3;
+      }
+    });
+    object91;
+    return ctor31;
+  })()
+)
+```
+
+```lisp
+(deftype B :extends A
+  (constructor [x]
+    (super)
+    (set! (.-x this) x)
+    nil))
+```
+
+```javascript
+intern(qsym("https://arnebrasseur.net/pigrot:tilegrids:B"), (function () {
+    const ctor41 = function B(x37) {
+      $piglet$["https://arnebrasseur.net/pigrot"].tilegrids.A.value.call(this);
+      this.x = x37;
+      return null;
+    };
+    const proto21 = {};
+    ctor41.prototype = proto21;
+    proto21.__proto__ = $piglet$["https://arnebrasseur.net/pigrot"].tilegrids.A.value.prototype;
+    return ctor41;
+  })()
+)
+```

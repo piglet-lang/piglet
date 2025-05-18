@@ -113,4 +113,3 @@ Some libraries that are bundled with Piglet include
 - piglet:dom
 - piglet:cbor
 
-## More docs
