@@ -235,3 +235,10 @@ implementations with `:implements`
 (let [x (class :implements Counted (-count [this] 5))]
   (count (x.)))
 ```
+
+## `make-type` / `deftype`
+
+There are also two macros, `make-type` and `deftype`, which mimic the above
+syntax, but do so by generating prototype-based code. Rather than emitting
+`class ...` the result looks like this:
+

@@ -204,7 +204,7 @@
         inner-fn `(conj! ~result ~@body)]
     `(let [~result #js []]
        (doseq ~binds ~inner-fn)
-       (apply list ~result))))
+       ~result)))
 
 (defn -for-async [binds body]
   (let [lrs (partition 2 binds)
@@ -963,3 +963,86 @@
                  (~(if (list? form) (first form) form) o# ~@(when (list? form) (rest form)))))
        ~@(rest forms))
     o))
+
+(defn some-fn [& preds]
+  (fn [o]
+    (reduce (fn [_ pred]
+              (when (pred o)
+                (reduced true)))
+      nil
+      preds)))
+
+(defmacro make-type [arg & args]
+  (let [tname (when (symbol? arg) arg)
+        args (if tname args (cons arg args))
+        {:keys [superclass
+                ctor
+                methods
+                protocols]}
+        (loop [acc {:superclass nil
+                    :ctor '([& args] (.apply super this args) nil)
+                    :methods []
+                    :protocols []}
+               [arg & args] args]
+          (cond
+            (nil? arg) acc
+
+            (= :extends arg)
+            (recur
+              (assoc acc :superclass (first args))
+              (rest args))
+
+            (seq? arg)
+            (if (= 'constructor (first arg))
+              (recur
+                (assoc acc :ctor (rest arg))
+                args)
+              (recur
+                (update acc :methods conj arg)
+                args))
+
+            (= :implements arg)
+            (recur
+              (update acc :protocols
+                into
+                (take-while (some-fn symbol? seq?) args))
+              (drop-while (some-fn symbol? seq?) args))
+
+            (symbol? arg)
+            (recur
+              (update acc :protocols
+                into
+                (take-while (some-fn symbol? seq?) (cons arg args)))
+              (drop-while (some-fn symbol? seq?) (cons arg args)))))
+        ctor
+        (prewalk #(cond
+                    (and (seq? %) (= 'super (first %)))
+                    `(.call ~(or superclass 'js:Object) ~'this ~@(rest %))
+                    (= 'super %)
+                    (or superclass 'js:Object)
+                    :else
+                    %)
+          ctor)
+        ctor-sym (gensym 'ctor)
+        proto-sym (gensym 'proto)]
+    `(let [~ctor-sym (fn ~@(when tname [tname]) ~@ctor)
+           ~proto-sym #js {}]
+       (set! (.-prototype ~ctor-sym) ~proto-sym)
+       ~@(when superclass
+           [`(set! (.-__proto__ ~proto-sym)
+               (.-prototype ~superclass))])
+       ~@(for [m methods]
+           `(set! (~'oget ~proto-sym ~(str (first m)))
+              (fn ~@m)))
+       ~@(when (seq protocols)
+           [`(specify! ~proto-sym
+               ~@protocols)])
+       ~ctor-sym)))
+
+(defmacro deftype
+  "Create a new type through classic prototype-based syntax. Supports a subset
+  of the `class`/`defclass` syntax, namely constructor, :extend, prototype
+  methods, and regular JS methods. A constructor should call super and return
+  nil/undefined."
+  [tname & args]
+  `(def ~tname (make-type ~tname ~@args)))
