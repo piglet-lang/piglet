@@ -204,7 +204,7 @@
         inner-fn `(conj! ~result ~@body)]
     `(let [~result #js []]
        (doseq ~binds ~inner-fn)
-       ~result)))
+       (seq ~result))))
 
 (defn -for-async [binds body]
   (let [lrs (partition 2 binds)
@@ -976,11 +976,13 @@
   (let [tname (when (symbol? arg) arg)
         args (if tname args (cons arg args))
         {:keys [superclass
+                fields
                 ctor
                 methods
                 protocols]}
         (loop [acc {:superclass nil
-                    :ctor '([& args] (.apply super this args) nil)
+                    :fields nil
+                    :ctor nil
                     :methods []
                     :protocols []}
                [arg & args] args]
@@ -1008,12 +1010,33 @@
                 (take-while (some-fn symbol? seq?) args))
               (drop-while (some-fn symbol? seq?) args))
 
+            (= :fields arg)
+            (recur
+              (assoc acc :fields (first args))
+              (rest args))
+
             (symbol? arg)
             (recur
               (update acc :protocols
                 into
                 (take-while (some-fn symbol? seq?) (cons arg args)))
               (drop-while (some-fn symbol? seq?) (cons arg args)))))
+        _ (assert (not (and ctor fields)) "Deftype takes a constructor or fields, not both.")
+        ctor
+        (or
+          ctor
+          (when fields
+            `(~(mapv #(if (symbol? %) % (first %)) fields)
+               ~@(for [f fields]
+                   (if (symbol? f)
+                     `(set! (~(symbol (str ".-" f)) ~'this) ~f)
+                     (let [[f v] f]
+                       `(set! (~(symbol (str ".-" f)) ~'this)
+                          (if (some? ~f)
+                            ~f
+                            ~v)))))
+               nil))
+          '([& args] (.apply super this args) nil))
         ctor
         (prewalk #(cond
                     (and (seq? %) (= 'super (first %)))
@@ -1027,16 +1050,16 @@
         proto-sym (gensym 'proto)]
     `(let [~ctor-sym (fn ~@(when tname [tname]) ~@ctor)
            ~proto-sym #js {}]
-       (set! (.-prototype ~ctor-sym) ~proto-sym)
-       ~@(when superclass
-           [`(set! (.-__proto__ ~proto-sym)
-               (.-prototype ~superclass))])
        ~@(for [m methods]
            `(set! (~'oget ~proto-sym ~(str (first m)))
               (fn ~@m)))
        ~@(when (seq protocols)
            [`(specify! ~proto-sym
                ~@protocols)])
+       (js:Object.assign (.-prototype ~ctor-sym) ~proto-sym)
+       ~@(when superclass
+           [`(set! (.-__proto__ (.-prototype ~ctor-sym))
+               (.-prototype ~superclass))])
        ~ctor-sym)))
 
 (defmacro deftype
@@ -1046,3 +1069,9 @@
   nil/undefined."
   [tname & args]
   `(def ~tname (make-type ~tname ~@args)))
+
+(defn ^:link-direct quot [n div]
+  (let [v (/ n div)]
+    (if (< 0 v)
+      (js:Math.floor v)
+      (js:Math.ceil v))))

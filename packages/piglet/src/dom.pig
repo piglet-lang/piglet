@@ -3,6 +3,8 @@
   (:import
     [str :from piglet:string]))
 
+(def ^:dynamic *kebab-prefixes* ["data-" "aria-"])
+
 (defn extend-interfaces! [window]
   (extend-type (.-Node window)
     MutableCollection
@@ -43,6 +45,12 @@
   ([el qry]
     (.querySelectorAll el qry)))
 
+(defn attr-name [k]
+  (let [n (name k)]
+    (if (some #(str:starts-with? n %) *kebab-prefixes*)
+      n
+      (str:replace n #"-" ""))))
+
 (defn set-attr [el k v]
   (cond
     (and (= :style k) (dict? v))
@@ -52,8 +60,11 @@
     (and (= :class k) (vector? v))
     (.setAttribute el "classList" (str:join " " v))
 
+    (fn? v)
+    (set! (oget el (attr-name k)) v)
+
     :else
-    (.setAttribute el (name k) v))
+    (.setAttribute el (attr-name k) v))
   el)
 
 (defn set-attrs [el kvs]
@@ -114,40 +125,43 @@
        (rest tail)
        tail)]))
 
-(defn dom [doc form]
-  (cond
-    (and (object? form) (.-nodeType form)) ;; quacks like a Node
-    form
-
-    (or (string? form) (number? form))
-    (.createTextNode doc (str form))
-
-    (vector? form)
+(defn dom
+  ([form]
+    (dom js:window.document form))
+  ([doc form]
     (cond
-      (= :<> (first form))
-      (dom doc (rest form))
+      (and (object? form) (.-nodeType form)) ;; quacks like a Node
+      form
 
-      (or
-        (keyword? (first form))
-        (qname? (first form)))
-      (let [[tag-ns tag attrs children] (split-el form)
-            el (if tag-ns
-                 (create-el doc tag-ns tag)
-                 (create-el doc tag))]
-        (set-attrs el attrs)
-        (when (seq children)
-          (doseq [c children]
-            (append el (dom doc c))))
-        el)
+      (or (string? form) (number? form))
+      (.createTextNode doc (str form))
 
-      (fn? (first form))
-      (dom doc (apply (first form) (rest form))))
+      (vector? form)
+      (cond
+        (= :<> (first form))
+        (dom doc (rest form))
 
-    (sequential? form)
-    (fragment doc (map (partial dom doc) form))
+        (or
+          (keyword? (first form))
+          (qname? (first form)))
+        (let [[tag-ns tag attrs children] (split-el form)
+              el (if tag-ns
+                   (create-el doc tag-ns tag)
+                   (create-el doc tag))]
+          (set-attrs el attrs)
+          (when (seq children)
+            (doseq [c children]
+              (append el (dom doc c))))
+          el)
 
-    :else
-    (dom doc (str form))))
+        (fn? (first form))
+        (dom doc (apply (first form) (rest form))))
+
+      (sequential? form)
+      (fragment doc (map (partial dom doc) form))
+
+      :else
+      (dom doc (str form)))))
 
 (defonce LISTENERS (js:Symbol (str `LISTENERS)))
 
