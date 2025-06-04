@@ -1,6 +1,7 @@
 (module dom
   "Wrapper around the browser DOM API"
   (:import
+    piglet:css
     [str :from piglet:string]))
 
 (def ^:dynamic *kebab-prefixes* ["data-" "aria-"])
@@ -37,13 +38,13 @@
   ([qry]
     (query-one js:document qry))
   ([el qry]
-    (.querySelector el qry)))
+    (.querySelector el (css:selector-str qry))))
 
 (defn query-all
   ([qry]
     (query-all js:document qry))
   ([el qry]
-    (.querySelectorAll el qry)))
+    (.querySelectorAll el (css:selector-str qry))))
 
 (defn attr-name [k]
   (let [n (name k)]
@@ -58,7 +59,7 @@
       (.setProperty (.-style el) (name prop) val))
 
     (and (= :class k) (vector? v))
-    (.setAttribute el "classList" (str:join " " v))
+    (set! (.-classList el) (str:join " " v))
 
     (fn? v)
     (set! (oget el (attr-name k)) v)

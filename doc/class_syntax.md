@@ -53,6 +53,9 @@ Syntax overview
  (some-method-name [arg])
  (^:static some-static-method-name [arg])
  ([(str hello "-" world)] [arg] ,,,) ; computed method name
+ 
+ ;; async method, can use await
+ (^:async some-async-method [arg])
 
  ;; Protocol implementations
  MyProtocol
