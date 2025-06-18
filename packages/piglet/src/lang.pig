@@ -914,11 +914,17 @@
         (symbol s))
       (symbol s))))
 
-(defn parse-long [l]
-  (js:parseInt l 10))
+(defn parse-long
+  ([l]
+    (js:parseInt l 10))
+  ([l base]
+    (js:parseInt l base)))
 
-(defn parse-double [l]
-  (js:parseFloat l 10))
+(defn parse-double
+  ([d]
+    (js:parseFloat d 10))
+  ([d base]
+    (js:parseFloat d base)))
 
 (defn transpose
   "Transpose a 2d vector-of-vectors (or seq-of-seqs) matrix"
