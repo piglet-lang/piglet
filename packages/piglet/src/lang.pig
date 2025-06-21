@@ -513,7 +513,12 @@
   (apply assoc! #js {} kvs))
 
 (defn type-name [o]
-  (when (.-constructor o)
+  (cond
+    (undefined? o)
+    "undefined"
+    (nil? o)
+    "nil"
+    (.-constructor o)
     (.-name (.-constructor o))))
 
 ;; Lazy version with Proxy
@@ -888,13 +893,37 @@
 ;; Function versions of all operators, for use in higher order functions
 (defmacro define-operator-functions []
   `(do
-     ~@(for [op '[+ * / < > >= <= mod power == === instance?
+     ~@(for [op '[+ * / mod power == === instance?
                   and or bit-shift-left bit-shift-right bit-and bit-or bit-xor]]
          `(intern '~op
             (fn [& args#]
               (reduce (fn [a# b#] (~op a# b#)) args#))))))
 
+(defmacro define-comparison-functions []
+  `(do
+     ~@(for [op '[< > <= >=]]
+         `(intern '~op
+            (fn
+              ([a# b#]
+                (~op a# b#))
+              ([a# b# c#]
+                (and
+                  (~op a# b#)
+                  (~op b# c#)))
+              ([a# b# c# d#]
+                (and
+                  (~op a# b#)
+                  (~op b# c#)
+                  (~op c# d#)))
+              ([a# b# c# d# e#]
+                (and
+                  (~op a# b#)
+                  (~op b# c#)
+                  (~op c# d#)
+                  (~op d# e#))))))))
+
 (define-operator-functions)
+(define-comparison-functions)
 
 (defn parse-identifier
   "Parse a string to a suitable type of identifier, similar to how the Piglet

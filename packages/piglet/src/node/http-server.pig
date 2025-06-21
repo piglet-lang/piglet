@@ -38,7 +38,7 @@
                 (.end res msg)))))))
     LifeCycle
     (start! [server]
-      (.listen server (:port opts) (:host opts "localhost")))
+      (.listen server (:port opts) (:host opts "0.0.0.0")))
     (stop! [server]
       (.close server))))
 

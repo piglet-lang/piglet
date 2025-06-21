@@ -317,7 +317,8 @@
         (str "[" (term:fg :green status) "]"))
       res)))
 
-(defn ^:async main [{:keys [port]}]
+(defn ^:async main [{:keys [port host]
+                     :or {host "0.0.0.0"}}]
   (let [pkg-pig-loc (str (process:cwd) "/package.pig")]
     (when (not (fs:existsSync pkg-pig-loc))
       (println "WARN: package.pig not found, creating stub")
@@ -328,9 +329,10 @@
   (await (register-package (process:cwd)))
   (let [server (http:create-server
                  (wrap-log-req handler)
-                 {:port port})]
+                 {:port port
+                  :host host})]
 
     (println
       (term:fg :cyan "Starting http server on")
-      (term:fg :green (str "http://127.0.0.1:" port)))
+      (term:fg :green (str "http://" host ":" port)))
     (http:start! server)))

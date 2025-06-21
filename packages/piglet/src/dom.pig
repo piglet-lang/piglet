@@ -91,6 +91,7 @@
 (defn append-child [el child] (.appendChild el child) el)
 (defn append [el & children] (apply (.bind (.-append el) el) children) el)
 (defn prepend [el & children] (apply (.bind (.-prepend el) el) children) el)
+(defn replace [this that] (.replaceWith this that) that)
 
 (defn remove [el] (.remove el))
 
