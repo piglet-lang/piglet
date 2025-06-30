@@ -457,7 +457,7 @@
       (fn
         ([] (rf))
         ([res] (rf res))
-        ([res in] (reduce rf res in)))))
+        ([res in] (reduce rf res (f in))))))
   ([f coll]
     (reduce (fn [acc c]
               (into acc (f c)))

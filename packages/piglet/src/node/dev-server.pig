@@ -307,10 +307,10 @@
     (let [{:keys [status] :as res} (await (handler req))]
       (println
         (term:fg (cond
-                   (= "GET" method) :cyan
-                   (= "POST" method) :green
-                   (= "PUT" method) :blue
-                   (= "DELETE" method) :red
+                   (= :get method) :cyan
+                   (= :post method) :green
+                   (= :put method) :blue
+                   (= :delete method) :red
                    :else :yellow)
           method)
         (term:fg :yellow path)

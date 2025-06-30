@@ -1,5 +1,6 @@
 (module node/http-server
   (:import
+    [str :from string]
     [http :from "node:http"]))
 
 (defprotocol LifeCycle
@@ -16,7 +17,7 @@
     (http:createServer
       (fn [req res]
         (let [url (js:URL. (.-url req) "http://example.com") ;; js:URL does not like relative
-              response (handler {:method (.-method req)
+              response (handler {:method (keyword (str:downcase (.-method req)))
                                  :path (.-pathname url)
                                  :query-params (into {} (.-searchParams url))
                                  :headers (into {}
