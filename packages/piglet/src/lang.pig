@@ -838,6 +838,20 @@
 (defn merge [m & ms]
   (reduce into (or m {}) ms))
 
+(defn merge-with-kv [f m & ms]
+  (reduce
+    (fn [acc m]
+      (reduce (fn [acc [k v]]
+                (assoc acc k (if (has-key? acc k)
+                               (f k (get acc k) v)
+                               v)))
+        acc m))
+    (or m {})
+    ms))
+
+(defn merge-with [f m & ms]
+  (apply merge-with-kv (fn [_ old new] (f old new)) m ms))
+
 (defn keep [f & colls]
   (filter identity
     (apply map f colls)))
