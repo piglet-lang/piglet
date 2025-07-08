@@ -786,6 +786,9 @@
 (defn sort [coll]
   (.sort (into-array coll)))
 
+(defn sort-by [keyfn coll]
+  (.sort (into-array coll) #(- (keyfn %1) (keyfn %2))))
+
 (defn identifier? [i]
   (instance? AbstractIdentifier i))
 
