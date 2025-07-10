@@ -1,6 +1,8 @@
 (module node/http-server
+  "Wrapper around node:http that encodes/decodes request/response as piglet dictionaries"
   (:import
     [str :from string]
+    [fs :from "node:fs"]
     [http :from "node:http"]))
 
 (defprotocol LifeCycle
@@ -26,9 +28,11 @@
                                               (partition 2 (.-rawHeaders req))))})]
           (.then (as-promise response)
             (fn [response]
-              ;; (println 'http-> response)
+              ;; (println 'http-> (:status response) (:headers response))
               (.writeHead res (:status response) (->js (:headers response)))
-              (.end res (:body response)))
+              (if (instance? fs:ReadStream (:body response))
+                (.pipe (:body response) res)
+                (.end res (:body response))))
             (fn [error]
               (let [msg
                     (str "Error in request handler: " (.-message error)
