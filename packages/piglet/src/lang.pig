@@ -313,7 +313,7 @@
   (update-in! coll (butlast path) assoc! (last path) v))
 
 (defn into-array [o]
-  (js:Array.from o))
+  (if (nil? o) #js [] (js:Array.from o)))
 
 ;; Protocols
 
