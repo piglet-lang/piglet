@@ -359,7 +359,7 @@
 
 (defmacro extend-protocol [protocol & classes]
   (let [class-methods (reduce (fn [acc o]
-                                (if (symbol? o)
+                                (if (or (symbol? o) (nil? o))
                                   (conj acc [o #js {}])
                                   (let [[method argv & body] o]
                                     (update-in acc [(dec (count acc)) 1]
@@ -402,6 +402,9 @@
   (has-key? [this k]))
 
 (extend-protocol HasKey
+  nil
+  (has-key? [d k]
+    false)
   Dict
   (has-key? [d k]
     (.has d k)))
