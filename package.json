@@ -23,6 +23,7 @@
         "p5": "^1.6.0",
         "solid-js": "^1.7.5",
         "source-map": "^0.7.4",
+        "source-map-generator": "^2.0.1",
         "ws": "^8.13.0"
     },
     "devDependencies": {
