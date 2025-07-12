@@ -64,11 +64,14 @@
   (await (fs:cpSync (js:URL. "lib/piglet/lang" piglet-base-url) "target/piglet-lang.org/packages/lang" #js {:recursive true})))
 
 (defn run
+  "Run the given Piglet module"
   ^:async
    [{:keys [module] :as opts}]
   (await (maybe-load-current-package))
-  (await (require (read-string module)))
-  )
+  (let [mod (await (require (read-string module)))
+        main-var (resolve (qsym (str (fqn *current-package*) ":" module ":-main")))]
+    (when main-var
+      (apply main-var (rest (::argv opts))))))
 
 (def commands
   ["repl" #'repl
