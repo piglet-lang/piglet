@@ -4,7 +4,13 @@
 
 ## Fixed
 
+- (has-key? nil :foo) => false
+- fix returning a non-nil literal from a false branch that's JS-falsey
+- [parseargs] when having both a named positional, and additional non-named positional arguments, correctly handle them
+
 ## Changed
+
+- on node, default to sourcemaps. Requires `source-map-generator`
 
 # 0.1.44 (2025-07-11 / 190675)
 
