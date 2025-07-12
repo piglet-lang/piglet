@@ -46,7 +46,10 @@
         doc-lines (when-not (str:blank? doc)
                     (str:split #"\n" doc))]
     (println (term:fg :green "COMMAND"))
-    (println " " cmd-name (if doc-lines (str " ——  " (first doc-lines)) ""))
+    (println " " cmd-name
+      (if doc-lines
+        (str " ——  " (first doc-lines))
+        ""))
     (println)
 
     (println (term:fg :green "USAGE"))
@@ -441,6 +444,7 @@
               (-> cmdspec
                 (dissoc :command :commands :middleware)
                 (merge command-match)
+                (dissoc :argnames)
                 (assoc :name (str program-name " " cmd)))
               (drop arg-count pos-args)
               (-> opts
