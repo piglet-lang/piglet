@@ -4,6 +4,14 @@
 
 ## Fixed
 
+## Changed
+
+# 0.1.45 (2025-07-12 / b731c6)
+
+## Added
+
+## Fixed
+
 - (has-key? nil :foo) => false
 - fix returning a non-nil literal from a false branch that's JS-falsey
 - [parseargs] when having both a named positional, and additional non-named positional arguments, correctly handle them
