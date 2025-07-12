@@ -32,6 +32,9 @@ importers:
       source-map:
         specifier: ^0.7.4
         version: 0.7.4
+      source-map-generator:
+        specifier: ^2.0.1
+        version: 2.0.1
       ws:
         specifier: ^8.13.0
         version: 8.13.0
@@ -691,6 +694,10 @@ packages:
 
   solid-js@1.7.5:
     resolution: {integrity: sha512-GfJ8na1e9FG1oAF5xC24BM+ATLym0sfH+ZblkbBFpueYdq3fWAoA5Ve+jGeIeLI7jmMGfa0rUaKruszNm2sH8w==}
+
+  source-map-generator@2.0.1:
+    resolution: {integrity: sha512-AtEu86XavXC2HD/bQVQoDbovnTRZE/0QMAAHn6RxALAoLOM3a47IG06TpsJK23BnCmjbTYNLwx2vUhgzRYgGMA==}
+    engines: {node: '>=20'}
 
   source-map-support@0.5.21:
     resolution: {integrity: sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==}
@@ -1447,6 +1454,8 @@ snapshots:
     dependencies:
       csstype: 3.1.2
       seroval: 0.5.1
+
+  source-map-generator@2.0.1: {}
 
   source-map-support@0.5.21:
     dependencies:
