@@ -4,6 +4,14 @@
 
 ## Fixed
 
+## Changed
+
+# 0.1.46 (2025-07-13 / c167d4)
+
+## Added
+
+## Fixed
+
 - Fix try/catch blocks: value is the value of the last form (always introduces
   IIFE now, could be improved to only do so when necessary)
 
