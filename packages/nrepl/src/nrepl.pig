@@ -1,4 +1,4 @@
-(module :nrepl:nrepl
+(module nrepl
   (:import
     [bencode :from "bencode"]
     [net :from "node:net"]))
