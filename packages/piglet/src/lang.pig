@@ -1130,3 +1130,19 @@
     (if (< 0 v)
       (js:Math.floor v)
       (js:Math.ceil v))))
+
+(defn cycle
+  "Infinite lazy seq repeating the elements in `coll`"
+  [coll]
+  (let [s (seq coll)]
+    ((fn cycle* [] (concat s (lazy-seq (cycle*)))))))
+
+(defn odd?
+  "True if the number `n` is odd, false if it is even"
+  [n]
+  (= 1 (mod n 2)))
+
+(defn even?
+  "True if the number `n` is even, false if it is odd"
+  [n]
+  (= 0 (mod n 2)))
