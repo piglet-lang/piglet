@@ -1,5 +1,13 @@
 # Unreleased
 
+## Added
+
+## Fixed
+
+## Changed
+
+# 0.1.47 (2025-07-18 / a00b5a)
+
 
 ## Fixed
 
