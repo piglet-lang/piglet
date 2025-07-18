@@ -49,7 +49,13 @@ Piglet module names follow the file system starting from `:pkg:paths`, create
 (println (t:fg :magenta "Cooking with gas!"))
 ```
 
-Run it with
+You'll need some npm dependencies that Piglet relies on:
+
+```
+pnpm add astring source-map-generator
+```
+
+Now run it with
 
 ```
 bin/pig run my/first/module
