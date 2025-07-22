@@ -42,15 +42,17 @@
       (.-location (find-package 'piglet)))
     "../.."))
 
-(def roots [(path:resolve (process:cwd) "./public")
-            (path:resolve (process:cwd) "./")])
+(def roots
+  "File system locations that are searched for assets/resources"
+  [(path:resolve (process:cwd) "./public")
+   (path:resolve (process:cwd) "./")])
 
 (def package-locations
-  (box
-    {"self" (process:cwd)
-     "piglet" piglet-lang-path}))
+  "short package identifier -> filesystem location of the root of the package (directory pathname)"
+  (box {"piglet" piglet-lang-path}))
 
-(def packages ;; pkg-loc -> pkg-pig
+(def packages
+  "URL path -> package.pig (munged)"
   (box {}))
 
 (def main-module (box nil))
@@ -135,7 +137,7 @@
       (file-response etag loc)
       (or
         (reduce (fn [acc [loc _]]
-                  (let [path (path:resolve (str loc "/node_modules/") path)]
+                  (let [path (path:resolve (str (get @package-locations loc) "/node_modules/") path)]
                     (when (fs:existsSync path)
                       (reduced (file-response etag path)))))
           nil
@@ -149,7 +151,9 @@
     read-string
     expand-qnames))
 
-(defn munge-and-store-pkg-pig [pkg-pig pkg-loc]
+(declare register-package)
+
+(defn munge-and-store-pkg-pig [pkg-pig pkg-loc short-id]
   (if-let [pp (get @packages pkg-loc)]
     pp
     (let [pp
@@ -166,18 +170,17 @@
                          [alias (update spec :pkg:location
                                   (fn [loc]
                                     (let [new-pkg-path (str (gensym (path:basename loc)))]
-                                      (swap! package-locations assoc new-pkg-path
-                                        (path:resolve pkg-loc loc))
+                                      (register-package (path:resolve pkg-loc loc) new-pkg-path)
                                       (str "/" new-pkg-path))))])
                     deps)))))]
-      (swap! packages assoc pkg-loc pp)
+      (swap! packages assoc short-id pp)
       pp)))
 
 (defn ^:async package-pig-response [url-path pkg-loc pkg-pig-loc]
-  (let [pkg-pig (slurp-package-pig pkg-pig-loc)]
+  (let [pkg-pig (await (slurp-package-pig pkg-pig-loc))]
     {:status 200
      :headers {"Content-Type" "application/piglet?charset=UTF-8"}
-     :body (print-str (munge-and-store-pkg-pig pkg-pig pkg-loc))}))
+     :body (print-str (munge-and-store-pkg-pig pkg-pig pkg-loc (str:replace url-path #"/package.pig" "")))}))
 
 (defn pig->html [h]
   (str "<!DOCTYPE html>\n"
@@ -231,12 +234,12 @@
       (if (= "npm" pkg-path)
         (npm-response (get-in req [:headers "if-none-match"]) (str:join "/" more))
         (let [file (and pkg-loc (str pkg-loc "/" (str:join "/" more)))]
-          (if (and (not= "/" (:path req)) (fs:existsSync file))
+          (if (and
+                (not= "/" (:path req))
+                (fs:existsSync file))
             (if (= ["package.pig"] more)
               (package-pig-response pkg-path pkg-loc file)
-              (do
-                ;; (println "GET" (:path req) '-> file)
-                (file-response (get-in req [:headers "if-none-match"]) file)))
+              (file-response (get-in req [:headers "if-none-match"]) file))
             (handle-missing req)))))))
 
 (defn str/butlast [s]
@@ -277,10 +280,15 @@
           :else
           (expand-exports k npm-pkg-loc v))))))
 
-(defn ^:async register-package [loc]
-  (let [pkg-pig (await (slurp-package-pig (str loc "/package.pig")))
-        munged (munge-and-store-pkg-pig pkg-pig loc)
-        node-mod-path (str loc "/node_modules")]
+(defn ^:async register-package
+  "Make the dev server aware of a piglet package, by "
+  ([loc]
+    (register-package loc loc))
+  ([loc id]
+    (swap! package-locations assoc id loc)
+    (let [pkg-pig (await (slurp-package-pig (str loc "/package.pig")))
+          munged (munge-and-store-pkg-pig pkg-pig loc id)
+          node-mod-path (str loc "/node_modules")]
     (when (fs:existsSync node-mod-path)
       (doseq [dir (fs:readdirSync node-mod-path)]
         (when (not (= "." (first dir)))
@@ -295,12 +303,7 @@
                                (get package_json "dev:module")
                                (:module package_json)
                                (:main package_json)
-                               "index.js"))))))))))
-    (await
-      (js:Promise.all
-        (map (fn ^:async handle-dep [[alias dep-spec]]
-               (await (register-package (path:resolve loc (:pkg:location dep-spec)))))
-          (:pkg:deps pkg-pig))))))
+                               "index.js")))))))))))))
 
 (defn wrap-log-req [handler]
   (fn ^:async [{:keys [method path] :as req}]
@@ -312,7 +315,7 @@
                    (= :put method) :blue
                    (= :delete method) :red
                    :else :yellow)
-          method)
+          (str:upcase (name method)))
         (term:fg :yellow path)
         (str "[" (term:fg :green status) "]"))
       res)))
@@ -326,7 +329,7 @@
     (let [pkg-pig (await (slurp-package-pig pkg-pig-loc))]
       (when-let [main (:pkg:main pkg-pig)]
         (reset! main-module main))))
-  (await (register-package (process:cwd)))
+  (await (register-package (process:cwd) "self"))
   (let [server (http:create-server
                  (wrap-log-req handler)
                  {:port port
