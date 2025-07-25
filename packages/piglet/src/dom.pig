@@ -14,25 +14,39 @@
       parent)))
 
 (defn create-el
+  ([tag]
+    (.createElement js:document (name tag)))
   ([doc tag]
     (.createElement doc (name tag)))
   ([doc xmlns tag]
     (.createElementNS doc xmlns (name tag))))
 
-(defn fragment [doc els]
-  (let [fragment (.createDocumentFragment doc)]
-    (doseq [el els]
-      (.appendChild fragment el))
-    fragment))
+(defn fragment
+  ([els]
+    (fragment js:document els))
+  ([doc els]
+    (let [fragment (.createDocumentFragment doc)]
+      (doseq [el els]
+        (.appendChild fragment el))
+      fragment)))
 
-(defn text-node [doc text]
-  (.createTextNode doc text))
+(defn text-node
+  ([text]
+    (.createTextNode js:document text))
+  ([doc text]
+    (.createTextNode doc text)))
 
-(defn comment [doc text]
-  (.createComment doc text))
+(defn comment
+  ([text]
+    (.createComment js:document text))
+  ([doc text]
+    (.createComment doc text)))
 
-(defn el-by-id [doc id]
-  (.getElementById doc id))
+(defn el-by-id
+  ([id]
+    (.getElementById js:document id))
+  ([doc id]
+    (.getElementById doc id)))
 
 (defn query-one
   ([qry]
