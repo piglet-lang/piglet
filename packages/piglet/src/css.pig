@@ -32,12 +32,34 @@
   js:Object
   (value-str [o] (str o)))
 
-(defn render-attrs [attrs]
-  (str "{"
-    (str:join ";" (map (fn [[k v]] (str (attr-str k) ":" (value-str v))) attrs))
-    "}"))
+(defn render-attrs* [attrs]
+  (str:join ";" (map (fn [[k v]] (str (attr-str k) ":" (value-str v))) attrs)))
 
-(declare css*)
+(defn render-attrs [attrs]
+  (str "{" (render-attrs* attrs) "}"))
+
+(declare css css*)
+
+(defmulti render-rule (fn [rule-head children] rule-head))
+
+(defmethod render-rule :default [x xs]
+  (let [sel (selector-str x)]
+    (reduce
+      (fn [acc r]
+        (cond-> acc
+          (dict? r)
+          (conj [sel (render-attrs r)])
+          (vector? r)
+          (into (map (fn [[t a]]
+                       [(str sel (if (#{">"} (first t)) "" " ") t) a])
+                  (css* r)))))
+      []
+      xs)))
+
+(defmethod render-rule :at-media [_ [props children]]
+  [[(str "@media (" (if (dict? props) (render-attrs* props) props) ") {\n"
+      (css children)
+      "\n}")]])
 
 (defn css* [[x & xs :as v]]
   (cond
@@ -48,18 +70,7 @@
     (reduce into (map #(css* (into [%] xs)) x))
 
     (or (string? x) (keyword? x))
-    (let [sel (selector-str x)]
-      (reduce
-        (fn [acc r]
-          (cond-> acc
-            (dict? r)
-            (conj [sel (render-attrs r)])
-            (vector? r)
-            (into (map (fn [[t a]]
-                         [(str sel (if (#{">"} (first t)) "" " ") t) a])
-                    (css* r)))))
-        []
-        xs))))
+    (render-rule x xs)))
 
 (defn css [s]
   (str:join "\n"
