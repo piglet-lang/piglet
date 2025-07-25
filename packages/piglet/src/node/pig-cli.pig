@@ -71,7 +71,7 @@
   (let [mod (await (require (read-string module)))
         main-var (resolve (qsym (str (fqn *current-package*) ":" module ":-main")))]
     (when main-var
-      (apply main-var (rest (::argv opts))))))
+      (await (apply main-var (rest (::argv opts)))))))
 
 (def commands
   ["repl" #'repl
