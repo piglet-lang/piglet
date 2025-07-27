@@ -106,6 +106,7 @@
 (defn append [el & children] (apply (.bind (.-append el) el) children) el)
 (defn prepend [el & children] (apply (.bind (.-prepend el) el) children) el)
 (defn replace [this that] (.replaceWith this that) that)
+(defn replace-children [this & children] (.apply this.replaceChildren this children) this)
 
 (defn remove [el] (.remove el))
 
