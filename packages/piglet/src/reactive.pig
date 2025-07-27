@@ -44,7 +44,7 @@
   (-recompute! [this]))
 
 (defn track-reactions! [this compute! update!]
-  (binding [#'*reactive-context* #js []]
+  (binding [*reactive-context* #js []]
     (let [new-val (compute!)
           old-inputs (.-inputs this)
           new-inputs *reactive-context*]
@@ -75,7 +75,7 @@
       (deref [this]
         (when *reactive-context*
           (.push *reactive-context* this))
-        (binding [#'*reactive-context* nil]
+        (binding [*reactive-context* nil]
           (get-in (lang:deref cell) path)))
 
       TaggedValue
@@ -94,15 +94,6 @@
   (specify! #js {:val ::new
                  :watches {}
                  :inputs #js []}
-    Swappable
-    (-swap! [this f args]
-      (let [old-val (.-val this)
-            new-val (apply f old-val args)]
-        (set! (.-val this) new-val)
-        (doseq [[k f] (.-watches this)]
-          (f k this old-val new-val))
-        new-val))
-
     Derefable
     (deref [this]
       (when (= ::new (.-val this))
@@ -128,7 +119,12 @@
       (track-reactions!
         this
         (fn []
-          (reset! this (thunk)))
+          (let [old-val (.-val this)
+                new-val (thunk)]
+            (set! (.-val this) new-val)
+            (doseq [[k f] (.-watches this)]
+              (f k this old-val new-val))
+            new-val))
         (fn [old new]
           (when (not= old new)
             (-recompute! this)))))))
@@ -140,3 +136,26 @@
   which takes a zero-arity function (thunk)"
   [& body]
   `(formula* (fn [] ~@body)))
+
+(defn reaction* [thunk]
+  (doto
+    (specify! #js {:inputs #js []}
+      TaggedValue
+      (-tag [this] "reaction")
+      (-tag-value [this] thunk)
+
+      Formula
+      (-recompute! [this]
+      (track-reactions!
+        this
+        thunk
+        (fn [old new]
+          (when (not= old new)
+            (-recompute! this))))))
+    -recompute!))
+
+(defmacro reaction!
+  "Similar to [[formula]], but for side effects only. See [[reaction*]] for a
+  non-macro version that takes a thunk."
+  [& body]
+  `(reaction* (fn [] ~@body)))
